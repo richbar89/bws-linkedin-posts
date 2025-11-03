@@ -3,28 +3,34 @@ const cron = require("node-cron");
 const { exec } = require("child_process");
 
 console.log("📅 Tender Scheduler Started");
-console.log("⏰ Will fetch new tenders daily at 5:00 AM\n");
+console.log("⏰ Will fetch new tenders daily at 5:00 AM UK time\n");
 
-// Schedule tender fetch every day at 2:00 AM
-cron.schedule("0 5 * * *", () => {
-  console.log("🔄 Running scheduled tender refresh...");
-  console.log(`📅 ${new Date().toLocaleString()}\n`);
+// Schedule tender fetch every day at 5:00 AM UK time
+cron.schedule(
+  "0 5 * * *",
+  () => {
+    console.log("🔄 Running scheduled tender refresh...");
+    console.log(`📅 ${new Date().toLocaleString()}\n`);
 
-  exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
-    if (error) {
-      console.error(`❌ Error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`⚠️  Warning: ${stderr}`);
-      return;
-    }
-    console.log(stdout);
-    console.log("✅ Scheduled refresh complete\n");
-  });
-});
+    exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
+      if (error) {
+        console.error(`❌ Error: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.error(`⚠️  Warning: ${stderr}`);
+        return;
+      }
+      console.log(stdout);
+      console.log("✅ Scheduled refresh complete\n");
+    });
+  },
+  {
+    timezone: "Europe/London",
+  },
+);
 
-// Also run immediately on startup (optional)
+// Also run immediately on startup
 console.log("🚀 Running initial tender fetch...\n");
 exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
   if (error) {
