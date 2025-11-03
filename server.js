@@ -3,6 +3,8 @@
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
+const cron = require("node-cron");
+const { exec } = require("child_process");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -10,6 +12,46 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(express.json());
 app.use(express.static("public"));
+
+// Scheduler: Fetch tenders on startup and daily at 5 AM UK time
+console.log("📅 Tender Scheduler Started");
+console.log("⏰ Will fetch new tenders daily at 5:00 AM UK time\n");
+
+// Schedule tender fetch every day at 5:00 AM UK time
+cron.schedule(
+  "0 5 * * *",
+  () => {
+    console.log("🔄 Running scheduled tender refresh...");
+    console.log(`📅 ${new Date().toLocaleString()}\n`);
+
+    exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
+      if (error) {
+        console.error(`❌ Error: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.error(`⚠️  Warning: ${stderr}`);
+        return;
+      }
+      console.log(stdout);
+      console.log("✅ Scheduled refresh complete\n");
+    });
+  },
+  {
+    timezone: "Europe/London",
+  },
+);
+
+// Run initial tender fetch on startup
+console.log("🚀 Running initial tender fetch...\n");
+exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
+  if (error) {
+    console.error(`❌ Error: ${error.message}`);
+    return;
+  }
+  console.log(stdout);
+  console.log("✅ Initial fetch complete\n");
+});
 
 // Database connection helper
 async function getDbClient() {
