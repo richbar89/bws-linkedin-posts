@@ -450,14 +450,15 @@
                 font-size: 14px;
             }
 
-            /* Manage Companies Section */
+            /* Manage Companies Section - UPDATED WITH DARK RED CONTRAST */
             .manage-section {
                 display: none;
-                background: white;
+                background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
                 padding: 40px;
                 border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+                box-shadow: 0 8px 24px rgba(127, 29, 29, 0.4);
                 margin-bottom: 40px;
+                border: 3px solid #991b1b;
             }
 
             .manage-section.show {
@@ -470,28 +471,32 @@
                 align-items: center;
                 margin-bottom: 30px;
                 padding-bottom: 20px;
-                border-bottom: 2px solid #fecaca;
+                border-bottom: 2px solid rgba(254, 202, 202, 0.3);
             }
 
             .manage-title {
                 font-size: 24px;
-                font-weight: 500;
-                color: #1c2541;
+                font-weight: 600;
+                color: #ffffff;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             }
 
             .close-btn {
                 padding: 10px 20px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
+                background: rgba(255, 255, 255, 0.95);
+                border: 2px solid #dc2626;
                 border-radius: 8px;
                 font-size: 14px;
+                font-weight: 600;
                 color: #991b1b;
                 cursor: pointer;
                 transition: all 0.2s;
             }
 
             .close-btn:hover {
-                background: #fee2e2;
+                background: #ffffff;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             }
 
             .company-item {
@@ -499,11 +504,11 @@
                 justify-content: space-between;
                 align-items: center;
                 padding: 20px;
-                background: #fefefe;
-                border: 1px solid #fecaca;
+                background: rgba(255, 255, 255, 0.95);
+                border: 2px solid rgba(220, 38, 38, 0.3);
                 border-radius: 8px;
                 margin-bottom: 12px;
-                box-shadow: 0 2px 4px rgba(220, 38, 38, 0.08);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
             }
 
             .company-info {
@@ -512,7 +517,7 @@
 
             .company-name {
                 font-size: 16px;
-                font-weight: 500;
+                font-weight: 600;
                 color: #1c2541;
                 margin-bottom: 6px;
             }
@@ -525,28 +530,31 @@
 
             .delete-btn {
                 padding: 8px 16px;
-                background: #dc2626;
+                background: #7f1d1d;
                 color: white;
                 border: none;
                 border-radius: 6px;
                 font-size: 13px;
-                font-weight: 500;
+                font-weight: 600;
                 cursor: pointer;
                 transition: all 0.2s;
             }
 
             .delete-btn:hover {
-                background: #b91c1c;
+                background: #991b1b;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             }
 
-            /* Add Company Form */
+            /* Add Company Form - UPDATED WITH DARK RED CONTRAST */
             .add-form {
                 display: none;
-                background: white;
+                background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
                 padding: 40px;
                 border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+                box-shadow: 0 8px 24px rgba(127, 29, 29, 0.4);
                 margin-bottom: 40px;
+                border: 3px solid #991b1b;
             }
 
             .add-form.show {
@@ -555,9 +563,10 @@
 
             .form-title {
                 font-size: 24px;
-                font-weight: 500;
-                color: #1c2541;
+                font-weight: 600;
+                color: #ffffff;
                 margin-bottom: 30px;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             }
 
             .form-group {
@@ -568,7 +577,7 @@
                 display: block;
                 font-size: 14px;
                 font-weight: 600;
-                color: #1c2541;
+                color: #ffffff;
                 margin-bottom: 8px;
             }
 
@@ -576,20 +585,22 @@
                 width: 100%;
                 padding: 12px 16px;
                 font-size: 15px;
-                border: 2px solid #fecaca;
+                border: 2px solid rgba(255, 255, 255, 0.3);
                 border-radius: 8px;
                 transition: all 0.2s;
+                background: rgba(255, 255, 255, 0.95);
             }
 
             .form-input:focus {
                 outline: none;
-                border-color: #dc2626;
-                box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+                border-color: #ffffff;
+                box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+                background: #ffffff;
             }
 
             .form-help {
                 font-size: 13px;
-                color: #6c757d;
+                color: rgba(255, 255, 255, 0.9);
                 margin-top: 6px;
             }
 
@@ -605,18 +616,20 @@
 
             .add-cpv-btn {
                 padding: 12px 24px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
+                background: rgba(255, 255, 255, 0.95);
+                border: 2px solid #dc2626;
                 border-radius: 8px;
                 font-size: 14px;
-                font-weight: 500;
+                font-weight: 600;
                 color: #991b1b;
                 cursor: pointer;
                 transition: all 0.2s;
             }
 
             .add-cpv-btn:hover {
-                background: #fee2e2;
+                background: #ffffff;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             }
 
             .cpv-tags-list {
@@ -631,8 +644,8 @@
                 align-items: center;
                 gap: 8px;
                 padding: 6px 12px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
+                background: rgba(255, 255, 255, 0.95);
+                border: 2px solid rgba(220, 38, 38, 0.3);
                 border-radius: 6px;
                 font-size: 13px;
                 font-family: "Courier New", monospace;
@@ -657,34 +670,37 @@
 
             .submit-btn {
                 padding: 12px 32px;
-                background: #dc2626;
-                color: white;
-                border: none;
+                background: #ffffff;
+                color: #991b1b;
+                border: 2px solid #ffffff;
                 border-radius: 8px;
                 font-size: 15px;
-                font-weight: 500;
+                font-weight: 600;
                 cursor: pointer;
                 transition: all 0.2s;
             }
 
             .submit-btn:hover {
-                background: #b91c1c;
+                background: rgba(255, 255, 255, 0.9);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             }
 
             .cancel-btn {
                 padding: 12px 32px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
+                background: rgba(255, 255, 255, 0.2);
+                border: 2px solid rgba(255, 255, 255, 0.5);
                 border-radius: 8px;
                 font-size: 15px;
-                font-weight: 500;
-                color: #991b1b;
+                font-weight: 600;
+                color: #ffffff;
                 cursor: pointer;
                 transition: all 0.2s;
             }
 
             .cancel-btn:hover {
-                background: #fee2e2;
+                background: rgba(255, 255, 255, 0.3);
+                border-color: #ffffff;
             }
 
             /* Icon styles */
@@ -737,55 +753,7 @@
                 </div>
             </div>
 
-            <!-- Dashboard Stats Section -->
-            <div class="dashboard-section" id="dashboardSection">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">📊</div>
-                        <div class="stat-value" id="totalTenders">0</div>
-                        <div class="stat-label">Total Active Tenders</div>
-                        <div class="stat-change" id="tendersChange">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">✨</div>
-                        <div class="stat-value" id="newThisWeek">0</div>
-                        <div class="stat-label">New This Week</div>
-                        <div class="stat-change" id="newChange">Loading...</div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">⏰</div>
-                        <div class="stat-value" id="closingSoon">0</div>
-                        <div class="stat-label">Closing in 7 Days</div>
-                        <div class="stat-change" id="urgentChange">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">🏢</div>
-                        <div class="stat-value" id="companiesTracked">0</div>
-                        <div class="stat-label">Companies Tracked</div>
-                        <div class="stat-change" id="companiesChange">
-                            Active monitoring
-                        </div>
-                    </div>
-                </div>
-
-                <div class="activity-card">
-                    <h2 class="activity-header">Recent Tender Activity</h2>
-                    <div id="recentActivity">
-                        <div class="empty-state">
-                            <p>Loading recent activity...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Manage Companies Section -->
+            <!-- Manage Companies Section - MOVED HERE -->
             <div class="manage-section" id="manageSection">
                 <div class="manage-header">
                     <h2 class="manage-title">Manage Companies</h2>
@@ -801,7 +769,7 @@
                 <div id="companiesList"></div>
             </div>
 
-            <!-- Add Company Form -->
+            <!-- Add Company Form - MOVED HERE -->
             <div class="add-form" id="addForm">
                 <h2 class="form-title">Add New Company</h2>
                 <form onsubmit="addCompany(event)">
@@ -857,6 +825,54 @@
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Dashboard Stats Section -->
+            <div class="dashboard-section" id="dashboardSection">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-value" id="totalTenders">0</div>
+                        <div class="stat-label">Total Active Tenders</div>
+                        <div class="stat-change" id="tendersChange">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">✨</div>
+                        <div class="stat-value" id="newThisWeek">0</div>
+                        <div class="stat-label">New This Week</div>
+                        <div class="stat-change" id="newChange">Loading...</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">⏰</div>
+                        <div class="stat-value" id="closingSoon">0</div>
+                        <div class="stat-label">Closing in 7 Days</div>
+                        <div class="stat-change" id="urgentChange">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">🏢</div>
+                        <div class="stat-value" id="companiesTracked">0</div>
+                        <div class="stat-label">Companies Tracked</div>
+                        <div class="stat-change" id="companiesChange">
+                            Active monitoring
+                        </div>
+                    </div>
+                </div>
+
+                <div class="activity-card">
+                    <h2 class="activity-header">Recent Tender Activity</h2>
+                    <div id="recentActivity">
+                        <div class="empty-state">
+                            <p>Loading recent activity...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Results Section -->
