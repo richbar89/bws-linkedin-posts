@@ -80,9 +80,16 @@
                 height: auto;
             }
 
+            /* Selection Row - Two Cards Side by Side */
+            .selection-row {
+                display: grid;
+                grid-template-columns: 1fr 400px;
+                gap: 24px;
+                margin-bottom: 40px;
+            }
+
             /* Company Selection */
             .selection-section {
-                margin-bottom: 40px;
                 background: white;
                 padding: 30px;
                 border-radius: 12px;
@@ -109,6 +116,102 @@
 
             .company-select-wrapper {
                 position: relative;
+            }
+
+            /* Industry Filter Card */
+            .industry-filter-card {
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+            }
+
+            .industry-filter-label {
+                font-size: 14px;
+                font-weight: 600;
+                color: #1c2541;
+                margin-bottom: 16px;
+            }
+
+            .filter-industry-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 14px 24px;
+                background: #dc2626;
+                border: none;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 600;
+                color: white;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .filter-industry-btn:hover {
+                background: #b91c1c;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            }
+
+            /* Industry Categories Section */
+            .industry-categories {
+                display: none;
+                margin-bottom: 40px;
+            }
+
+            .industry-categories.show {
+                display: block;
+            }
+
+            .industries-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 24px;
+            }
+
+            .industry-card {
+                background: white;
+                padding: 40px 30px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+                cursor: pointer;
+                transition: all 0.3s;
+                text-align: center;
+                border: 3px solid transparent;
+            }
+
+            .industry-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
+                border-color: #dc2626;
+            }
+
+            .industry-card.active {
+                border-color: #dc2626;
+                background: #fef2f2;
+            }
+
+            .industry-icon {
+                font-size: 48px;
+                margin-bottom: 16px;
+            }
+
+            .industry-name {
+                font-size: 18px;
+                font-weight: 600;
+                color: #1c2541;
+                margin-bottom: 8px;
+            }
+
+            .industry-count {
+                font-size: 14px;
+                color: #6c757d;
             }
 
             .company-select {
@@ -376,6 +479,53 @@
                 background: #b91c1c;
                 transform: translateY(-1px);
                 box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+            }
+
+            /* Matching Clients Display */
+            .matching-clients {
+                font-size: 13px;
+                color: #1c2541;
+            }
+
+            .matching-clients-count {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 4px 10px;
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                border-radius: 6px;
+                font-weight: 600;
+                color: #991b1b;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .matching-clients-count:hover {
+                background: #fee2e2;
+            }
+
+            .matching-clients-list {
+                margin-top: 8px;
+                padding: 8px 0;
+                display: none;
+            }
+
+            .matching-clients-list.show {
+                display: block;
+            }
+
+            .client-match-item {
+                padding: 4px 0;
+                font-size: 12px;
+                color: #6c757d;
+            }
+
+            .client-match-item::before {
+                content: "✓";
+                color: #059669;
+                margin-right: 6px;
+                font-weight: bold;
             }
 
             /* Empty State */
@@ -688,26 +838,95 @@
                 />
             </header>
 
-            <!-- Company Selection -->
-            <div class="selection-section">
-                <div class="selection-content">
-                    <div class="selection-group">
-                        <label class="selection-label" for="companySelect"
-                            >Select Company</label
+            <!-- Selection Row: Company Selection + Industry Filter -->
+            <div class="selection-row">
+                <!-- Company Selection Card -->
+                <div class="selection-section">
+                    <div class="selection-content">
+                        <div class="selection-group">
+                            <label class="selection-label" for="companySelect"
+                                >Select Company</label
+                            >
+                            <div class="company-select-wrapper">
+                                <select
+                                    id="companySelect"
+                                    class="company-select"
+                                >
+                                    <option value="">
+                                        -- Choose a company --
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <button
+                            onclick="toggleManageCompanies()"
+                            class="manage-btn"
                         >
-                        <div class="company-select-wrapper">
-                            <select id="companySelect" class="company-select">
-                                <option value="">-- Choose a company --</option>
-                            </select>
+                            <span class="icon">➕</span>
+                            <span>Add New Company</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Industry Filter Card -->
+                <div class="industry-filter-card">
+                    <div class="industry-filter-label">Browse by Industry</div>
+                    <button
+                        onclick="toggleIndustryCategories()"
+                        class="filter-industry-btn"
+                    >
+                        <span>🔍</span>
+                        <span>Filter by Industry</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Industry Categories Section -->
+            <div class="industry-categories" id="industryCategories">
+                <div class="industries-grid">
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('security')"
+                    >
+                        <div class="industry-icon">🔒</div>
+                        <div class="industry-name">Security</div>
+                        <div class="industry-count" id="securityCount">
+                            Loading...
                         </div>
                     </div>
-                    <button
-                        onclick="toggleManageCompanies()"
-                        class="manage-btn"
+
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('fire')"
                     >
-                        <span class="icon">➕</span>
-                        <span>Add New Company</span>
-                    </button>
+                        <div class="industry-icon">🔥</div>
+                        <div class="industry-name">Fire Safety</div>
+                        <div class="industry-count" id="fireCount">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('cleaning')"
+                    >
+                        <div class="industry-icon">🧹</div>
+                        <div class="industry-name">Cleaning</div>
+                        <div class="industry-count" id="cleaningCount">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('waste')"
+                    >
+                        <div class="industry-icon">♻️</div>
+                        <div class="industry-name">Waste Management</div>
+                        <div class="industry-count" id="wasteCount">
+                            Loading...
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -842,9 +1061,10 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 45%">TITLE</th>
-                                <th style="width: 25%">PUBLISHED</th>
+                                <th style="width: 35%">TITLE</th>
+                                <th style="width: 20%">PUBLISHED</th>
                                 <th style="width: 15%">MATCHED CPVS</th>
+                                <th style="width: 15%">MATCHING CLIENTS</th>
                                 <th style="width: 15%"></th>
                             </tr>
                         </thead>
@@ -858,6 +1078,43 @@
             let companies = [];
             let newCompanyCpvCodes = [];
             let allTendersData = [];
+
+            // Industry to CPV code mappings
+            const industries = {
+                security: {
+                    name: "Security",
+                    cpvCodes: ["79710000", "79711000", "79715000", "79714000"],
+                },
+                fire: {
+                    name: "Fire Safety",
+                    cpvCodes: ["45331100", "50413200", "45331200", "45331210"],
+                },
+                cleaning: {
+                    name: "Cleaning",
+                    cpvCodes: ["90910000", "90919200", "90911200", "90911300"],
+                },
+                waste: {
+                    name: "Waste Management",
+                    cpvCodes: ["90500000", "90511000", "90512000", "90513100"],
+                },
+            };
+
+            // Toggle industry categories visibility
+            function toggleIndustryCategories() {
+                const section = document.getElementById("industryCategories");
+                const isVisible = section.classList.contains("show");
+
+                if (isVisible) {
+                    section.classList.remove("show");
+                } else {
+                    section.classList.add("show");
+                    section.scrollIntoView({
+                        behavior: "smooth",
+                        block: "nearest",
+                    });
+                    updateIndustryCounts();
+                }
+            }
 
             // Load companies
             async function loadCompanies() {
@@ -987,7 +1244,7 @@
                 );
 
                 document.getElementById("tendersTableBody").innerHTML =
-                    '<tr><td colspan="4" class="loading">Loading tenders...</td></tr>';
+                    '<tr><td colspan="5" class="loading">Loading tenders...</td></tr>';
 
                 // Set refresh time
                 const now = new Date();
@@ -1014,7 +1271,7 @@
                     if (data.tenders.length === 0) {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="4">
+                                <td colspan="5">
                                     <div class="empty-state">
                                         <h3>No matching tenders found</h3>
                                         <p>There are no open tenders matching this company's CPV codes in the last 14 days.</p>
@@ -1077,6 +1334,9 @@
                                         </div>
                                     </td>
                                     <td>
+                                        <span class="cpv-tag">${company.name}</span>
+                                    </td>
+                                    <td>
                                         <a href="${tender.tender_url}" target="_blank" class="view-btn">
                                             View Tender Details →
                                         </a>
@@ -1089,7 +1349,7 @@
                 } catch (error) {
                     document.getElementById("tendersTableBody").innerHTML = `
                         <tr>
-                            <td colspan="4">
+                            <td colspan="5">
                                 <div class="empty-state">
                                     <h3>Error loading tenders</h3>
                                     <p>${error.message}</p>
@@ -1308,6 +1568,182 @@
                     });
                 }
             });
+
+            // Update industry counts
+            async function updateIndustryCounts() {
+                try {
+                    const response = await fetch("/api/industries/counts");
+                    const counts = await response.json();
+
+                    document.getElementById("securityCount").textContent =
+                        `${counts.security} opportunities`;
+                    document.getElementById("fireCount").textContent =
+                        `${counts.fire} opportunities`;
+                    document.getElementById("cleaningCount").textContent =
+                        `${counts.cleaning} opportunities`;
+                    document.getElementById("wasteCount").textContent =
+                        `${counts.waste} opportunities`;
+                } catch (error) {
+                    console.error("Error updating industry counts:", error);
+                }
+            }
+
+            // Filter tenders by industry
+            async function filterByIndustry(industryKey) {
+                // Hide dashboard, show results
+                document
+                    .getElementById("dashboardSection")
+                    .classList.add("hide");
+                document.getElementById("resultsSection").classList.add("show");
+
+                // Clear company selection
+                document.getElementById("companySelect").value = "";
+
+                // Mark active industry card
+                document.querySelectorAll(".industry-card").forEach((card) => {
+                    card.classList.remove("active");
+                });
+                event.target.closest(".industry-card").classList.add("active");
+
+                // Show loading
+                document.getElementById("tendersTableBody").innerHTML =
+                    '<tr><td colspan="5" class="loading">Loading tenders...</td></tr>';
+
+                // Set refresh time
+                const now = new Date();
+                document.getElementById("refreshTime").textContent =
+                    now.toLocaleTimeString("en-GB", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    });
+
+                try {
+                    const response = await fetch(
+                        `/api/industries/${industryKey}/tenders`,
+                    );
+                    const data = await response.json();
+
+                    document.getElementById("resultsCount").textContent =
+                        `Showing ${data.tenders.length} result${data.tenders.length !== 1 ? "s" : ""} for ${industries[industryKey].name}`;
+
+                    document.getElementById("cpvInfo").textContent =
+                        `Showing opportunities matching CPV codes: ${industries[industryKey].cpvCodes.join(", ")}`;
+
+                    const tbody = document.getElementById("tendersTableBody");
+
+                    if (data.tenders.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-state">
+                                        <h3>No matching tenders found</h3>
+                                        <p>There are no open ${industries[industryKey].name} tenders in the last 14 days.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        tbody.innerHTML = data.tenders
+                            .map((tender) => {
+                                const pubDate = new Date(
+                                    tender.publication_date,
+                                ).toLocaleDateString("en-GB");
+                                const deadline = tender.deadline_date
+                                    ? new Date(
+                                          tender.deadline_date,
+                                      ).toLocaleDateString("en-GB")
+                                    : "Not specified";
+
+                                const daysAgo = Math.floor(
+                                    (Date.now() -
+                                        new Date(tender.publication_date)) /
+                                        (1000 * 60 * 60 * 24),
+                                );
+                                const publishedText =
+                                    daysAgo === 0
+                                        ? "today"
+                                        : daysAgo === 1
+                                          ? "1 day ago"
+                                          : `${daysAgo} days ago`;
+
+                                // Display matching clients
+                                const matchingClients =
+                                    tender.matching_companies || [];
+                                const clientsHtml =
+                                    matchingClients.length > 0
+                                        ? `<div class="matching-clients">
+                                        <div class="matching-clients-count" onclick="toggleClientsList(event, '${tender.id}')">
+                                            ${matchingClients.length} client${matchingClients.length !== 1 ? "s" : ""} ▼
+                                        </div>
+                                        <div class="matching-clients-list" id="clients-${tender.id}">
+                                            ${matchingClients.map((c) => `<div class="client-match-item">${c.name}</div>`).join("")}
+                                        </div>
+                                    </div>`
+                                        : `<span style="color: #95a5a6; font-size: 12px;">No matches</span>`;
+
+                                return `
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <span class="tender-title">${tender.title}</span>
+                                            <span class="tender-buyer">${tender.buyer_name}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="status-badge status-${tender.status}">${tender.status.toUpperCase()}</span>
+                                            <div style="margin-top: 6px; font-size: 12px; color: #495057;">
+                                                <div class="date-display">📅 Published: ${pubDate}</div>
+                                                <div class="date-display deadline-display">⏰ Deadline: ${deadline}</div>
+                                            </div>
+                                            <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">${publishedText}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                            ${tender.cpv_codes
+                                                .slice(0, 2)
+                                                .map(
+                                                    (code) =>
+                                                        `<span class="cpv-tag">${code}</span>`,
+                                                )
+                                                .join("")}
+                                            ${tender.cpv_codes.length > 2 ? `<span class="cpv-tag">+${tender.cpv_codes.length - 2}</span>` : ""}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        ${clientsHtml}
+                                    </td>
+                                    <td>
+                                        <a href="${tender.tender_url}" target="_blank" class="view-btn">
+                                            View Details →
+                                        </a>
+                                    </td>
+                                </tr>
+                            `;
+                            })
+                            .join("");
+                    }
+                } catch (error) {
+                    document.getElementById("tendersTableBody").innerHTML = `
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <h3>Error loading tenders</h3>
+                                    <p>${error.message}</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+
+            // Toggle clients list visibility
+            function toggleClientsList(event, tenderId) {
+                event.stopPropagation();
+                const list = document.getElementById(`clients-${tenderId}`);
+                list.classList.toggle("show");
+            }
 
             // Initialize
             loadCompanies();
