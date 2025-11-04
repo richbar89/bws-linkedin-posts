@@ -1,14 +1,14 @@
 // Fetch tenders from API and save to database
-// FIXED: Removed stages filter to get ALL tenders (matches website behavior)
+// UPDATED: Changed to 14-day rolling window for more tender coverage
 const { Client } = require("pg");
 
 async function fetchAndSaveTenders() {
   console.log("🚀 Starting tender fetch...\n");
 
-  // Calculate date from 10 days ago
-  const tenDaysAgo = new Date();
-  tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
-  const dateFrom = tenDaysAgo.toISOString();
+  // Calculate date from 14 days ago (UPDATED from 10 days)
+  const fourteenDaysAgo = new Date();
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+  const dateFrom = fourteenDaysAgo.toISOString();
 
   console.log(`📅 Fetching tenders from: ${dateFrom}\n`);
 
@@ -71,7 +71,7 @@ async function fetchAndSaveTenders() {
     let savedCount = 0;
     let skippedCount = 0;
 
-    // Clear existing tenders first (rolling 10-day window)
+    // Clear existing tenders first (rolling 14-day window)
     await client.query("DELETE FROM tenders");
     console.log("🧹 Cleared old tenders\n");
 
@@ -162,7 +162,7 @@ async function fetchAndSaveTenders() {
     console.log(`   Saved to database: ${savedCount}`);
     console.log(`   Skipped (no tender data): ${skippedCount}`);
     console.log(`   Pages fetched: ${pageCount}`);
-    console.log("\n✨ Done! Rolling 10-day window updated.\n");
+    console.log("\n✨ Done! Rolling 14-day window updated.\n");
   } catch (error) {
     console.log("❌ Error:", error.message);
   } finally {
