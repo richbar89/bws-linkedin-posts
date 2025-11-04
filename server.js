@@ -1,1715 +1,519 @@
-<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>BWS Tender Scanner</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-
-            body {
-                font-family:
-                    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-                    "Helvetica", "Arial", sans-serif;
-                background: linear-gradient(
-                    135deg,
-                    #ffe5e5 0%,
-                    #ffffff 50%,
-                    #ffd5d5 100%
-                );
-                background-attachment: fixed;
-                color: #1c2541;
-                line-height: 1.6;
-                min-height: 100vh;
-            }
-
-            .container {
-                max-width: 1400px;
-                margin: 0 auto;
-                padding: 40px 60px;
-            }
-
-            /* Header */
-            header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 50px;
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-            }
-
-            .header-left h1 {
-                font-size: 48px;
-                font-weight: 700;
-                color: #1c2541;
-                margin-bottom: 10px;
-            }
-
-            .manage-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 14px 20px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                color: #991b1b;
-                cursor: pointer;
-                transition: all 0.2s;
-                text-decoration: none;
-                white-space: nowrap;
-            }
-
-            .manage-btn:hover {
-                background: #fee2e2;
-                border-color: #fca5a5;
-                transform: translateY(-1px);
-            }
-
-            .logo {
-                width: 300px;
-                height: auto;
-            }
-
-            /* Selection Row - Two Cards Side by Side */
-            .selection-row {
-                display: grid;
-                grid-template-columns: 1fr 400px;
-                gap: 24px;
-                margin-bottom: 40px;
-            }
-
-            /* Company Selection */
-            .selection-section {
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-            }
-
-            .selection-content {
-                display: flex;
-                align-items: flex-end;
-                gap: 20px;
-            }
-
-            .selection-group {
-                flex: 1;
-            }
-
-            .selection-label {
-                font-size: 14px;
-                font-weight: 600;
-                color: #1c2541;
-                margin-bottom: 12px;
-                display: block;
-            }
-
-            .company-select-wrapper {
-                position: relative;
-            }
-
-            /* Industry Filter Card */
-            .industry-filter-card {
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                text-align: center;
-            }
-
-            .industry-filter-label {
-                font-size: 14px;
-                font-weight: 600;
-                color: #1c2541;
-                margin-bottom: 16px;
-            }
-
-            .filter-industry-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 14px 24px;
-                background: #dc2626;
-                border: none;
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: 600;
-                color: white;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .filter-industry-btn:hover {
-                background: #b91c1c;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-            }
-
-            /* Industry Categories Section */
-            .industry-categories {
-                display: none;
-                margin-bottom: 40px;
-            }
-
-            .industry-categories.show {
-                display: block;
-            }
-
-            .industries-grid {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 24px;
-            }
-
-            .industry-card {
-                background: white;
-                padding: 40px 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-                cursor: pointer;
-                transition: all 0.3s;
-                text-align: center;
-                border: 3px solid transparent;
-            }
-
-            .industry-card:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
-                border-color: #dc2626;
-            }
-
-            .industry-card.active {
-                border-color: #dc2626;
-                background: #fef2f2;
-            }
-
-            .industry-icon {
-                font-size: 48px;
-                margin-bottom: 16px;
-            }
-
-            .industry-name {
-                font-size: 18px;
-                font-weight: 600;
-                color: #1c2541;
-                margin-bottom: 8px;
-            }
-
-            .industry-count {
-                font-size: 14px;
-                color: #6c757d;
-            }
-
-            .company-select {
-                width: 100%;
-                padding: 14px 16px;
-                font-size: 16px;
-                border: 2px solid #dc2626;
-                border-radius: 8px;
-                background: white;
-                color: #1c2541;
-                cursor: pointer;
-                appearance: none;
-                transition: all 0.2s;
-            }
-
-            .company-select:hover {
-                border-color: #b91c1c;
-            }
-
-            .company-select:focus {
-                outline: none;
-                border-color: #b91c1c;
-                box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-            }
-
-            /* Dashboard Stats Section */
-            .dashboard-section {
-                display: block;
-                margin-bottom: 40px;
-            }
-
-            .dashboard-section.hide {
-                display: none;
-            }
-
-            .stats-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 24px;
-                margin-bottom: 30px;
-            }
-
-            .stat-card {
-                background: white;
-                padding: 40px 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-                transition: all 0.3s;
-                text-align: center;
-            }
-
-            .stat-card:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
-            }
-
-            .stat-value {
-                font-size: 72px;
-                font-weight: 700;
-                color: #dc2626;
-                margin-bottom: 16px;
-                line-height: 1;
-            }
-
-            .stat-label {
-                font-size: 16px;
-                color: #6c757d;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                font-weight: 600;
-            }
-
-            .stat-change {
-                font-size: 13px;
-                color: #059669;
-                margin-top: 12px;
-            }
-
-            .stat-change.negative {
-                color: #dc2626;
-            }
-
-            /* Results Section */
-            .results-section {
-                display: none;
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                margin-bottom: 30px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-            }
-
-            .results-section.show {
-                display: block;
-            }
-
-            .results-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-            }
-
-            .results-count {
-                font-size: 16px;
-                color: #1c2541;
-            }
-
-            .results-meta {
-                font-size: 13px;
-                color: #6c757d;
-            }
-
-            .cpv-info {
-                font-size: 13px;
-                color: #6c757d;
-                margin-bottom: 8px;
-            }
-
-            .filter-info {
-                font-size: 12px;
-                color: #95a5a6;
-            }
-
-            /* Table */
-            .tender-table {
-                width: 100%;
-                background: #fafafa;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            }
-
-            .tender-table table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-
-            .tender-table thead {
-                background: #fef2f2;
-                border-bottom: 2px solid #fecaca;
-            }
-
-            .tender-table th {
-                padding: 12px 16px;
-                text-align: left;
-                font-size: 11px;
-                font-weight: 600;
-                color: #991b1b;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .tender-table td {
-                padding: 14px 16px;
-                border-bottom: 1px solid #f0f0f0;
-                vertical-align: middle;
-                background: white;
-            }
-
-            .tender-table tbody tr {
-                transition: background 0.2s;
-            }
-
-            .tender-table tbody tr:hover {
-                background: #fef2f2 !important;
-            }
-
-            .tender-table tbody tr:hover td {
-                background: transparent;
-            }
-
-            .tender-table tbody tr:last-child td {
-                border-bottom: none;
-            }
-
-            /* Status Badge */
-            .status-badge {
-                display: inline-block;
-                padding: 4px 10px;
-                border-radius: 12px;
-                font-size: 10px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .status-active {
-                background: #d4edda;
-                color: #155724;
-            }
-
-            .status-planned {
-                background: #fff3cd;
-                color: #856404;
-            }
-
-            /* Date Display */
-            .date-display {
-                display: inline-block;
-                font-size: 12px;
-                color: #495057;
-                margin-right: 12px;
-            }
-
-            .deadline-display {
-                color: #dc2626;
-                font-weight: 600;
-            }
-
-            /* Title Link */
-            .tender-title {
-                font-size: 14px;
-                font-weight: 500;
-                color: #1c2541;
-                margin-bottom: 2px;
-                display: inline;
-            }
-
-            .tender-buyer {
-                font-size: 12px;
-                color: #6c757d;
-                display: inline;
-                margin-left: 8px;
-            }
-
-            .tender-buyer::before {
-                content: "•";
-                margin-right: 8px;
-                color: #cbd5e0;
-            }
-
-            /* CPV Tags */
-            .cpv-tag {
-                display: inline-block;
-                padding: 4px 10px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
-                border-radius: 4px;
-                font-size: 11px;
-                font-family: "Courier New", monospace;
-                color: #991b1b;
-                margin: 2px;
-            }
-
-            /* View Details Button */
-            .view-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                padding: 8px 16px;
-                background: #dc2626;
-                color: white;
-                text-decoration: none;
-                border-radius: 6px;
-                font-size: 13px;
-                font-weight: 500;
-                transition: all 0.2s;
-                border: none;
-                cursor: pointer;
-                white-space: nowrap;
-            }
-
-            .view-btn:hover {
-                background: #b91c1c;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
-            }
-
-            /* Matching Clients Display */
-            .matching-clients {
-                font-size: 13px;
-                color: #1c2541;
-            }
-
-            .matching-clients-count {
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-                padding: 4px 10px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
-                border-radius: 6px;
-                font-weight: 600;
-                color: #991b1b;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .matching-clients-count:hover {
-                background: #fee2e2;
-            }
-
-            .matching-clients-list {
-                margin-top: 8px;
-                padding: 8px 0;
-                display: none;
-            }
-
-            .matching-clients-list.show {
-                display: block;
-            }
-
-            .client-match-item {
-                padding: 4px 0;
-                font-size: 12px;
-                color: #6c757d;
-            }
-
-            .client-match-item::before {
-                content: "✓";
-                color: #059669;
-                margin-right: 6px;
-                font-weight: bold;
-            }
-
-            /* Empty State */
-            .empty-state {
-                text-align: center;
-                padding: 60px 20px;
-                color: #6c757d;
-            }
-
-            .empty-state h3 {
-                font-size: 18px;
-                font-weight: 500;
-                color: #495057;
-                margin-bottom: 8px;
-            }
-
-            .empty-state p {
-                font-size: 14px;
-            }
-
-            /* Loading */
-            .loading {
-                text-align: center;
-                padding: 60px 20px;
-                color: #6c757d;
-                font-size: 14px;
-            }
-
-            /* Manage Companies Section - UPDATED WITH DARK RED CONTRAST */
-            .manage-section {
-                display: none;
-                background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
-                padding: 40px;
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(127, 29, 29, 0.4);
-                margin-bottom: 40px;
-                border: 3px solid #991b1b;
-            }
-
-            .manage-section.show {
-                display: block;
-            }
-
-            .manage-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 30px;
-                padding-bottom: 20px;
-                border-bottom: 2px solid rgba(254, 202, 202, 0.3);
-            }
-
-            .manage-title {
-                font-size: 24px;
-                font-weight: 600;
-                color: #ffffff;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            }
-
-            .close-btn {
-                padding: 10px 20px;
-                background: rgba(255, 255, 255, 0.95);
-                border: 2px solid #dc2626;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                color: #991b1b;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .close-btn:hover {
-                background: #ffffff;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            }
-
-            .company-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 20px;
-                background: rgba(255, 255, 255, 0.95);
-                border: 2px solid rgba(220, 38, 38, 0.3);
-                border-radius: 8px;
-                margin-bottom: 12px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-            }
-
-            .company-info {
-                flex: 1;
-            }
-
-            .company-name {
-                font-size: 16px;
-                font-weight: 600;
-                color: #1c2541;
-                margin-bottom: 6px;
-            }
-
-            .company-cpv {
-                font-size: 13px;
-                color: #6c757d;
-                font-family: "Courier New", monospace;
-            }
-
-            .delete-btn {
-                padding: 8px 16px;
-                background: #7f1d1d;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 13px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .delete-btn:hover {
-                background: #991b1b;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            }
-
-            /* Add Company Form - UPDATED WITH DARK RED CONTRAST */
-            .add-form {
-                display: none;
-                background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
-                padding: 40px;
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(127, 29, 29, 0.4);
-                margin-bottom: 40px;
-                border: 3px solid #991b1b;
-            }
-
-            .add-form.show {
-                display: block;
-            }
-
-            .form-title {
-                font-size: 24px;
-                font-weight: 600;
-                color: #ffffff;
-                margin-bottom: 30px;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            }
-
-            .form-group {
-                margin-bottom: 24px;
-            }
-
-            .form-label {
-                display: block;
-                font-size: 14px;
-                font-weight: 600;
-                color: #ffffff;
-                margin-bottom: 8px;
-            }
-
-            .form-input {
-                width: 100%;
-                padding: 12px 16px;
-                font-size: 15px;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                border-radius: 8px;
-                transition: all 0.2s;
-                background: rgba(255, 255, 255, 0.95);
-            }
-
-            .form-input:focus {
-                outline: none;
-                border-color: #ffffff;
-                box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
-                background: #ffffff;
-            }
-
-            .form-help {
-                font-size: 13px;
-                color: rgba(255, 255, 255, 0.9);
-                margin-top: 6px;
-            }
-
-            .cpv-input-group {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 12px;
-            }
-
-            .cpv-input-group input {
-                flex: 1;
-            }
-
-            .add-cpv-btn {
-                padding: 12px 24px;
-                background: rgba(255, 255, 255, 0.95);
-                border: 2px solid #dc2626;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                color: #991b1b;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .add-cpv-btn:hover {
-                background: #ffffff;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            }
-
-            .cpv-tags-list {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                margin-top: 12px;
-            }
-
-            .cpv-tag-removable {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 6px 12px;
-                background: rgba(255, 255, 255, 0.95);
-                border: 2px solid rgba(220, 38, 38, 0.3);
-                border-radius: 6px;
-                font-size: 13px;
-                font-family: "Courier New", monospace;
-            }
-
-            .remove-cpv {
-                background: none;
-                border: none;
-                color: #dc2626;
-                font-size: 18px;
-                font-weight: bold;
-                cursor: pointer;
-                padding: 0;
-                line-height: 1;
-            }
-
-            .form-actions {
-                display: flex;
-                gap: 12px;
-                margin-top: 32px;
-            }
-
-            .submit-btn {
-                padding: 12px 32px;
-                background: #ffffff;
-                color: #991b1b;
-                border: 2px solid #ffffff;
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .submit-btn:hover {
-                background: rgba(255, 255, 255, 0.9);
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            }
-
-            .cancel-btn {
-                padding: 12px 32px;
-                background: rgba(255, 255, 255, 0.2);
-                border: 2px solid rgba(255, 255, 255, 0.5);
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: 600;
-                color: #ffffff;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .cancel-btn:hover {
-                background: rgba(255, 255, 255, 0.3);
-                border-color: #ffffff;
-            }
-
-            /* Icon styles */
-            .icon {
-                font-size: 16px;
-            }
-
-            /* Link Icon */
-            .link-icon {
-                color: #dc2626;
-                text-decoration: none;
-                font-size: 18px;
-            }
-
-            .link-icon:hover {
-                color: #b91c1c;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <!-- Header -->
-            <header>
-                <div class="header-left">
-                    <h1>Bid Scanner</h1>
-                </div>
-                <img
-                    src="https://bidwritingservice.com/wp-content/uploads/2023/02/CY-003-BWS-Logo-CYMK-1.png"
-                    alt="BWS Bid Writing Service"
-                    class="logo"
-                />
-            </header>
-
-            <!-- Selection Row: Company Selection + Industry Filter -->
-            <div class="selection-row">
-                <!-- Company Selection Card -->
-                <div class="selection-section">
-                    <div class="selection-content">
-                        <div class="selection-group">
-                            <label class="selection-label" for="companySelect"
-                                >Select Company</label
-                            >
-                            <div class="company-select-wrapper">
-                                <select id="companySelect" class="company-select">
-                                    <option value="">-- Choose a company --</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button
-                            onclick="toggleManageCompanies()"
-                            class="manage-btn"
-                        >
-                            <span class="icon">➕</span>
-                            <span>Add New Company</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Industry Filter Card -->
-                <div class="industry-filter-card">
-                    <div class="industry-filter-label">Browse by Industry</div>
-                    <button onclick="toggleIndustryCategories()" class="filter-industry-btn">
-                        <span>🔍</span>
-                        <span>Filter by Industry</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Industry Categories Section -->
-            <div class="industry-categories" id="industryCategories">
-                <div class="industries-grid">
-                    <div class="industry-card" onclick="filterByIndustry('security')">
-                        <div class="industry-icon">🔒</div>
-                        <div class="industry-name">Security</div>
-                        <div class="industry-count" id="securityCount">Loading...</div>
-                    </div>
-
-                    <div class="industry-card" onclick="filterByIndustry('fire')">
-                        <div class="industry-icon">🔥</div>
-                        <div class="industry-name">Fire Safety</div>
-                        <div class="industry-count" id="fireCount">Loading...</div>
-                    </div>
-
-                    <div class="industry-card" onclick="filterByIndustry('cleaning')">
-                        <div class="industry-icon">🧹</div>
-                        <div class="industry-name">Cleaning</div>
-                        <div class="industry-count" id="cleaningCount">Loading...</div>
-                    </div>
-
-                    <div class="industry-card" onclick="filterByIndustry('waste')">
-                        <div class="industry-icon">♻️</div>
-                        <div class="industry-name">Waste Management</div>
-                        <div class="industry-count" id="wasteCount">Loading...</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Manage Companies Section - MOVED HERE -->
-            <div class="manage-section" id="manageSection">
-                <div class="manage-header">
-                    <h2 class="manage-title">Manage Companies</h2>
-                    <button onclick="toggleManageCompanies()" class="close-btn">
-                        Close
-                    </button>
-                </div>
-                <div style="margin-bottom: 20px">
-                    <button onclick="toggleAddForm()" class="submit-btn">
-                        + Add New Company
-                    </button>
-                </div>
-                <div id="companiesList"></div>
-            </div>
-
-            <!-- Add Company Form - MOVED HERE -->
-            <div class="add-form" id="addForm">
-                <h2 class="form-title">Add New Company</h2>
-                <form onsubmit="addCompany(event)">
-                    <div class="form-group">
-                        <label class="form-label" for="companyName"
-                            >Company Name *</label
-                        >
-                        <input
-                            type="text"
-                            id="companyName"
-                            class="form-input"
-                            placeholder="e.g., Fire Safety Ltd"
-                            required
-                        />
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">CPV Codes *</label>
-                        <p class="form-help">
-                            Enter 8-digit CPV codes. Press Enter or click Add
-                            after each code.
-                        </p>
-                        <div class="cpv-input-group">
-                            <input
-                                type="text"
-                                id="cpvInput"
-                                class="form-input"
-                                placeholder="e.g., 45111200"
-                                pattern="[0-9]{8}"
-                                maxlength="8"
-                            />
-                            <button
-                                type="button"
-                                onclick="addCpvCode()"
-                                class="add-cpv-btn"
-                            >
-                                Add Code
-                            </button>
-                        </div>
-                        <div id="cpvTagsList" class="cpv-tags-list"></div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="submit-btn">
-                            Save Company
-                        </button>
-                        <button
-                            type="button"
-                            onclick="toggleAddForm()"
-                            class="cancel-btn"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Dashboard Stats Section -->
-            <div class="dashboard-section" id="dashboardSection">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalTenders">0</div>
-                        <div class="stat-label">Total Active Tenders</div>
-                        <div class="stat-change" id="tendersChange">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-value" id="newThisWeek">0</div>
-                        <div class="stat-label">New This Week</div>
-                        <div class="stat-change" id="newChange">Loading...</div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-value" id="closingSoon">0</div>
-                        <div class="stat-label">Closing in 7 Days</div>
-                        <div class="stat-change" id="urgentChange">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-value" id="companiesTracked">0</div>
-                        <div class="stat-label">Companies Tracked</div>
-                        <div class="stat-change" id="companiesChange">
-                            Active monitoring
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Results Section -->
-            <div class="results-section" id="resultsSection">
-                <div class="results-header">
-                    <div>
-                        <div class="results-count" id="resultsCount">
-                            0 matching tenders
-                        </div>
-                        <div class="cpv-info" id="cpvInfo"></div>
-                        <div class="filter-info">
-                            Filtered to Pipeline, Planning, and Tender stages
-                            only
-                        </div>
-                    </div>
-                    <div class="results-meta" id="resultsMeta">
-                        Refreshed today at <span id="refreshTime">--:--</span>
-                    </div>
-                </div>
-
-                <div class="tender-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 35%">TITLE</th>
-                                <th style="width: 20%">PUBLISHED</th>
-                                <th style="width: 15%">MATCHED CPVS</th>
-                                <th style="width: 15%">MATCHING CLIENTS</th>
-                                <th style="width: 15%"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="tendersTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <script>
-            let companies = [];
-            let newCompanyCpvCodes = [];
-            let allTendersData = [];
-
-            // Industry to CPV code mappings
-            const industries = {
-                security: {
-                    name: 'Security',
-                    cpvCodes: ['79710000', '79711000', '79715000', '79714000']
-                },
-                fire: {
-                    name: 'Fire Safety',
-                    cpvCodes: ['45331100', '50413200', '45331200', '45331210']
-                },
-                cleaning: {
-                    name: 'Cleaning',
-                    cpvCodes: ['90910000', '90919200', '90911200', '90911300']
-                },
-                waste: {
-                    name: 'Waste Management',
-                    cpvCodes: ['90500000', '90511000', '90512000', '90513100']
-                }
-            };
-
-            // Toggle industry categories visibility
-            function toggleIndustryCategories() {
-                const section = document.getElementById("industryCategories");
-                const isVisible = section.classList.contains("show");
-
-                if (isVisible) {
-                    section.classList.remove("show");
-                } else {
-                    section.classList.add("show");
-                    section.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                    updateIndustryCounts();
-                }
-            }
-
-            // Load companies
-            async function loadCompanies() {
-                try {
-                    const response = await fetch("/api/companies");
-                    companies = await response.json();
-
-                    const select = document.getElementById("companySelect");
-                    select.innerHTML =
-                        '<option value="">-- Choose a company --</option>';
-
-                    companies.forEach((company) => {
-                        const option = document.createElement("option");
-                        option.value = company.id;
-                        option.textContent = company.name;
-                        select.appendChild(option);
-                    });
-
-                    // Update dashboard stats
-                    updateDashboardStats();
-
-                    if (
-                        document
-                            .getElementById("manageSection")
-                            .classList.contains("show")
-                    ) {
-                        renderCompaniesList();
-                    }
-                } catch (error) {
-                    console.error("Error loading companies:", error);
-                }
-            }
-
-            // Update dashboard statistics
-            async function updateDashboardStats() {
-                try {
-                    // Update companies tracked
-                    document.getElementById("companiesTracked").textContent =
-                        companies.length;
-
-                    // Fetch all tenders for all companies
-                    const allTenders = [];
-                    for (const company of companies) {
-                        try {
-                            const response = await fetch(
-                                `/api/companies/${company.id}/tenders`,
-                            );
-                            const data = await response.json();
-                            data.tenders.forEach((tender) => {
-                                tender.companyName = company.name;
-                                allTenders.push(tender);
-                            });
-                        } catch (error) {
-                            console.error(
-                                `Error fetching tenders for ${company.name}:`,
-                                error,
-                            );
-                        }
-                    }
-
-                    allTendersData = allTenders;
-
-                    // Calculate stats
-                    const totalTenders = allTenders.length;
-                    const now = new Date();
-                    const weekAgo = new Date(
-                        now.getTime() - 7 * 24 * 60 * 60 * 1000,
-                    );
-                    const sevenDaysFromNow = new Date(
-                        now.getTime() + 7 * 24 * 60 * 60 * 1000,
-                    );
-
-                    const newThisWeek = allTenders.filter(
-                        (t) => new Date(t.publication_date) >= weekAgo,
-                    ).length;
-
-                    const closingSoon = allTenders.filter(
-                        (t) =>
-                            t.deadline_date &&
-                            new Date(t.deadline_date) <= sevenDaysFromNow &&
-                            new Date(t.deadline_date) >= now,
-                    ).length;
-
-                    // Update the DOM
-                    document.getElementById("totalTenders").textContent =
-                        totalTenders;
-                    document.getElementById("newThisWeek").textContent =
-                        newThisWeek;
-                    document.getElementById("closingSoon").textContent =
-                        closingSoon;
-
-                    // Update change indicators
-                    document.getElementById("tendersChange").textContent =
-                        "Across all tracked companies";
-                    document.getElementById("newChange").textContent =
-                        `↑ ${newThisWeek} new opportunities`;
-                    document.getElementById("urgentChange").textContent =
-                        closingSoon > 0
-                            ? "⚠️ Action required"
-                            : "✓ No urgent deadlines";
-                } catch (error) {
-                    console.error("Error updating dashboard:", error);
-                }
-            }
-
-            // Load tenders for selected company
-            async function loadTenders(companyId) {
-                if (!companyId) {
-                    // Show dashboard when no company selected
-                    document
-                        .getElementById("dashboardSection")
-                        .classList.remove("hide");
-                    document
-                        .getElementById("resultsSection")
-                        .classList.remove("show");
-                    return;
-                }
-
-                // Hide dashboard and show results
-                document
-                    .getElementById("dashboardSection")
-                    .classList.add("hide");
-                document.getElementById("resultsSection").classList.add("show");
-
-                const company = companies.find(
-                    (c) => c.id === parseInt(companyId),
-                );
-
-                document.getElementById("tendersTableBody").innerHTML =
-                    '<tr><td colspan="5" class="loading">Loading tenders...</td></tr>';
-
-                // Set refresh time
-                const now = new Date();
-                document.getElementById("refreshTime").textContent =
-                    now.toLocaleTimeString("en-GB", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    });
-
-                try {
-                    const response = await fetch(
-                        `/api/companies/${companyId}/tenders`,
-                    );
-                    const data = await response.json();
-
-                    document.getElementById("resultsCount").textContent =
-                        `Showing ${data.tenders.length} result${data.tenders.length !== 1 ? "s" : ""} for ${company.name}`;
-
-                    document.getElementById("cpvInfo").textContent =
-                        `Showing opportunities matching CPV codes: ${company.cpv_codes.join(", ")}`;
-
-                    const tbody = document.getElementById("tendersTableBody");
-
-                    if (data.tenders.length === 0) {
-                        tbody.innerHTML = `
-                            <tr>
-                                <td colspan="5">
-                                    <div class="empty-state">
-                                        <h3>No matching tenders found</h3>
-                                        <p>There are no open tenders matching this company's CPV codes in the last 14 days.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
-                    } else {
-                        tbody.innerHTML = data.tenders
-                            .map((tender) => {
-                                const pubDate = new Date(
-                                    tender.publication_date,
-                                ).toLocaleDateString("en-GB");
-                                const deadline = tender.deadline_date
-                                    ? new Date(
-                                          tender.deadline_date,
-                                      ).toLocaleDateString("en-GB")
-                                    : "Not specified";
-
-                                const daysAgo = Math.floor(
-                                    (Date.now() -
-                                        new Date(tender.publication_date)) /
-                                        (1000 * 60 * 60 * 24),
-                                );
-                                const publishedText =
-                                    daysAgo === 0
-                                        ? "today"
-                                        : daysAgo === 1
-                                          ? "1 day ago"
-                                          : `${daysAgo} days ago`;
-
-                                return `
-                                <tr>
-                                    <td>
-                                        <div>
-                                            <span class="tender-title">${tender.title}</span>
-                                            <span class="tender-buyer">${tender.buyer_name}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <span class="status-badge status-${tender.status}">${tender.status.toUpperCase()}</span>
-                                            <div style="margin-top: 6px; font-size: 12px; color: #495057;">
-                                                <div class="date-display">📅 Published: ${pubDate}</div>
-                                                <div class="date-display deadline-display">⏰ Deadline: ${deadline}</div>
-                                            </div>
-                                            <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">${publishedText}</div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                            ${tender.cpv_codes
-                                                .slice(0, 2)
-                                                .map(
-                                                    (code) =>
-                                                        `<span class="cpv-tag">${code}</span>`,
-                                                )
-                                                .join("")}
-                                            ${tender.cpv_codes.length > 2 ? `<span class="cpv-tag">+${tender.cpv_codes.length - 2}</span>` : ""}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="cpv-tag">${company.name}</span>
-                                    </td>
-                                    <td>
-                                        <a href="${tender.tender_url}" target="_blank" class="view-btn">
-                                            View Tender Details →
-                                        </a>
-                                    </td>
-                                </tr>
-                            `;
-                            })
-                            .join("");
-                    }
-                } catch (error) {
-                    document.getElementById("tendersTableBody").innerHTML = `
-                        <tr>
-                            <td colspan="5">
-                                <div class="empty-state">
-                                    <h3>Error loading tenders</h3>
-                                    <p>${error.message}</p>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }
-            }
-
-            // Company dropdown change
-            document
-                .getElementById("companySelect")
-                .addEventListener("change", (e) => {
-                    loadTenders(e.target.value);
-                });
-
-            // Toggle manage companies
-            function toggleManageCompanies() {
-                const section = document.getElementById("manageSection");
-                const isVisible = section.classList.contains("show");
-
-                if (isVisible) {
-                    section.classList.remove("show");
-                } else {
-                    section.classList.add("show");
-                    renderCompaniesList();
-                }
-            }
-
-            // Render companies list
-            function renderCompaniesList() {
-                const list = document.getElementById("companiesList");
-
-                if (companies.length === 0) {
-                    list.innerHTML =
-                        '<div class="empty-state"><h3>No companies added yet</h3><p>Add your first company to get started!</p></div>';
-                    return;
-                }
-
-                list.innerHTML = companies
-                    .map(
-                        (company) => `
-                    <div class="company-item">
-                        <div class="company-info">
-                            <div class="company-name">${company.name}</div>
-                            <div class="company-cpv">CPV: ${company.cpv_codes.join(", ")}</div>
-                        </div>
-                        <button onclick="deleteCompany(${company.id}, '${company.name.replace(/'/g, "\\'")}');" class="delete-btn">
-                            🗑️ Delete
-                        </button>
-                    </div>
-                `,
-                    )
-                    .join("");
-            }
-
-            // Delete company
-            async function deleteCompany(id, name) {
-                if (
-                    !confirm(
-                        `Are you sure you want to delete "${name}"?\n\nThis action cannot be undone.`,
-                    )
-                ) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/api/companies/${id}`, {
-                        method: "DELETE",
-                    });
-
-                    if (!response.ok) {
-                        const data = await response.json();
-                        throw new Error(
-                            data.error || `Server error: ${response.status}`,
-                        );
-                    }
-
-                    alert(`✅ "${name}" has been deleted successfully!`);
-                    await loadCompanies();
-
-                    const select = document.getElementById("companySelect");
-                    if (parseInt(select.value) === id) {
-                        select.value = "";
-                        document
-                            .getElementById("dashboardSection")
-                            .classList.remove("hide");
-                        document
-                            .getElementById("resultsSection")
-                            .classList.remove("show");
-                    }
-                } catch (error) {
-                    alert(`❌ Error deleting company:\n\n${error.message}`);
-                }
-            }
-
-            // Toggle add form
-            function toggleAddForm() {
-                const form = document.getElementById("addForm");
-                const isVisible = form.classList.contains("show");
-
-                if (isVisible) {
-                    form.classList.remove("show");
-                    document.getElementById("companyName").value = "";
-                    document.getElementById("cpvInput").value = "";
-                    newCompanyCpvCodes = [];
-                    renderCpvTags();
-                } else {
-                    form.classList.add("show");
-                    form.scrollIntoView({ behavior: "smooth" });
-                }
-            }
-
-            // Add CPV code
-            function addCpvCode() {
-                const input = document.getElementById("cpvInput");
-                const code = input.value.trim();
-
-                if (code.length !== 8 || !/^\d{8}$/.test(code)) {
-                    alert("CPV code must be exactly 8 digits");
-                    return;
-                }
-
-                if (newCompanyCpvCodes.includes(code)) {
-                    alert("This CPV code is already added");
-                    return;
-                }
-
-                newCompanyCpvCodes.push(code);
-                input.value = "";
-                renderCpvTags();
-            }
-
-            // Render CPV tags
-            function renderCpvTags() {
-                const container = document.getElementById("cpvTagsList");
-
-                if (newCompanyCpvCodes.length === 0) {
-                    container.innerHTML =
-                        '<p style="color: #95a5a6; font-size: 14px; margin-top: 12px;">No CPV codes added yet</p>';
-                    return;
-                }
-
-                container.innerHTML = newCompanyCpvCodes
-                    .map(
-                        (code) => `
-                    <span class="cpv-tag-removable">
-                        ${code}
-                        <button type="button" onclick="removeCpvCode('${code}')" class="remove-cpv">×</button>
-                    </span>
-                `,
-                    )
-                    .join("");
-            }
-
-            // Remove CPV code
-            function removeCpvCode(code) {
-                newCompanyCpvCodes = newCompanyCpvCodes.filter(
-                    (c) => c !== code,
-                );
-                renderCpvTags();
-            }
-
-            // Add company
-            async function addCompany(event) {
-                event.preventDefault();
-
-                const name = document
-                    .getElementById("companyName")
-                    .value.trim();
-
-                if (!name) {
-                    alert("Please enter a company name");
-                    return;
-                }
-
-                if (newCompanyCpvCodes.length === 0) {
-                    alert("Please add at least one CPV code");
-                    return;
-                }
-
-                try {
-                    const response = await fetch("/api/companies", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            name: name,
-                            cpv_codes: newCompanyCpvCodes,
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error("Failed to add company");
-                    }
-
-                    alert(`✅ ${name} added successfully!`);
-                    toggleAddForm();
-                    await loadCompanies();
-                } catch (error) {
-                    alert(`Error adding company: ${error.message}`);
-                }
-            }
-
-            // Enter key for CPV input
-            document.addEventListener("DOMContentLoaded", () => {
-                const cpvInput = document.getElementById("cpvInput");
-                if (cpvInput) {
-                    cpvInput.addEventListener("keypress", (e) => {
-                        if (e.key === "Enter") {
-                            e.preventDefault();
-                            addCpvCode();
-                        }
-                    });
-                }
-            });
-
-            // Update industry counts
-            async function updateIndustryCounts() {
-                try {
-                    const response = await fetch("/api/industries/counts");
-                    const counts = await response.json();
-
-                    document.getElementById("securityCount").textContent = 
-                        `${counts.security} opportunities`;
-                    document.getElementById("fireCount").textContent = 
-                        `${counts.fire} opportunities`;
-                    document.getElementById("cleaningCount").textContent = 
-                        `${counts.cleaning} opportunities`;
-                    document.getElementById("wasteCount").textContent = 
-                        `${counts.waste} opportunities`;
-                } catch (error) {
-                    console.error("Error updating industry counts:", error);
-                }
-            }
-
-            // Filter tenders by industry
-            async function filterByIndustry(industryKey) {
-                // Hide dashboard, show results
-                document.getElementById("dashboardSection").classList.add("hide");
-                document.getElementById("resultsSection").classList.add("show");
-
-                // Clear company selection
-                document.getElementById("companySelect").value = "";
-
-                // Mark active industry card
-                document.querySelectorAll('.industry-card').forEach(card => {
-                    card.classList.remove('active');
-                });
-                event.target.closest('.industry-card').classList.add('active');
-
-                // Show loading
-                document.getElementById("tendersTableBody").innerHTML =
-                    '<tr><td colspan="5" class="loading">Loading tenders...</td></tr>';
-
-                // Set refresh time
-                const now = new Date();
-                document.getElementById("refreshTime").textContent =
-                    now.toLocaleTimeString("en-GB", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    });
-
-                try {
-                    const response = await fetch(`/api/industries/${industryKey}/tenders`);
-                    const data = await response.json();
-
-                    document.getElementById("resultsCount").textContent =
-                        `Showing ${data.tenders.length} result${data.tenders.length !== 1 ? "s" : ""} for ${industries[industryKey].name}`;
-
-                    document.getElementById("cpvInfo").textContent =
-                        `Showing opportunities matching CPV codes: ${industries[industryKey].cpvCodes.join(", ")}`;
-
-                    const tbody = document.getElementById("tendersTableBody");
-
-                    if (data.tenders.length === 0) {
-                        tbody.innerHTML = `
-                            <tr>
-                                <td colspan="5">
-                                    <div class="empty-state">
-                                        <h3>No matching tenders found</h3>
-                                        <p>There are no open ${industries[industryKey].name} tenders in the last 14 days.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
-                    } else {
-                        tbody.innerHTML = data.tenders
-                            .map((tender) => {
-                                const pubDate = new Date(
-                                    tender.publication_date,
-                                ).toLocaleDateString("en-GB");
-                                const deadline = tender.deadline_date
-                                    ? new Date(
-                                          tender.deadline_date,
-                                      ).toLocaleDateString("en-GB")
-                                    : "Not specified";
-
-                                const daysAgo = Math.floor(
-                                    (Date.now() -
-                                        new Date(tender.publication_date)) /
-                                        (1000 * 60 * 60 * 24),
-                                );
-                                const publishedText =
-                                    daysAgo === 0
-                                        ? "today"
-                                        : daysAgo === 1
-                                          ? "1 day ago"
-                                          : `${daysAgo} days ago`;
-
-                                // Display matching clients
-                                const matchingClients = tender.matching_companies || [];
-                                const clientsHtml = matchingClients.length > 0
-                                    ? `<div class="matching-clients">
-                                        <div class="matching-clients-count" onclick="toggleClientsList(event, '${tender.id}')">
-                                            ${matchingClients.length} client${matchingClients.length !== 1 ? 's' : ''} ▼
-                                        </div>
-                                        <div class="matching-clients-list" id="clients-${tender.id}">
-                                            ${matchingClients.map(c => `<div class="client-match-item">${c.name}</div>`).join('')}
-                                        </div>
-                                    </div>`
-                                    : `<span style="color: #95a5a6; font-size: 12px;">No matches</span>`;
-
-                                return `
-                                <tr>
-                                    <td>
-                                        <div>
-                                            <span class="tender-title">${tender.title}</span>
-                                            <span class="tender-buyer">${tender.buyer_name}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <span class="status-badge status-${tender.status}">${tender.status.toUpperCase()}</span>
-                                            <div style="margin-top: 6px; font-size: 12px; color: #495057;">
-                                                <div class="date-display">📅 Published: ${pubDate}</div>
-                                                <div class="date-display deadline-display">⏰ Deadline: ${deadline}</div>
-                                            </div>
-                                            <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">${publishedText}</div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                            ${tender.cpv_codes
-                                                .slice(0, 2)
-                                                .map(
-                                                    (code) =>
-                                                        `<span class="cpv-tag">${code}</span>`,
-                                                )
-                                                .join("")}
-                                            ${tender.cpv_codes.length > 2 ? `<span class="cpv-tag">+${tender.cpv_codes.length - 2}</span>` : ""}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        ${clientsHtml}
-                                    </td>
-                                    <td>
-                                        <a href="${tender.tender_url}" target="_blank" class="view-btn">
-                                            View Details →
-                                        </a>
-                                    </td>
-                                </tr>
-                            `;
-                            })
-                            .join("");
-                    }
-                } catch (error) {
-                    document.getElementById("tendersTableBody").innerHTML = `
-                        <tr>
-                            <td colspan="5">
-                                <div class="empty-state">
-                                    <h3>Error loading tenders</h3>
-                                    <p>${error.message}</p>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }
-            }
-
-            // Toggle clients list visibility
-            function toggleClientsList(event, tenderId) {
-                event.stopPropagation();
-                const list = document.getElementById(`clients-${tenderId}`);
-                list.classList.toggle('show');
-            }
-
-            // Initialize
-            loadCompanies();
-        </script>
-    </body>
-</html>
+// Simple Express server for tender scanner
+// UPDATED: Changed CPV matching to 5 digits for more accurate results
+const express = require("express");
+const { Client } = require("pg");
+const path = require("path");
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Industry to CPV code mappings
+const industries = {
+  security: {
+    name: "Security",
+    cpvCodes: ["79710000", "79711000", "79715000", "79714000"],
+  },
+  fire: {
+    name: "Fire Safety",
+    cpvCodes: ["45331100", "50413200", "45331200", "45331210"],
+  },
+  cleaning: {
+    name: "Cleaning",
+    cpvCodes: ["90910000", "90919200", "90911200", "90911300"],
+  },
+  waste: {
+    name: "Waste Management",
+    cpvCodes: ["90500000", "90511000", "90512000", "90513100"],
+  },
+};
+
+// Middleware
+app.use(express.json());
+app.use(express.static("public"));
+
+// Database connection helper
+async function getDbClient() {
+  const client = new Client({
+    connectionString:
+      process.env.DATABASE_URL || "postgresql://localhost:5432/tenders",
+  });
+  await client.connect();
+  return client;
+}
+
+// Helper function to check if CPV codes match (using 5-digit logic)
+function cpvCodesMatch(cpv1, cpv2) {
+  const cpv1Str = String(cpv1);
+  const cpv2Str = String(cpv2);
+
+  // Exact match (8 digits)
+  if (cpv1Str === cpv2Str) return true;
+
+  // Partial match (6 digits)
+  if (cpv1Str.length >= 6 && cpv2Str.length >= 6) {
+    if (cpv1Str.substring(0, 6) === cpv2Str.substring(0, 6)) return true;
+  }
+
+  // Category match (5 digits)
+  if (cpv1Str.length >= 5 && cpv2Str.length >= 5) {
+    if (cpv1Str.substring(0, 5) === cpv2Str.substring(0, 5)) return true;
+  }
+
+  return false;
+}
+
+// Helper function to find matching companies for tender CPV codes
+async function findMatchingCompanies(tenderCpvCodes, client) {
+  const companiesResult = await client.query("SELECT * FROM companies");
+  const matchingCompanies = [];
+
+  for (const company of companiesResult.rows) {
+    let companyCpvCodes = [];
+    if (typeof company.cpv_codes === "string") {
+      companyCpvCodes = JSON.parse(company.cpv_codes);
+    } else if (Array.isArray(company.cpv_codes)) {
+      companyCpvCodes = company.cpv_codes;
+    } else if (
+      typeof company.cpv_codes === "object" &&
+      company.cpv_codes !== null
+    ) {
+      companyCpvCodes = Object.values(company.cpv_codes);
+    }
+
+    // Check if any company CPV matches any tender CPV
+    let hasMatch = false;
+    for (const companyCpv of companyCpvCodes) {
+      for (const tenderCpv of tenderCpvCodes) {
+        if (cpvCodesMatch(companyCpv, tenderCpv)) {
+          hasMatch = true;
+          break;
+        }
+      }
+      if (hasMatch) break;
+    }
+
+    if (hasMatch) {
+      matchingCompanies.push({
+        id: company.id,
+        name: company.name,
+      });
+    }
+  }
+
+  return matchingCompanies;
+}
+
+// API Routes
+
+// Get statistics
+app.get("/api/stats", async (req, res) => {
+  const client = await getDbClient();
+
+  try {
+    // Only count tenders with status 'planned' or 'active'
+    const tenderCount = await client.query(
+      "SELECT COUNT(*) FROM tenders WHERE status IN ('planned', 'active')",
+    );
+    const companyCount = await client.query("SELECT COUNT(*) FROM companies");
+
+    // Get last tender publication date (from filtered tenders only)
+    const lastTender = await client.query(
+      "SELECT MAX(publication_date) as last_update FROM tenders WHERE status IN ('planned', 'active')",
+    );
+
+    res.json({
+      total_tenders: parseInt(tenderCount.rows[0].count),
+      total_companies: parseInt(companyCount.rows[0].count),
+      last_updated: lastTender.rows[0].last_update,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// Get all companies
+app.get("/api/companies", async (req, res) => {
+  const client = await getDbClient();
+
+  try {
+    const result = await client.query("SELECT * FROM companies ORDER BY name");
+
+    // Parse CPV codes for each company
+    const companies = result.rows.map((company) => {
+      let cpvCodes = [];
+      if (typeof company.cpv_codes === "string") {
+        cpvCodes = JSON.parse(company.cpv_codes);
+      } else if (Array.isArray(company.cpv_codes)) {
+        cpvCodes = company.cpv_codes;
+      } else if (
+        typeof company.cpv_codes === "object" &&
+        company.cpv_codes !== null
+      ) {
+        cpvCodes = Object.values(company.cpv_codes);
+      }
+
+      return {
+        id: company.id,
+        name: company.name,
+        cpv_codes: cpvCodes,
+        created_at: company.created_at,
+      };
+    });
+
+    res.json(companies);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// Get matching tenders for a company
+app.get("/api/companies/:id/tenders", async (req, res) => {
+  const companyId = parseInt(req.params.id);
+  const client = await getDbClient();
+
+  try {
+    // Get company
+    const companyResult = await client.query(
+      "SELECT * FROM companies WHERE id = $1",
+      [companyId],
+    );
+
+    if (companyResult.rows.length === 0) {
+      res.status(404).json({ error: "Company not found" });
+      return;
+    }
+
+    const company = companyResult.rows[0];
+
+    // Parse company CPV codes
+    let companyCpvCodes = [];
+    if (typeof company.cpv_codes === "string") {
+      companyCpvCodes = JSON.parse(company.cpv_codes);
+    } else if (Array.isArray(company.cpv_codes)) {
+      companyCpvCodes = company.cpv_codes;
+    } else if (
+      typeof company.cpv_codes === "object" &&
+      company.cpv_codes !== null
+    ) {
+      companyCpvCodes = Object.values(company.cpv_codes);
+    }
+
+    // Only get tenders with status 'planned' or 'active'
+    const tendersResult = await client.query(
+      "SELECT * FROM tenders WHERE status IN ('planned', 'active') ORDER BY publication_date DESC",
+    );
+
+    // Match tenders
+    const matchingTenders = [];
+
+    for (const tender of tendersResult.rows) {
+      // Parse tender CPV codes
+      let tenderCpvCodes = [];
+      if (typeof tender.cpv_codes === "string") {
+        try {
+          tenderCpvCodes = JSON.parse(tender.cpv_codes);
+        } catch (e) {
+          continue;
+        }
+      } else if (Array.isArray(tender.cpv_codes)) {
+        tenderCpvCodes = tender.cpv_codes;
+      } else if (
+        typeof tender.cpv_codes === "object" &&
+        tender.cpv_codes !== null
+      ) {
+        tenderCpvCodes = Object.values(tender.cpv_codes);
+      }
+
+      if (!Array.isArray(tenderCpvCodes) || tenderCpvCodes.length === 0)
+        continue;
+
+      let hasMatch = false;
+
+      // Check for matches - UPDATED: Using 5-digit matching for better accuracy
+      for (const companyCpv of companyCpvCodes) {
+        for (const tenderCpv of tenderCpvCodes) {
+          if (!tenderCpv) continue;
+
+          const companyCpvStr = String(companyCpv);
+          const tenderCpvStr = String(tenderCpv);
+
+          // Exact match (8 digits)
+          if (tenderCpvStr === companyCpvStr) {
+            hasMatch = true;
+            break;
+          }
+
+          // Partial match (6 digits)
+          if (tenderCpvStr.length >= 6 && companyCpvStr.length >= 6) {
+            if (
+              tenderCpvStr.substring(0, 6) === companyCpvStr.substring(0, 6)
+            ) {
+              hasMatch = true;
+              break;
+            }
+          }
+
+          // UPDATED: Category match (5 digits instead of 3)
+          // This provides more accurate matching at the category level
+          if (tenderCpvStr.length >= 5 && companyCpvStr.length >= 5) {
+            if (
+              tenderCpvStr.substring(0, 5) === companyCpvStr.substring(0, 5)
+            ) {
+              hasMatch = true;
+              break;
+            }
+          }
+        }
+        if (hasMatch) break;
+      }
+
+      if (hasMatch) {
+        matchingTenders.push({
+          id: tender.id,
+          title: tender.title,
+          description: tender.description,
+          buyer_name: tender.buyer_name,
+          status: tender.status,
+          publication_date: tender.publication_date,
+          deadline_date: tender.deadline_date,
+          cpv_codes: tenderCpvCodes,
+          tender_url: tender.tender_url,
+        });
+      }
+    }
+
+    res.json({
+      company: {
+        id: company.id,
+        name: company.name,
+        cpv_codes: companyCpvCodes,
+      },
+      tenders: matchingTenders,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// Get industry tender counts
+app.get("/api/industries/counts", async (req, res) => {
+  const client = await getDbClient();
+
+  try {
+    const tendersResult = await client.query(
+      "SELECT * FROM tenders WHERE status IN ('planned', 'active')",
+    );
+
+    const counts = {
+      security: 0,
+      fire: 0,
+      cleaning: 0,
+      waste: 0,
+    };
+
+    for (const tender of tendersResult.rows) {
+      let tenderCpvCodes = [];
+      if (typeof tender.cpv_codes === "string") {
+        try {
+          tenderCpvCodes = JSON.parse(tender.cpv_codes);
+        } catch (e) {
+          continue;
+        }
+      } else if (Array.isArray(tender.cpv_codes)) {
+        tenderCpvCodes = tender.cpv_codes;
+      } else if (
+        typeof tender.cpv_codes === "object" &&
+        tender.cpv_codes !== null
+      ) {
+        tenderCpvCodes = Object.values(tender.cpv_codes);
+      }
+
+      // Check each industry
+      for (const [industryKey, industry] of Object.entries(industries)) {
+        let hasMatch = false;
+        for (const industryCpv of industry.cpvCodes) {
+          for (const tenderCpv of tenderCpvCodes) {
+            if (cpvCodesMatch(industryCpv, tenderCpv)) {
+              hasMatch = true;
+              break;
+            }
+          }
+          if (hasMatch) break;
+        }
+        if (hasMatch) {
+          counts[industryKey]++;
+        }
+      }
+    }
+
+    res.json(counts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// Get tenders for an industry
+app.get("/api/industries/:industry/tenders", async (req, res) => {
+  const industryKey = req.params.industry;
+  const client = await getDbClient();
+
+  try {
+    if (!industries[industryKey]) {
+      res.status(404).json({ error: "Industry not found" });
+      return;
+    }
+
+    const industry = industries[industryKey];
+    const industryCpvCodes = industry.cpvCodes;
+
+    // Get all tenders
+    const tendersResult = await client.query(
+      "SELECT * FROM tenders WHERE status IN ('planned', 'active') ORDER BY publication_date DESC",
+    );
+
+    const matchingTenders = [];
+
+    for (const tender of tendersResult.rows) {
+      let tenderCpvCodes = [];
+      if (typeof tender.cpv_codes === "string") {
+        try {
+          tenderCpvCodes = JSON.parse(tender.cpv_codes);
+        } catch (e) {
+          continue;
+        }
+      } else if (Array.isArray(tender.cpv_codes)) {
+        tenderCpvCodes = tender.cpv_codes;
+      } else if (
+        typeof tender.cpv_codes === "object" &&
+        tender.cpv_codes !== null
+      ) {
+        tenderCpvCodes = Object.values(tender.cpv_codes);
+      }
+
+      if (!Array.isArray(tenderCpvCodes) || tenderCpvCodes.length === 0)
+        continue;
+
+      let hasMatch = false;
+
+      // Check if any tender CPV matches any industry CPV
+      for (const industryCpv of industryCpvCodes) {
+        for (const tenderCpv of tenderCpvCodes) {
+          if (!tenderCpv) continue;
+          if (cpvCodesMatch(industryCpv, tenderCpv)) {
+            hasMatch = true;
+            break;
+          }
+        }
+        if (hasMatch) break;
+      }
+
+      if (hasMatch) {
+        // Find matching companies for this tender
+        const matchingCompanies = await findMatchingCompanies(
+          tenderCpvCodes,
+          client,
+        );
+
+        matchingTenders.push({
+          id: tender.id,
+          title: tender.title,
+          description: tender.description,
+          buyer_name: tender.buyer_name,
+          status: tender.status,
+          publication_date: tender.publication_date,
+          deadline_date: tender.deadline_date,
+          cpv_codes: tenderCpvCodes,
+          tender_url: tender.tender_url,
+          matching_companies: matchingCompanies,
+        });
+      }
+    }
+
+    res.json({
+      industry: {
+        key: industryKey,
+        name: industry.name,
+        cpv_codes: industryCpvCodes,
+      },
+      tenders: matchingTenders,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// Add a new company
+app.post("/api/companies", async (req, res) => {
+  const { name, cpv_codes } = req.body;
+
+  if (!name || !cpv_codes || !Array.isArray(cpv_codes)) {
+    res.status(400).json({ error: "Name and CPV codes (array) required" });
+    return;
+  }
+
+  const client = await getDbClient();
+
+  try {
+    const result = await client.query(
+      "INSERT INTO companies (name, cpv_codes) VALUES ($1, $2::jsonb) RETURNING *",
+      [name, JSON.stringify(cpv_codes)],
+    );
+
+    res.json({ success: true, company: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// Delete a company
+app.delete("/api/companies/:id", async (req, res) => {
+  const companyId = parseInt(req.params.id);
+
+  if (!companyId || isNaN(companyId)) {
+    res.status(400).json({ error: "Valid company ID required" });
+    return;
+  }
+
+  const client = await getDbClient();
+
+  try {
+    const result = await client.query(
+      "DELETE FROM companies WHERE id = $1 RETURNING name",
+      [companyId],
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: "Company not found" });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: `Company "${result.rows[0].name}" deleted successfully`,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// Start server
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`\n🚀 Tender Scanner running on http://localhost:${PORT}`);
+  console.log(`📊 Open your browser and visit: http://localhost:${PORT}\n`);
+  console.log(`✅ Filtering to show only 'planned' and 'active' tenders\n`);
+  console.log(`🔍 Using 5-digit CPV matching for accurate results\n`);
+});
