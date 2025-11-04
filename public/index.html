@@ -17,9 +17,9 @@
                     "Helvetica", "Arial", sans-serif;
                 background: linear-gradient(
                     135deg,
-                    #fff5f5 0%,
+                    #ffe5e5 0%,
                     #ffffff 50%,
-                    #fff0f0 100%
+                    #ffd5d5 100%
                 );
                 background-attachment: fixed;
                 color: #1c2541;
@@ -142,10 +142,11 @@
 
             .stat-card {
                 background: white;
-                padding: 30px;
+                padding: 40px 30px;
                 border-radius: 12px;
                 box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
                 transition: all 0.3s;
+                text-align: center;
             }
 
             .stat-card:hover {
@@ -153,88 +154,30 @@
                 box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
             }
 
-            .stat-icon {
-                font-size: 36px;
-                margin-bottom: 12px;
-            }
-
             .stat-value {
-                font-size: 42px;
-                font-weight: 600;
+                font-size: 72px;
+                font-weight: 700;
                 color: #dc2626;
-                margin-bottom: 8px;
+                margin-bottom: 16px;
+                line-height: 1;
             }
 
             .stat-label {
-                font-size: 14px;
+                font-size: 16px;
                 color: #6c757d;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
-                font-weight: 500;
+                letter-spacing: 1px;
+                font-weight: 600;
             }
 
             .stat-change {
-                font-size: 12px;
+                font-size: 13px;
                 color: #059669;
-                margin-top: 8px;
+                margin-top: 12px;
             }
 
             .stat-change.negative {
                 color: #dc2626;
-            }
-
-            /* Recent Activity Card */
-            .activity-card {
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-            }
-
-            .activity-header {
-                font-size: 20px;
-                font-weight: 500;
-                color: #1c2541;
-                margin-bottom: 20px;
-                padding-bottom: 15px;
-                border-bottom: 2px solid #fecaca;
-            }
-
-            .activity-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 15px 0;
-                border-bottom: 1px solid #f0f0f0;
-            }
-
-            .activity-item:last-child {
-                border-bottom: none;
-            }
-
-            .activity-info {
-                flex: 1;
-            }
-
-            .activity-title {
-                font-size: 14px;
-                font-weight: 500;
-                color: #1c2541;
-                margin-bottom: 4px;
-            }
-
-            .activity-meta {
-                font-size: 12px;
-                color: #6c757d;
-            }
-
-            .activity-badge {
-                padding: 4px 12px;
-                border-radius: 12px;
-                font-size: 11px;
-                font-weight: 600;
-                background: #fef2f2;
-                color: #991b1b;
             }
 
             /* Results Section */
@@ -831,7 +774,6 @@
             <div class="dashboard-section" id="dashboardSection">
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon">📊</div>
                         <div class="stat-value" id="totalTenders">0</div>
                         <div class="stat-label">Total Active Tenders</div>
                         <div class="stat-change" id="tendersChange">
@@ -840,14 +782,12 @@
                     </div>
 
                     <div class="stat-card">
-                        <div class="stat-icon">✨</div>
                         <div class="stat-value" id="newThisWeek">0</div>
                         <div class="stat-label">New This Week</div>
                         <div class="stat-change" id="newChange">Loading...</div>
                     </div>
 
                     <div class="stat-card">
-                        <div class="stat-icon">⏰</div>
                         <div class="stat-value" id="closingSoon">0</div>
                         <div class="stat-label">Closing in 7 Days</div>
                         <div class="stat-change" id="urgentChange">
@@ -856,20 +796,10 @@
                     </div>
 
                     <div class="stat-card">
-                        <div class="stat-icon">🏢</div>
                         <div class="stat-value" id="companiesTracked">0</div>
                         <div class="stat-label">Companies Tracked</div>
                         <div class="stat-change" id="companiesChange">
                             Active monitoring
-                        </div>
-                    </div>
-                </div>
-
-                <div class="activity-card">
-                    <h2 class="activity-header">Recent Tender Activity</h2>
-                    <div id="recentActivity">
-                        <div class="empty-state">
-                            <p>Loading recent activity...</p>
                         </div>
                     </div>
                 </div>
@@ -1013,62 +943,9 @@
                         closingSoon > 0
                             ? "⚠️ Action required"
                             : "✓ No urgent deadlines";
-
-                    // Update recent activity
-                    updateRecentActivity(allTenders);
                 } catch (error) {
                     console.error("Error updating dashboard:", error);
                 }
-            }
-
-            // Update recent activity section
-            function updateRecentActivity(tenders) {
-                const activityContainer =
-                    document.getElementById("recentActivity");
-
-                if (tenders.length === 0) {
-                    activityContainer.innerHTML = `
-                        <div class="empty-state">
-                            <h3>No recent tender activity</h3>
-                            <p>Add companies to start tracking tender opportunities.</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Sort by publication date (most recent first) and take top 5
-                const recentTenders = [...tenders]
-                    .sort(
-                        (a, b) =>
-                            new Date(b.publication_date) -
-                            new Date(a.publication_date),
-                    )
-                    .slice(0, 5);
-
-                activityContainer.innerHTML = recentTenders
-                    .map((tender) => {
-                        const daysAgo = Math.floor(
-                            (Date.now() - new Date(tender.publication_date)) /
-                                (1000 * 60 * 60 * 24),
-                        );
-                        const timeText =
-                            daysAgo === 0
-                                ? "Today"
-                                : daysAgo === 1
-                                  ? "Yesterday"
-                                  : `${daysAgo} days ago`;
-
-                        return `
-                        <div class="activity-item">
-                            <div class="activity-info">
-                                <div class="activity-title">${tender.title}</div>
-                                <div class="activity-meta">${tender.companyName} • ${timeText}</div>
-                            </div>
-                            <span class="activity-badge">NEW</span>
-                        </div>
-                    `;
-                    })
-                    .join("");
             }
 
             // Load tenders for selected company
