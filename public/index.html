@@ -237,14 +237,10 @@
                 box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
             }
 
-            /* Dashboard Stats Section */
+            /* Dashboard Stats Section - Always Visible */
             .dashboard-section {
                 display: block;
                 margin-bottom: 40px;
-            }
-
-            .dashboard-section.hide {
-                display: none;
             }
 
             .stats-grid {
@@ -313,6 +309,27 @@
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 20px;
+            }
+
+            .reset-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 16px;
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 600;
+                color: #991b1b;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .reset-btn:hover {
+                background: #fee2e2;
+                border-color: #fca5a5;
+                transform: translateY(-1px);
             }
 
             .results-count {
@@ -1052,8 +1069,14 @@
                             only
                         </div>
                     </div>
-                    <div class="results-meta" id="resultsMeta">
-                        Refreshed today at <span id="refreshTime">--:--</span>
+                    <div style="display: flex; align-items: center; gap: 16px">
+                        <button onclick="resetView()" class="reset-btn">
+                            ← Back to Dashboard
+                        </button>
+                        <div class="results-meta" id="resultsMeta">
+                            Refreshed today at
+                            <span id="refreshTime">--:--</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1107,7 +1130,21 @@
                 if (isVisible) {
                     section.classList.remove("show");
                 } else {
+                    // Clear any active results
+                    document
+                        .getElementById("resultsSection")
+                        .classList.remove("show");
+                    document
+                        .getElementById("manageSection")
+                        .classList.remove("show");
+                    document.getElementById("addForm").classList.remove("show");
+
+                    // Clear company selection
+                    document.getElementById("companySelect").value = "";
+
+                    // Show industry categories
                     section.classList.add("show");
+
                     // Scroll smoothly to the industry categories
                     setTimeout(() => {
                         section.scrollIntoView({
@@ -1115,6 +1152,7 @@
                             block: "start",
                         });
                     }, 100);
+
                     updateIndustryCounts();
                 }
             }
@@ -1226,24 +1264,26 @@
             // Load tenders for selected company
             async function loadTenders(companyId) {
                 if (!companyId) {
-                    // Show dashboard when no company selected
-                    document
-                        .getElementById("dashboardSection")
-                        .classList.remove("hide");
-                    document
-                        .getElementById("resultsSection")
-                        .classList.remove("show");
+                    // Reset to clean state
+                    resetView();
                     return;
                 }
 
-                // Hide dashboard, industry categories, and show results
-                document
-                    .getElementById("dashboardSection")
-                    .classList.add("hide");
-                document
-                    .getElementById("industryCategories")
-                    .classList.remove("show");
+                // Clear industry selection
+                document.querySelectorAll(".industry-card").forEach((card) => {
+                    card.classList.remove("active");
+                });
+
+                // Show results below dashboard
                 document.getElementById("resultsSection").classList.add("show");
+
+                // Scroll to results
+                setTimeout(() => {
+                    document.getElementById("resultsSection").scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                    });
+                }, 100);
 
                 const company = companies.find(
                     (c) => c.id === parseInt(companyId),
@@ -1381,7 +1421,33 @@
                 if (isVisible) {
                     section.classList.remove("show");
                 } else {
+                    // Clear any active results
+                    document
+                        .getElementById("resultsSection")
+                        .classList.remove("show");
+                    document
+                        .getElementById("industryCategories")
+                        .classList.remove("show");
+
+                    // Clear selections
+                    document.getElementById("companySelect").value = "";
+                    document
+                        .querySelectorAll(".industry-card")
+                        .forEach((card) => {
+                            card.classList.remove("active");
+                        });
+
+                    // Show manage section
                     section.classList.add("show");
+
+                    // Scroll to it
+                    setTimeout(() => {
+                        section.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        });
+                    }, 100);
+
                     renderCompaniesList();
                 }
             }
@@ -1440,13 +1506,7 @@
 
                     const select = document.getElementById("companySelect");
                     if (parseInt(select.value) === id) {
-                        select.value = "";
-                        document
-                            .getElementById("dashboardSection")
-                            .classList.remove("hide");
-                        document
-                            .getElementById("resultsSection")
-                            .classList.remove("show");
+                        resetView();
                     }
                 } catch (error) {
                     alert(`❌ Error deleting company:\n\n${error.message}`);
@@ -1465,8 +1525,32 @@
                     newCompanyCpvCodes = [];
                     renderCpvTags();
                 } else {
+                    // Clear any active results
+                    document
+                        .getElementById("resultsSection")
+                        .classList.remove("show");
+                    document
+                        .getElementById("industryCategories")
+                        .classList.remove("show");
+
+                    // Clear selections
+                    document.getElementById("companySelect").value = "";
+                    document
+                        .querySelectorAll(".industry-card")
+                        .forEach((card) => {
+                            card.classList.remove("active");
+                        });
+
+                    // Show form
                     form.classList.add("show");
-                    form.scrollIntoView({ behavior: "smooth" });
+
+                    // Scroll to it
+                    setTimeout(() => {
+                        form.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        });
+                    }, 100);
                 }
             }
 
@@ -1596,20 +1680,25 @@
 
             // Filter tenders by industry
             async function filterByIndustry(industryKey) {
-                // Hide dashboard, show results
-                document
-                    .getElementById("dashboardSection")
-                    .classList.add("hide");
-                document.getElementById("resultsSection").classList.add("show");
-
                 // Clear company selection
                 document.getElementById("companySelect").value = "";
+
+                // Show results below dashboard
+                document.getElementById("resultsSection").classList.add("show");
 
                 // Mark active industry card
                 document.querySelectorAll(".industry-card").forEach((card) => {
                     card.classList.remove("active");
                 });
                 event.target.closest(".industry-card").classList.add("active");
+
+                // Scroll to results
+                setTimeout(() => {
+                    document.getElementById("resultsSection").scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                    });
+                }, 100);
 
                 // Show loading
                 document.getElementById("tendersTableBody").innerHTML =
@@ -1749,6 +1838,30 @@
                 event.stopPropagation();
                 const list = document.getElementById(`clients-${tenderId}`);
                 list.classList.toggle("show");
+            }
+
+            // Reset view back to clean dashboard state
+            function resetView() {
+                // Hide all sections except dashboard
+                document
+                    .getElementById("resultsSection")
+                    .classList.remove("show");
+                document
+                    .getElementById("industryCategories")
+                    .classList.remove("show");
+                document
+                    .getElementById("manageSection")
+                    .classList.remove("show");
+                document.getElementById("addForm").classList.remove("show");
+
+                // Clear selections
+                document.getElementById("companySelect").value = "";
+                document.querySelectorAll(".industry-card").forEach((card) => {
+                    card.classList.remove("active");
+                });
+
+                // Scroll back to top
+                window.scrollTo({ top: 0, behavior: "smooth" });
             }
 
             // Initialize
