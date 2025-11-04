@@ -163,6 +163,7 @@
             .industry-categories {
                 display: none;
                 margin-bottom: 40px;
+                margin-top: 60px;
             }
 
             .industry-categories.show {
@@ -240,7 +241,7 @@
             /* Dashboard Stats Section - Always Visible */
             .dashboard-section {
                 display: block;
-                margin-bottom: 40px;
+                margin-bottom: 80px;
             }
 
             .stats-grid {
@@ -297,6 +298,7 @@
                 padding: 30px;
                 border-radius: 12px;
                 margin-bottom: 30px;
+                margin-top: 60px;
                 box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
             }
 
@@ -579,6 +581,7 @@
                 border-radius: 12px;
                 box-shadow: 0 8px 24px rgba(127, 29, 29, 0.4);
                 margin-bottom: 40px;
+                margin-top: 60px;
                 border: 3px solid #991b1b;
             }
 
@@ -675,6 +678,7 @@
                 border-radius: 12px;
                 box-shadow: 0 8px 24px rgba(127, 29, 29, 0.4);
                 margin-bottom: 40px;
+                margin-top: 60px;
                 border: 3px solid #991b1b;
             }
 
@@ -1145,13 +1149,13 @@
                     // Show industry categories
                     section.classList.add("show");
 
-                    // Scroll smoothly to the industry categories
+                    // Scroll smoothly to the industry categories with better visibility
                     setTimeout(() => {
                         section.scrollIntoView({
                             behavior: "smooth",
-                            block: "start",
+                            block: "center",
                         });
-                    }, 100);
+                    }, 200);
 
                     updateIndustryCounts();
                 }
@@ -1274,16 +1278,20 @@
                     card.classList.remove("active");
                 });
 
+                // Ensure dashboard stays visible
+                document.getElementById("dashboardSection").style.display =
+                    "block";
+
                 // Show results below dashboard
                 document.getElementById("resultsSection").classList.add("show");
 
-                // Scroll to results
+                // Scroll to results with offset for better visibility
                 setTimeout(() => {
                     document.getElementById("resultsSection").scrollIntoView({
                         behavior: "smooth",
-                        block: "start",
+                        block: "center",
                     });
-                }, 100);
+                }, 200);
 
                 const company = companies.find(
                     (c) => c.id === parseInt(companyId),
@@ -1440,13 +1448,13 @@
                     // Show manage section
                     section.classList.add("show");
 
-                    // Scroll to it
+                    // Scroll to it with better visibility
                     setTimeout(() => {
                         section.scrollIntoView({
                             behavior: "smooth",
-                            block: "start",
+                            block: "center",
                         });
-                    }, 100);
+                    }, 200);
 
                     renderCompaniesList();
                 }
@@ -1544,13 +1552,13 @@
                     // Show form
                     form.classList.add("show");
 
-                    // Scroll to it
+                    // Scroll to it with better visibility
                     setTimeout(() => {
                         form.scrollIntoView({
                             behavior: "smooth",
-                            block: "start",
+                            block: "center",
                         });
-                    }, 100);
+                    }, 200);
                 }
             }
 
@@ -1680,6 +1688,10 @@
 
             // Filter tenders by industry
             async function filterByIndustry(industryKey) {
+                // Ensure dashboard stays visible
+                document.getElementById("dashboardSection").style.display =
+                    "block";
+
                 // Clear company selection
                 document.getElementById("companySelect").value = "";
 
@@ -1692,13 +1704,13 @@
                 });
                 event.target.closest(".industry-card").classList.add("active");
 
-                // Scroll to results
+                // Scroll to results with offset for better visibility
                 setTimeout(() => {
                     document.getElementById("resultsSection").scrollIntoView({
                         behavior: "smooth",
-                        block: "start",
+                        block: "center",
                     });
-                }, 100);
+                }, 200);
 
                 // Show loading
                 document.getElementById("tendersTableBody").innerHTML =
