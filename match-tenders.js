@@ -1,4 +1,5 @@
 // Match tenders to a company based on CPV codes
+// UPDATED: Changed to 5-digit matching for better accuracy
 const { Client } = require("pg");
 
 async function matchTendersForCompany(companyId) {
@@ -77,13 +78,13 @@ async function matchTendersForCompany(companyId) {
           const companyCpvStr = String(companyCpv);
           const tenderCpvStr = String(tenderCpv);
 
-          // Exact match
+          // Exact match (8 digits)
           if (tenderCpvStr === companyCpvStr) {
             hasMatch = true;
             break;
           }
 
-          // Partial match (first 6 digits)
+          // Partial match (6 digits)
           if (tenderCpvStr.length >= 6 && companyCpvStr.length >= 6) {
             if (
               tenderCpvStr.substring(0, 6) === companyCpvStr.substring(0, 6)
@@ -93,10 +94,10 @@ async function matchTendersForCompany(companyId) {
             }
           }
 
-          // Broader match (first 4 digits)
-          if (tenderCpvStr.length >= 4 && companyCpvStr.length >= 4) {
+          // UPDATED: Category match (5 digits instead of 4)
+          if (tenderCpvStr.length >= 5 && companyCpvStr.length >= 5) {
             if (
-              tenderCpvStr.substring(0, 4) === companyCpvStr.substring(0, 4)
+              tenderCpvStr.substring(0, 5) === companyCpvStr.substring(0, 5)
             ) {
               hasMatch = true;
               break;

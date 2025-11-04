@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// UPDATED: Changed CPV matching to 3 digits for broader, more accurate results
+// UPDATED: Changed CPV matching to 5 digits for more accurate results
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -151,7 +151,7 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
 
       let hasMatch = false;
 
-      // Check for matches - UPDATED: Using 3-digit matching as the broadest level
+      // Check for matches - UPDATED: Using 5-digit matching for better accuracy
       for (const companyCpv of companyCpvCodes) {
         for (const tenderCpv of tenderCpvCodes) {
           if (!tenderCpv) continue;
@@ -175,11 +175,11 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
             }
           }
 
-          // UPDATED: Broader match (3 digits instead of 4)
-          // This matches the Find-a-Tender website behavior more closely
-          if (tenderCpvStr.length >= 3 && companyCpvStr.length >= 3) {
+          // UPDATED: Category match (5 digits instead of 3)
+          // This provides more accurate matching at the category level
+          if (tenderCpvStr.length >= 5 && companyCpvStr.length >= 5) {
             if (
-              tenderCpvStr.substring(0, 3) === companyCpvStr.substring(0, 3)
+              tenderCpvStr.substring(0, 5) === companyCpvStr.substring(0, 5)
             ) {
               hasMatch = true;
               break;
@@ -282,5 +282,5 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Tender Scanner running on http://localhost:${PORT}`);
   console.log(`📊 Open your browser and visit: http://localhost:${PORT}\n`);
   console.log(`✅ Filtering to show only 'planned' and 'active' tenders\n`);
-  console.log(`🔍 Using 3-digit CPV matching for broader results\n`);
+  console.log(`🔍 Using 5-digit CPV matching for accurate results\n`);
 });
