@@ -61,6 +61,7 @@
                 border: 1px solid #fecaca;
                 border-radius: 8px;
                 font-size: 14px;
+                font-weight: 600;
                 color: #991b1b;
                 cursor: pointer;
                 transition: all 0.2s;
@@ -87,6 +88,17 @@
                 box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
             }
 
+            .selection-content {
+                display: flex;
+                align-items: flex-end;
+                gap: 20px;
+            }
+
+            .selection-group {
+                flex: 1;
+                max-width: 500px;
+            }
+
             .selection-label {
                 font-size: 14px;
                 font-weight: 600;
@@ -97,7 +109,6 @@
 
             .company-select-wrapper {
                 position: relative;
-                max-width: 500px;
             }
 
             .company-select {
@@ -669,13 +680,6 @@
             <header>
                 <div class="header-left">
                     <h1>Find-a-Tender Internal Tool</h1>
-                    <button
-                        onclick="toggleManageCompanies()"
-                        class="manage-btn"
-                    >
-                        <span class="icon">⚙️</span>
-                        <span>Manage Companies</span>
-                    </button>
                 </div>
                 <img
                     src="https://bidwritingservice.com/wp-content/uploads/2023/02/CY-003-BWS-Logo-CYMK-1.png"
@@ -686,13 +690,24 @@
 
             <!-- Company Selection -->
             <div class="selection-section">
-                <label class="selection-label" for="companySelect"
-                    >Select Company</label
-                >
-                <div class="company-select-wrapper">
-                    <select id="companySelect" class="company-select">
-                        <option value="">-- Choose a company --</option>
-                    </select>
+                <div class="selection-content">
+                    <div class="selection-group">
+                        <label class="selection-label" for="companySelect"
+                            >Select Company</label
+                        >
+                        <div class="company-select-wrapper">
+                            <select id="companySelect" class="company-select">
+                                <option value="">-- Choose a company --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button
+                        onclick="toggleManageCompanies()"
+                        class="manage-btn"
+                    >
+                        <span class="icon">➕</span>
+                        <span>Add New Company</span>
+                    </button>
                 </div>
             </div>
 
