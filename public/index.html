@@ -881,55 +881,6 @@
                 </div>
             </div>
 
-            <!-- Industry Categories Section -->
-            <div class="industry-categories" id="industryCategories">
-                <div class="industries-grid">
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('security')"
-                    >
-                        <div class="industry-icon">🔒</div>
-                        <div class="industry-name">Security</div>
-                        <div class="industry-count" id="securityCount">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('fire')"
-                    >
-                        <div class="industry-icon">🔥</div>
-                        <div class="industry-name">Fire Safety</div>
-                        <div class="industry-count" id="fireCount">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('cleaning')"
-                    >
-                        <div class="industry-icon">🧹</div>
-                        <div class="industry-name">Cleaning</div>
-                        <div class="industry-count" id="cleaningCount">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('waste')"
-                    >
-                        <div class="industry-icon">♻️</div>
-                        <div class="industry-name">Waste Management</div>
-                        <div class="industry-count" id="wasteCount">
-                            Loading...
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Manage Companies Section - MOVED HERE -->
             <div class="manage-section" id="manageSection">
                 <div class="manage-header">
@@ -1039,6 +990,55 @@
                 </div>
             </div>
 
+            <!-- Industry Categories Section - Appears below dashboard when activated -->
+            <div class="industry-categories" id="industryCategories">
+                <div class="industries-grid">
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('security')"
+                    >
+                        <div class="industry-icon">🔒</div>
+                        <div class="industry-name">Security</div>
+                        <div class="industry-count" id="securityCount">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('fire')"
+                    >
+                        <div class="industry-icon">🔥</div>
+                        <div class="industry-name">Fire Safety</div>
+                        <div class="industry-count" id="fireCount">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('cleaning')"
+                    >
+                        <div class="industry-icon">🧹</div>
+                        <div class="industry-name">Cleaning</div>
+                        <div class="industry-count" id="cleaningCount">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('waste')"
+                    >
+                        <div class="industry-icon">♻️</div>
+                        <div class="industry-name">Waste Management</div>
+                        <div class="industry-count" id="wasteCount">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Results Section -->
             <div class="results-section" id="resultsSection">
                 <div class="results-header">
@@ -1108,10 +1108,13 @@
                     section.classList.remove("show");
                 } else {
                     section.classList.add("show");
-                    section.scrollIntoView({
-                        behavior: "smooth",
-                        block: "nearest",
-                    });
+                    // Scroll smoothly to the industry categories
+                    setTimeout(() => {
+                        section.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        });
+                    }, 100);
                     updateIndustryCounts();
                 }
             }
@@ -1233,10 +1236,13 @@
                     return;
                 }
 
-                // Hide dashboard and show results
+                // Hide dashboard, industry categories, and show results
                 document
                     .getElementById("dashboardSection")
                     .classList.add("hide");
+                document
+                    .getElementById("industryCategories")
+                    .classList.remove("show");
                 document.getElementById("resultsSection").classList.add("show");
 
                 const company = companies.find(
