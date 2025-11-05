@@ -1,5 +1,5 @@
 // Fetch tenders from API and save to database
-// IMPROVED: Normalizes CPV codes by removing dashes and taking first 8 digits
+// IMPROVED: Normalizes CPV codes and extracts from ALL sources including item.classification
 const { Client } = require("pg");
 
 // Helper function to normalize CPV codes
@@ -87,10 +87,10 @@ async function fetchAndSaveTenders() {
     for (const release of allTenders) {
       // Only process if it has tender data
       if (release.tender) {
-        // Extract CPV codes - IMPROVED: normalize them!
+        // Extract CPV codes - IMPROVED: Get from ALL sources!
         let cpvCodes = [];
 
-        // 1. Get main classification CPV code
+        // 1. Get main classification CPV code (tender level)
         if (release.tender.classification && release.tender.classification.id) {
           const normalized = normalizeCpvCode(release.tender.classification.id);
           if (normalized) {
@@ -98,9 +98,18 @@ async function fetchAndSaveTenders() {
           }
         }
 
-        // 2. Get additional classifications from items
+        // 2. Get CPV codes from items - FIXED to include item.classification!
         if (release.tender.items) {
           for (const item of release.tender.items) {
+            // Get main item classification (THIS WAS MISSING - often the primary CPV!)
+            if (item.classification && item.classification.id) {
+              const normalized = normalizeCpvCode(item.classification.id);
+              if (normalized) {
+                cpvCodes.push(normalized);
+              }
+            }
+
+            // Get additional classifications
             if (item.additionalClassifications) {
               for (const classification of item.additionalClassifications) {
                 if (classification.scheme === "CPV" && classification.id) {
