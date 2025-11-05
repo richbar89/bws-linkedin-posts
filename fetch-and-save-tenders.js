@@ -1,11 +1,19 @@
 // Fetch tenders from API and save to database
-// UPDATED: Changed to 14-day rolling window for more tender coverage
+// IMPROVED: Normalizes CPV codes by removing dashes and taking first 8 digits
 const { Client } = require("pg");
+
+// Helper function to normalize CPV codes
+function normalizeCpvCode(cpv) {
+  if (!cpv) return null;
+  // Remove dashes and take first 8 digits
+  const normalized = String(cpv).replace(/-/g, "").substring(0, 8);
+  return normalized.length === 8 ? normalized : null;
+}
 
 async function fetchAndSaveTenders() {
   console.log("🚀 Starting tender fetch...\n");
 
-  // Calculate date from 14 days ago (UPDATED from 10 days)
+  // Calculate date from 14 days ago
   const fourteenDaysAgo = new Date();
   fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
   const dateFrom = fourteenDaysAgo.toISOString();
@@ -70,6 +78,7 @@ async function fetchAndSaveTenders() {
 
     let savedCount = 0;
     let skippedCount = 0;
+    let cpvIssues = 0;
 
     // Clear existing tenders first (rolling 14-day window)
     await client.query("DELETE FROM tenders");
@@ -78,12 +87,15 @@ async function fetchAndSaveTenders() {
     for (const release of allTenders) {
       // Only process if it has tender data
       if (release.tender) {
-        // Extract CPV codes - FIXED to look in the right places!
+        // Extract CPV codes - IMPROVED: normalize them!
         let cpvCodes = [];
 
         // 1. Get main classification CPV code
         if (release.tender.classification && release.tender.classification.id) {
-          cpvCodes.push(release.tender.classification.id);
+          const normalized = normalizeCpvCode(release.tender.classification.id);
+          if (normalized) {
+            cpvCodes.push(normalized);
+          }
         }
 
         // 2. Get additional classifications from items
@@ -92,7 +104,10 @@ async function fetchAndSaveTenders() {
             if (item.additionalClassifications) {
               for (const classification of item.additionalClassifications) {
                 if (classification.scheme === "CPV" && classification.id) {
-                  cpvCodes.push(classification.id);
+                  const normalized = normalizeCpvCode(classification.id);
+                  if (normalized) {
+                    cpvCodes.push(normalized);
+                  }
                 }
               }
             }
@@ -101,6 +116,10 @@ async function fetchAndSaveTenders() {
 
         // Remove duplicates
         cpvCodes = [...new Set(cpvCodes)];
+
+        if (cpvCodes.length === 0) {
+          cpvIssues++;
+        }
 
         // Extract deadline
         let deadline = null;
@@ -161,8 +180,23 @@ async function fetchAndSaveTenders() {
     console.log(`   Total releases fetched: ${allTenders.length}`);
     console.log(`   Saved to database: ${savedCount}`);
     console.log(`   Skipped (no tender data): ${skippedCount}`);
+    console.log(`   Tenders with no CPV codes: ${cpvIssues}`);
     console.log(`   Pages fetched: ${pageCount}`);
     console.log("\n✨ Done! Rolling 14-day window updated.\n");
+
+    // Show status breakdown
+    const statusBreakdown = await client.query(`
+      SELECT status, COUNT(*) as count
+      FROM tenders
+      GROUP BY status
+      ORDER BY count DESC
+    `);
+
+    console.log("📊 Status breakdown:");
+    statusBreakdown.rows.forEach((row) => {
+      console.log(`   ${row.status}: ${row.count}`);
+    });
+    console.log("");
   } catch (error) {
     console.log("❌ Error:", error.message);
   } finally {

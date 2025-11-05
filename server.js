@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// UPDATED: Changed CPV matching to 5 digits for more accurate results
+// FIXED: Removed restrictive status filtering to show all tenders
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -41,22 +41,36 @@ async function getDbClient() {
   return client;
 }
 
+// Helper function to normalize CPV code (remove dashes and extra chars)
+function normalizeCpvCode(cpv) {
+  if (!cpv) return "";
+  // Convert to string and remove dashes and any non-numeric chars after first 8 digits
+  const cpvStr = String(cpv).replace(/-/g, "");
+  // Take first 8 digits only
+  return cpvStr.substring(0, 8);
+}
+
 // Helper function to check if CPV codes match (using 5-digit logic)
 function cpvCodesMatch(cpv1, cpv2) {
-  const cpv1Str = String(cpv1);
-  const cpv2Str = String(cpv2);
+  // Normalize both codes first
+  const cpv1Normalized = normalizeCpvCode(cpv1);
+  const cpv2Normalized = normalizeCpvCode(cpv2);
+
+  if (!cpv1Normalized || !cpv2Normalized) return false;
 
   // Exact match (8 digits)
-  if (cpv1Str === cpv2Str) return true;
+  if (cpv1Normalized === cpv2Normalized) return true;
 
   // Partial match (6 digits)
-  if (cpv1Str.length >= 6 && cpv2Str.length >= 6) {
-    if (cpv1Str.substring(0, 6) === cpv2Str.substring(0, 6)) return true;
+  if (cpv1Normalized.length >= 6 && cpv2Normalized.length >= 6) {
+    if (cpv1Normalized.substring(0, 6) === cpv2Normalized.substring(0, 6))
+      return true;
   }
 
   // Category match (5 digits)
-  if (cpv1Str.length >= 5 && cpv2Str.length >= 5) {
-    if (cpv1Str.substring(0, 5) === cpv2Str.substring(0, 5)) return true;
+  if (cpv1Normalized.length >= 5 && cpv2Normalized.length >= 5) {
+    if (cpv1Normalized.substring(0, 5) === cpv2Normalized.substring(0, 5))
+      return true;
   }
 
   return false;
@@ -110,15 +124,13 @@ app.get("/api/stats", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    // Only count tenders with status 'planned' or 'active'
-    const tenderCount = await client.query(
-      "SELECT COUNT(*) FROM tenders WHERE status IN ('planned', 'active')",
-    );
+    // Count ALL tenders
+    const tenderCount = await client.query("SELECT COUNT(*) FROM tenders");
     const companyCount = await client.query("SELECT COUNT(*) FROM companies");
 
-    // Get last tender publication date (from filtered tenders only)
+    // Get last tender publication date
     const lastTender = await client.query(
-      "SELECT MAX(publication_date) as last_update FROM tenders WHERE status IN ('planned', 'active')",
+      "SELECT MAX(publication_date) as last_update FROM tenders",
     );
 
     res.json({
@@ -202,9 +214,9 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
       companyCpvCodes = Object.values(company.cpv_codes);
     }
 
-    // Only get tenders with status 'planned' or 'active'
+    // Get ALL tenders - no status filtering
     const tendersResult = await client.query(
-      "SELECT * FROM tenders WHERE status IN ('planned', 'active') ORDER BY publication_date DESC",
+      "SELECT * FROM tenders ORDER BY publication_date DESC",
     );
 
     // Match tenders
@@ -233,39 +245,13 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
 
       let hasMatch = false;
 
-      // Check for matches - UPDATED: Using 5-digit matching for better accuracy
+      // Check for matches using the helper function
       for (const companyCpv of companyCpvCodes) {
         for (const tenderCpv of tenderCpvCodes) {
           if (!tenderCpv) continue;
-
-          const companyCpvStr = String(companyCpv);
-          const tenderCpvStr = String(tenderCpv);
-
-          // Exact match (8 digits)
-          if (tenderCpvStr === companyCpvStr) {
+          if (cpvCodesMatch(companyCpv, tenderCpv)) {
             hasMatch = true;
             break;
-          }
-
-          // Partial match (6 digits)
-          if (tenderCpvStr.length >= 6 && companyCpvStr.length >= 6) {
-            if (
-              tenderCpvStr.substring(0, 6) === companyCpvStr.substring(0, 6)
-            ) {
-              hasMatch = true;
-              break;
-            }
-          }
-
-          // UPDATED: Category match (5 digits instead of 3)
-          // This provides more accurate matching at the category level
-          if (tenderCpvStr.length >= 5 && companyCpvStr.length >= 5) {
-            if (
-              tenderCpvStr.substring(0, 5) === companyCpvStr.substring(0, 5)
-            ) {
-              hasMatch = true;
-              break;
-            }
           }
         }
         if (hasMatch) break;
@@ -306,9 +292,8 @@ app.get("/api/industries/counts", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    const tendersResult = await client.query(
-      "SELECT * FROM tenders WHERE status IN ('planned', 'active')",
-    );
+    // Get ALL tenders - no status filtering
+    const tendersResult = await client.query("SELECT * FROM tenders");
 
     const counts = {
       security: 0,
@@ -374,9 +359,9 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
     const industry = industries[industryKey];
     const industryCpvCodes = industry.cpvCodes;
 
-    // Get all tenders
+    // Get ALL tenders - no status filtering
     const tendersResult = await client.query(
-      "SELECT * FROM tenders WHERE status IN ('planned', 'active') ORDER BY publication_date DESC",
+      "SELECT * FROM tenders ORDER BY publication_date DESC",
     );
 
     const matchingTenders = [];
@@ -514,6 +499,6 @@ app.delete("/api/companies/:id", async (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Tender Scanner running on http://localhost:${PORT}`);
   console.log(`📊 Open your browser and visit: http://localhost:${PORT}\n`);
-  console.log(`✅ Filtering to show only 'planned' and 'active' tenders\n`);
-  console.log(`🔍 Using 5-digit CPV matching for accurate results\n`);
+  console.log(`✅ FIXED: Showing ALL tenders regardless of status\n`);
+  console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
 });
