@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// UPDATED: Added new industry categories
+// UPDATED: Added email contact fields for companies
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -7,7 +7,7 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Industry to CPV code mappings - UPDATED with new industries
+// Industry to CPV code mappings
 const industries = {
   security: {
     name: "Security",
@@ -147,6 +147,9 @@ async function findMatchingCompanies(tenderCpvCodes, client) {
       matchingCompanies.push({
         id: company.id,
         name: company.name,
+        first_name: company.first_name,
+        last_name: company.last_name,
+        email: company.email,
       });
     }
   }
@@ -205,6 +208,9 @@ app.get("/api/companies", async (req, res) => {
       return {
         id: company.id,
         name: company.name,
+        first_name: company.first_name,
+        last_name: company.last_name,
+        email: company.email,
         cpv_codes: cpvCodes,
         created_at: company.created_at,
       };
@@ -306,6 +312,9 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
       company: {
         id: company.id,
         name: company.name,
+        first_name: company.first_name,
+        last_name: company.last_name,
+        email: company.email,
         cpv_codes: companyCpvCodes,
       },
       tenders: matchingTenders,
@@ -466,7 +475,7 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
 
 // Add a new company
 app.post("/api/companies", async (req, res) => {
-  const { name, cpv_codes } = req.body;
+  const { name, cpv_codes, first_name, last_name, email } = req.body;
 
   if (!name || !cpv_codes || !Array.isArray(cpv_codes)) {
     res.status(400).json({ error: "Name and CPV codes (array) required" });
@@ -477,8 +486,14 @@ app.post("/api/companies", async (req, res) => {
 
   try {
     const result = await client.query(
-      "INSERT INTO companies (name, cpv_codes) VALUES ($1, $2::jsonb) RETURNING *",
-      [name, JSON.stringify(cpv_codes)],
+      "INSERT INTO companies (name, cpv_codes, first_name, last_name, email) VALUES ($1, $2::jsonb, $3, $4, $5) RETURNING *",
+      [
+        name,
+        JSON.stringify(cpv_codes),
+        first_name || null,
+        last_name || null,
+        email || null,
+      ],
     );
 
     res.json({ success: true, company: result.rows[0] });
@@ -530,4 +545,5 @@ app.listen(PORT, "0.0.0.0", () => {
     `✅ UPDATED: Showing only open tenders (active, planning, planned)\n`,
   );
   console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
+  console.log(`📧 Email contact fields enabled\n`);
 });

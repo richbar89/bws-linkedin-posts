@@ -42,7 +42,9 @@ async function setupDatabase() {
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         cpv_codes JSONB NOT NULL,
-        contact_email TEXT,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        email VARCHAR(255),
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
@@ -57,7 +59,7 @@ async function setupDatabase() {
       "CREATE INDEX idx_tenders_publication_date ON tenders(publication_date)",
     );
     await client.query(
-      "CREATE INDEX IF NOT EXISTS idx_companies_contact_email ON companies(contact_email)",
+      "CREATE INDEX IF NOT EXISTS idx_companies_email ON companies(email)",
     );
     console.log("✅ Indexes created\n");
 

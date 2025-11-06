@@ -159,7 +159,7 @@
                 box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
             }
 
-            /* Industry Categories Section - UPDATED for 7 industries */
+            /* Industry Categories Section */
             .industry-categories {
                 display: none;
                 margin-bottom: 40px;
@@ -543,6 +543,9 @@
                 padding: 4px 0;
                 font-size: 12px;
                 color: #6c757d;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
             }
 
             .client-match-item::before {
@@ -649,6 +652,12 @@
                 font-weight: 600;
                 color: #1c2541;
                 margin-bottom: 6px;
+            }
+
+            .company-contact {
+                font-size: 13px;
+                color: #6c757d;
+                margin-top: 4px;
             }
 
             .company-cpv {
@@ -930,6 +939,45 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label" for="firstName"
+                            >First Name *</label
+                        >
+                        <input
+                            type="text"
+                            id="firstName"
+                            class="form-input"
+                            placeholder="e.g., John"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="lastName"
+                            >Last Name *</label
+                        >
+                        <input
+                            type="text"
+                            id="lastName"
+                            class="form-input"
+                            placeholder="e.g., Smith"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="email"
+                            >Email Address *</label
+                        >
+                        <input
+                            type="email"
+                            id="email"
+                            class="form-input"
+                            placeholder="e.g., john.smith@company.com"
+                            required
+                        />
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">CPV Codes *</label>
                         <p class="form-help">
                             Enter 8-digit CPV codes. Press Enter or click Add
@@ -1005,7 +1053,7 @@
                 </div>
             </div>
 
-            <!-- Industry Categories Section - UPDATED WITH 7 INDUSTRIES -->
+            <!-- Industry Categories Section -->
             <div class="industry-categories" id="industryCategories">
                 <div class="industries-grid">
                     <div
@@ -1115,10 +1163,9 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 35%">TITLE</th>
+                                <th style="width: 40%">TITLE</th>
                                 <th style="width: 20%">PUBLISHED</th>
-                                <th style="width: 15%">MATCHED CPVS</th>
-                                <th style="width: 15%">MATCHING CLIENTS</th>
+                                <th style="width: 25%">MATCHING CLIENTS</th>
                                 <th style="width: 15%"></th>
                             </tr>
                         </thead>
@@ -1133,7 +1180,7 @@
             let newCompanyCpvCodes = [];
             let allTendersData = [];
 
-            // Industry to CPV code mappings - UPDATED with all 7 industries
+            // Industry to CPV code mappings
             const industries = {
                 security: {
                     name: "Security",
@@ -1345,7 +1392,7 @@
                 );
 
                 document.getElementById("tendersTableBody").innerHTML =
-                    '<tr><td colspan="5" class="loading">Loading tenders...</td></tr>';
+                    '<tr><td colspan="4" class="loading">Loading tenders...</td></tr>';
 
                 const now = new Date();
                 document.getElementById("refreshTime").textContent =
@@ -1371,7 +1418,7 @@
                     if (data.tenders.length === 0) {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="5">
+                                <td colspan="4">
                                     <div class="empty-state">
                                         <h3>No matching tenders found</h3>
                                         <p>There are no open tenders matching this company's CPV codes in the last 14 days.</p>
@@ -1403,6 +1450,11 @@
                                           ? "1 day ago"
                                           : `${daysAgo} days ago`;
 
+                                // Generate mailto link
+                                const mailtoLink = company.email
+                                    ? `mailto:${encodeURIComponent(company.email)}?subject=${encodeURIComponent("New Tender: " + tender.title)}&body=${encodeURIComponent("Hi " + (company.first_name || "") + ",\\n\\nI wanted to bring this tender opportunity to your attention:\\n\\nTitle: " + tender.title + "\\nBuyer: " + tender.buyer_name + "\\nPublished: " + pubDate + "\\nDeadline: " + deadline + "\\nStatus: " + tender.status.toUpperCase() + "\\n\\nView full details: " + tender.tender_url + "\\n\\nBest regards,\\nBWS Tender Scanning Team")}`
+                                    : "";
+
                                 return `
                                 <tr>
                                     <td>
@@ -1422,23 +1474,14 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                            ${tender.cpv_codes
-                                                .slice(0, 2)
-                                                .map(
-                                                    (code) =>
-                                                        `<span class="cpv-tag">${code}</span>`,
-                                                )
-                                                .join("")}
-                                            ${tender.cpv_codes.length > 2 ? `<span class="cpv-tag">+${tender.cpv_codes.length - 2}</span>` : ""}
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span class="cpv-tag">${company.name}</span>
+                                            ${company.email ? `<a href="${mailtoLink}" class="view-btn" style="padding: 6px 12px; font-size: 12px;">📧 Send</a>` : ""}
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="cpv-tag">${company.name}</span>
-                                    </td>
-                                    <td>
                                         <a href="${tender.tender_url}" target="_blank" class="view-btn">
-                                            View Tender Details →
+                                            View Details →
                                         </a>
                                     </td>
                                 </tr>
@@ -1449,7 +1492,7 @@
                 } catch (error) {
                     document.getElementById("tendersTableBody").innerHTML = `
                         <tr>
-                            <td colspan="5">
+                            <td colspan="4">
                                 <div class="empty-state">
                                     <h3>Error loading tenders</h3>
                                     <p>${error.message}</p>
@@ -1518,6 +1561,8 @@
                     <div class="company-item">
                         <div class="company-info">
                             <div class="company-name">${company.name}</div>
+                            ${company.first_name || company.last_name ? `<div class="company-contact">Contact: ${company.first_name || ""} ${company.last_name || ""}</div>` : ""}
+                            ${company.email ? `<div class="company-contact">Email: ${company.email}</div>` : ""}
                             <div class="company-cpv">CPV: ${company.cpv_codes.join(", ")}</div>
                         </div>
                         <button onclick="deleteCompany(${company.id}, '${company.name.replace(/'/g, "\\'")}');" class="delete-btn">
@@ -1533,7 +1578,7 @@
             async function deleteCompany(id, name) {
                 if (
                     !confirm(
-                        `Are you sure you want to delete "${name}"?\n\nThis action cannot be undone.`,
+                        `Are you sure you want to delete "${name}"?\\n\\nThis action cannot be undone.`,
                     )
                 ) {
                     return;
@@ -1559,7 +1604,7 @@
                         resetView();
                     }
                 } catch (error) {
-                    alert(`❌ Error deleting company:\n\n${error.message}`);
+                    alert(`❌ Error deleting company:\\n\\n${error.message}`);
                 }
             }
 
@@ -1571,6 +1616,9 @@
                 if (isVisible) {
                     form.classList.remove("show");
                     document.getElementById("companyName").value = "";
+                    document.getElementById("firstName").value = "";
+                    document.getElementById("lastName").value = "";
+                    document.getElementById("email").value = "";
                     document.getElementById("cpvInput").value = "";
                     newCompanyCpvCodes = [];
                     renderCpvTags();
@@ -1605,7 +1653,7 @@
                 const input = document.getElementById("cpvInput");
                 const code = input.value.trim();
 
-                if (code.length !== 8 || !/^\d{8}$/.test(code)) {
+                if (code.length !== 8 || !/^\\d{8}$/.test(code)) {
                     alert("CPV code must be exactly 8 digits");
                     return;
                 }
@@ -1657,9 +1705,26 @@
                 const name = document
                     .getElementById("companyName")
                     .value.trim();
+                const firstName = document
+                    .getElementById("firstName")
+                    .value.trim();
+                const lastName = document
+                    .getElementById("lastName")
+                    .value.trim();
+                const email = document.getElementById("email").value.trim();
 
                 if (!name) {
                     alert("Please enter a company name");
+                    return;
+                }
+
+                if (!firstName || !lastName) {
+                    alert("Please enter first and last name");
+                    return;
+                }
+
+                if (!email) {
+                    alert("Please enter an email address");
                     return;
                 }
 
@@ -1677,6 +1742,9 @@
                         body: JSON.stringify({
                             name: name,
                             cpv_codes: newCompanyCpvCodes,
+                            first_name: firstName,
+                            last_name: lastName,
+                            email: email,
                         }),
                     });
 
@@ -1705,7 +1773,7 @@
                 }
             });
 
-            // Update industry counts - UPDATED for 7 industries
+            // Update industry counts
             async function updateIndustryCounts() {
                 try {
                     const response = await fetch("/api/industries/counts");
@@ -1752,7 +1820,7 @@
                 }, 200);
 
                 document.getElementById("tendersTableBody").innerHTML =
-                    '<tr><td colspan="5" class="loading">Loading tenders...</td></tr>';
+                    '<tr><td colspan="4" class="loading">Loading tenders...</td></tr>';
 
                 const now = new Date();
                 document.getElementById("refreshTime").textContent =
@@ -1778,7 +1846,7 @@
                     if (data.tenders.length === 0) {
                         tbody.innerHTML = `
                             <tr>
-                                <td colspan="5">
+                                <td colspan="4">
                                     <div class="empty-state">
                                         <h3>No matching tenders found</h3>
                                         <p>There are no open ${industries[industryKey].name} tenders in the last 14 days.</p>
@@ -1819,7 +1887,17 @@
                                             ${matchingClients.length} client${matchingClients.length !== 1 ? "s" : ""} ▼
                                         </div>
                                         <div class="matching-clients-list" id="clients-${tender.id}">
-                                            ${matchingClients.map((c) => `<div class="client-match-item">${c.name}</div>`).join("")}
+                                            ${matchingClients
+                                                .map((c) => {
+                                                    const mailtoLink = c.email
+                                                        ? `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent("New Tender: " + tender.title)}&body=${encodeURIComponent("Hi " + (c.first_name || "") + ",\\n\\nI wanted to bring this tender opportunity to your attention:\\n\\nTitle: " + tender.title + "\\nBuyer: " + tender.buyer_name + "\\nPublished: " + pubDate + "\\nDeadline: " + deadline + "\\nStatus: " + tender.status.toUpperCase() + "\\n\\nView full details: " + tender.tender_url + "\\n\\nBest regards,\\nBWS Tender Scanning Team")}`
+                                                        : "";
+                                                    return `<div class="client-match-item">
+                                                    <span>${c.name}</span>
+                                                    ${c.email ? `<a href="${mailtoLink}" class="view-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 8px;">📧 Send</a>` : ""}
+                                                </div>`;
+                                                })
+                                                .join("")}
                                         </div>
                                     </div>`
                                         : `<span style="color: #95a5a6; font-size: 12px;">No matches</span>`;
@@ -1843,18 +1921,6 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                            ${tender.cpv_codes
-                                                .slice(0, 2)
-                                                .map(
-                                                    (code) =>
-                                                        `<span class="cpv-tag">${code}</span>`,
-                                                )
-                                                .join("")}
-                                            ${tender.cpv_codes.length > 2 ? `<span class="cpv-tag">+${tender.cpv_codes.length - 2}</span>` : ""}
-                                        </div>
-                                    </td>
-                                    <td>
                                         ${clientsHtml}
                                     </td>
                                     <td>
@@ -1870,7 +1936,7 @@
                 } catch (error) {
                     document.getElementById("tendersTableBody").innerHTML = `
                         <tr>
-                            <td colspan="5">
+                            <td colspan="4">
                                 <div class="empty-state">
                                     <h3>Error loading tenders</h3>
                                     <p>${error.message}</p>
