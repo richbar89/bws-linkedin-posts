@@ -1653,7 +1653,11 @@
                 const input = document.getElementById("cpvInput");
                 const code = input.value.trim();
 
-                if (code.length !== 8 || !/^\\d{8}$/.test(code)) {
+                console.log("Adding CPV code:", code);
+                console.log("Code length:", code.length);
+                console.log("Is 8 digits:", /^[0-9]{8}$/.test(code));
+
+                if (code.length !== 8 || !/^[0-9]{8}$/.test(code)) {
                     alert("CPV code must be exactly 8 digits");
                     return;
                 }
@@ -1664,6 +1668,7 @@
                 }
 
                 newCompanyCpvCodes.push(code);
+                console.log("CPV codes array:", newCompanyCpvCodes);
                 input.value = "";
                 renderCpvTags();
             }
