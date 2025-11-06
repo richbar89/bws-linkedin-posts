@@ -4,7 +4,6 @@ const { Client } = require("pg");
 async function setupDatabase() {
   console.log("🗄️  Setting up database...\n");
 
-  // Connect to PostgreSQL
   const client = new Client({
     connectionString:
       process.env.DATABASE_URL || "postgresql://localhost:5432/tenders",
@@ -14,14 +13,12 @@ async function setupDatabase() {
     await client.connect();
     console.log("✅ Connected to PostgreSQL\n");
 
-    // Drop existing tables (fresh start)
     console.log("🧹 Cleaning up old tables...");
     await client.query("DROP TABLE IF EXISTS tender_matches CASCADE");
     await client.query("DROP TABLE IF EXISTS companies CASCADE");
     await client.query("DROP TABLE IF EXISTS tenders CASCADE");
     console.log("✅ Old tables removed\n");
 
-    // Create tenders table
     console.log("📋 Creating tenders table...");
     await client.query(`
       CREATE TABLE tenders (
@@ -39,19 +36,18 @@ async function setupDatabase() {
     `);
     console.log("✅ Tenders table created\n");
 
-    // Create companies table
     console.log("🏢 Creating companies table...");
     await client.query(`
       CREATE TABLE companies (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         cpv_codes JSONB NOT NULL,
+        contact_email TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
     console.log("✅ Companies table created\n");
 
-    // Create indexes for performance
     console.log("⚡ Creating indexes...");
     await client.query("CREATE INDEX idx_tenders_status ON tenders(status)");
     await client.query(
@@ -59,6 +55,9 @@ async function setupDatabase() {
     );
     await client.query(
       "CREATE INDEX idx_tenders_publication_date ON tenders(publication_date)",
+    );
+    await client.query(
+      "CREATE INDEX IF NOT EXISTS idx_companies_contact_email ON companies(contact_email)",
     );
     console.log("✅ Indexes created\n");
 
@@ -70,5 +69,4 @@ async function setupDatabase() {
   }
 }
 
-// Run setup
 setupDatabase();
