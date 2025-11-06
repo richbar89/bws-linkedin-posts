@@ -1452,7 +1452,7 @@
 
                                 // Generate mailto link
                                 const mailtoLink = company.email
-                                    ? `mailto:${encodeURIComponent(company.email)}?subject=${encodeURIComponent("New Tender: " + tender.title)}&body=${encodeURIComponent("Hi " + (company.first_name || "") + ",\\n\\nI wanted to bring this tender opportunity to your attention:\\n\\nTitle: " + tender.title + "\\nBuyer: " + tender.buyer_name + "\\nPublished: " + pubDate + "\\nDeadline: " + deadline + "\\nStatus: " + tender.status.toUpperCase() + "\\n\\nView full details: " + tender.tender_url + "\\n\\nBest regards,\\nBWS Tender Scanning Team")}`
+                                    ? `mailto:${encodeURIComponent(company.email)}?subject=${encodeURIComponent("New Tender: " + tender.title)}&body=${encodeURIComponent("Hi " + (company.first_name || "") + ",\n\nI wanted to bring this tender opportunity to your attention:\n\nTitle: " + tender.title + "\nBuyer: " + tender.buyer_name + "\nPublished: " + pubDate + "\nDeadline: " + deadline + "\nStatus: " + tender.status.toUpperCase() + "\n\nView full details: " + tender.tender_url + "\n\nBest regards,\nBWS Tender Scanning Team")}`
                                     : "";
 
                                 return `
@@ -1738,29 +1738,39 @@
                     return;
                 }
 
+                const payload = {
+                    name: name,
+                    cpv_codes: newCompanyCpvCodes,
+                    first_name: firstName,
+                    last_name: lastName,
+                    email: email,
+                };
+
+                console.log("Sending payload:", payload);
+
                 try {
                     const response = await fetch("/api/companies", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({
-                            name: name,
-                            cpv_codes: newCompanyCpvCodes,
-                            first_name: firstName,
-                            last_name: lastName,
-                            email: email,
-                        }),
+                        body: JSON.stringify(payload),
                     });
 
+                    console.log("Response status:", response.status);
+
+                    const data = await response.json();
+                    console.log("Response data:", data);
+
                     if (!response.ok) {
-                        throw new Error("Failed to add company");
+                        throw new Error(data.error || "Failed to add company");
                     }
 
                     alert(`✅ ${name} added successfully!`);
                     toggleAddForm();
                     await loadCompanies();
                 } catch (error) {
+                    console.error("Error details:", error);
                     alert(`Error adding company: ${error.message}`);
                 }
             }
@@ -1895,7 +1905,7 @@
                                             ${matchingClients
                                                 .map((c) => {
                                                     const mailtoLink = c.email
-                                                        ? `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent("New Tender: " + tender.title)}&body=${encodeURIComponent("Hi " + (c.first_name || "") + ",\\n\\nI wanted to bring this tender opportunity to your attention:\\n\\nTitle: " + tender.title + "\\nBuyer: " + tender.buyer_name + "\\nPublished: " + pubDate + "\\nDeadline: " + deadline + "\\nStatus: " + tender.status.toUpperCase() + "\\n\\nView full details: " + tender.tender_url + "\\n\\nBest regards,\\nBWS Tender Scanning Team")}`
+                                                        ? `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent("New Tender: " + tender.title)}&body=${encodeURIComponent("Hi " + (c.first_name || "") + ",\n\nI wanted to bring this tender opportunity to your attention:\n\nTitle: " + tender.title + "\nBuyer: " + tender.buyer_name + "\nPublished: " + pubDate + "\nDeadline: " + deadline + "\nStatus: " + tender.status.toUpperCase() + "\n\nView full details: " + tender.tender_url + "\n\nBest regards,\nBWS Tender Scanning Team")}`
                                                         : "";
                                                     return `<div class="client-match-item">
                                                     <span>${c.name}</span>
