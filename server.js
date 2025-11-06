@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// Includes contact_email exposure + acceptance
+// UPDATED: Added new industry categories
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -7,7 +7,7 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Industry → CPV mappings
+// Industry to CPV code mappings - UPDATED with new industries
 const industries = {
   security: {
     name: "Security",
@@ -60,10 +60,11 @@ const industries = {
   },
 };
 
+// Middleware
 app.use(express.json());
 app.use(express.static("public"));
 
-// no-cache for API
+// Prevent API caching
 app.use("/api", (req, res, next) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
   res.set("Pragma", "no-cache");
@@ -71,6 +72,7 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
+// Database connection helper
 async function getDbClient() {
   const client = new Client({
     connectionString:
@@ -80,79 +82,97 @@ async function getDbClient() {
   return client;
 }
 
+// Helper function to normalize CPV code (remove dashes and extra chars)
 function normalizeCpvCode(cpv) {
   if (!cpv) return "";
-  const cpvStr = String(cpv).replace(/\D/g, "");
+  const cpvStr = String(cpv).replace(/-/g, "");
   return cpvStr.substring(0, 8);
 }
 
+// Helper function to check if CPV codes match (using 5-digit logic)
 function cpvCodesMatch(cpv1, cpv2) {
-  const a = normalizeCpvCode(cpv1);
-  const b = normalizeCpvCode(cpv2);
-  if (!a || !b) return false;
-  if (a === b) return true; // 8-digit
-  if (a.length >= 6 && b.length >= 6 && a.substring(0, 6) === b.substring(0, 6))
-    return true;
-  if (a.length >= 5 && b.length >= 5 && a.substring(0, 5) === b.substring(0, 5))
-    return true;
+  const cpv1Normalized = normalizeCpvCode(cpv1);
+  const cpv2Normalized = normalizeCpvCode(cpv2);
+
+  if (!cpv1Normalized || !cpv2Normalized) return false;
+
+  // Exact match (8 digits)
+  if (cpv1Normalized === cpv2Normalized) return true;
+
+  // Partial match (6 digits)
+  if (cpv1Normalized.length >= 6 && cpv2Normalized.length >= 6) {
+    if (cpv1Normalized.substring(0, 6) === cpv2Normalized.substring(0, 6))
+      return true;
+  }
+
+  // Category match (5 digits)
+  if (cpv1Normalized.length >= 5 && cpv2Normalized.length >= 5) {
+    if (cpv1Normalized.substring(0, 5) === cpv2Normalized.substring(0, 5))
+      return true;
+  }
+
   return false;
 }
 
+// Helper function to find matching companies for tender CPV codes
 async function findMatchingCompanies(tenderCpvCodes, client) {
   const companiesResult = await client.query("SELECT * FROM companies");
   const matchingCompanies = [];
+
   for (const company of companiesResult.rows) {
     let companyCpvCodes = [];
-    if (typeof company.cpv_codes === "string")
+    if (typeof company.cpv_codes === "string") {
       companyCpvCodes = JSON.parse(company.cpv_codes);
-    else if (Array.isArray(company.cpv_codes))
+    } else if (Array.isArray(company.cpv_codes)) {
       companyCpvCodes = company.cpv_codes;
-    else if (
+    } else if (
       typeof company.cpv_codes === "object" &&
       company.cpv_codes !== null
-    )
+    ) {
       companyCpvCodes = Object.values(company.cpv_codes);
+    }
 
     let hasMatch = false;
-    for (const cc of companyCpvCodes) {
-      for (const tc of tenderCpvCodes) {
-        if (cpvCodesMatch(cc, tc)) {
+    for (const companyCpv of companyCpvCodes) {
+      for (const tenderCpv of tenderCpvCodes) {
+        if (cpvCodesMatch(companyCpv, tenderCpv)) {
           hasMatch = true;
           break;
         }
       }
       if (hasMatch) break;
     }
+
     if (hasMatch) {
       matchingCompanies.push({
         id: company.id,
         name: company.name,
-        contact_email: company.contact_email || null,
       });
     }
   }
+
   return matchingCompanies;
 }
 
-/* ---------------- API ROUTES ---------------- */
+// API Routes
 
-// quick health
-app.get("/health", (_req, res) => res.json({ ok: true }));
-
-// Stats
+// Get statistics
 app.get("/api/stats", async (req, res) => {
   const client = await getDbClient();
+
   try {
     const tenderCount = await client.query(
-      "SELECT COUNT(*) FROM tenders WHERE status IN ('active','planning','planned')",
+      "SELECT COUNT(*) FROM tenders WHERE status IN ('active', 'planning', 'planned')",
     );
     const companyCount = await client.query("SELECT COUNT(*) FROM companies");
+
     const lastTender = await client.query(
-      "SELECT MAX(publication_date) as last_update FROM tenders WHERE status IN ('active','planning','planned')",
+      "SELECT MAX(publication_date) as last_update FROM tenders WHERE status IN ('active', 'planning', 'planned')",
     );
+
     res.json({
-      total_tenders: parseInt(tenderCount.rows[0].count, 10),
-      total_companies: parseInt(companyCount.rows[0].count, 10),
+      total_tenders: parseInt(tenderCount.rows[0].count),
+      total_companies: parseInt(companyCount.rows[0].count),
       last_updated: lastTender.rows[0].last_update,
     });
   } catch (error) {
@@ -162,30 +182,34 @@ app.get("/api/stats", async (req, res) => {
   }
 });
 
-// All companies
+// Get all companies
 app.get("/api/companies", async (req, res) => {
   const client = await getDbClient();
+
   try {
     const result = await client.query("SELECT * FROM companies ORDER BY name");
+
     const companies = result.rows.map((company) => {
       let cpvCodes = [];
-      if (typeof company.cpv_codes === "string")
+      if (typeof company.cpv_codes === "string") {
         cpvCodes = JSON.parse(company.cpv_codes);
-      else if (Array.isArray(company.cpv_codes)) cpvCodes = company.cpv_codes;
-      else if (
+      } else if (Array.isArray(company.cpv_codes)) {
+        cpvCodes = company.cpv_codes;
+      } else if (
         typeof company.cpv_codes === "object" &&
         company.cpv_codes !== null
-      )
+      ) {
         cpvCodes = Object.values(company.cpv_codes);
+      }
 
       return {
         id: company.id,
         name: company.name,
         cpv_codes: cpvCodes,
-        contact_email: company.contact_email || null,
         created_at: company.created_at,
       };
     });
+
     res.json(companies);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -194,35 +218,40 @@ app.get("/api/companies", async (req, res) => {
   }
 });
 
-// Company → matching tenders
+// Get matching tenders for a company
 app.get("/api/companies/:id/tenders", async (req, res) => {
-  const companyId = parseInt(req.params.id, 10);
+  const companyId = parseInt(req.params.id);
   const client = await getDbClient();
+
   try {
     const companyResult = await client.query(
-      "SELECT * FROM companies WHERE id=$1",
+      "SELECT * FROM companies WHERE id = $1",
       [companyId],
     );
+
     if (companyResult.rows.length === 0) {
       res.status(404).json({ error: "Company not found" });
       return;
     }
+
     const company = companyResult.rows[0];
 
     let companyCpvCodes = [];
-    if (typeof company.cpv_codes === "string")
+    if (typeof company.cpv_codes === "string") {
       companyCpvCodes = JSON.parse(company.cpv_codes);
-    else if (Array.isArray(company.cpv_codes))
+    } else if (Array.isArray(company.cpv_codes)) {
       companyCpvCodes = company.cpv_codes;
-    else if (
+    } else if (
       typeof company.cpv_codes === "object" &&
       company.cpv_codes !== null
-    )
+    ) {
       companyCpvCodes = Object.values(company.cpv_codes);
+    }
 
     const tendersResult = await client.query(
-      "SELECT * FROM tenders WHERE status IN ('active','planning','planned') ORDER BY publication_date DESC",
+      "SELECT * FROM tenders WHERE status IN ('active', 'planning', 'planned') ORDER BY publication_date DESC",
     );
+
     const matchingTenders = [];
 
     for (const tender of tendersResult.rows) {
@@ -230,30 +259,34 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
       if (typeof tender.cpv_codes === "string") {
         try {
           tenderCpvCodes = JSON.parse(tender.cpv_codes);
-        } catch {
+        } catch (e) {
           continue;
         }
-      } else if (Array.isArray(tender.cpv_codes))
+      } else if (Array.isArray(tender.cpv_codes)) {
         tenderCpvCodes = tender.cpv_codes;
-      else if (
+      } else if (
         typeof tender.cpv_codes === "object" &&
         tender.cpv_codes !== null
-      )
+      ) {
         tenderCpvCodes = Object.values(tender.cpv_codes);
+      }
+
       if (!Array.isArray(tenderCpvCodes) || tenderCpvCodes.length === 0)
         continue;
 
       let hasMatch = false;
-      for (const cc of companyCpvCodes) {
-        for (const tc of tenderCpvCodes) {
-          if (!tc) continue;
-          if (cpvCodesMatch(cc, tc)) {
+
+      for (const companyCpv of companyCpvCodes) {
+        for (const tenderCpv of tenderCpvCodes) {
+          if (!tenderCpv) continue;
+          if (cpvCodesMatch(companyCpv, tenderCpv)) {
             hasMatch = true;
             break;
           }
         }
         if (hasMatch) break;
       }
+
       if (hasMatch) {
         matchingTenders.push({
           id: tender.id,
@@ -274,7 +307,6 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
         id: company.id,
         name: company.name,
         cpv_codes: companyCpvCodes,
-        contact_email: company.contact_email || null,
       },
       tenders: matchingTenders,
     });
@@ -285,46 +317,56 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
   }
 });
 
-// Industry counts
+// Get industry tender counts
 app.get("/api/industries/counts", async (req, res) => {
   const client = await getDbClient();
+
   try {
     const tendersResult = await client.query(
-      "SELECT * FROM tenders WHERE status IN ('active','planning','planned')",
+      "SELECT * FROM tenders WHERE status IN ('active', 'planning', 'planned')",
     );
+
     const counts = {};
-    for (const k of Object.keys(industries)) counts[k] = 0;
+
+    // Initialize counts for all industries
+    for (const industryKey of Object.keys(industries)) {
+      counts[industryKey] = 0;
+    }
 
     for (const tender of tendersResult.rows) {
       let tenderCpvCodes = [];
       if (typeof tender.cpv_codes === "string") {
         try {
           tenderCpvCodes = JSON.parse(tender.cpv_codes);
-        } catch {
+        } catch (e) {
           continue;
         }
-      } else if (Array.isArray(tender.cpv_codes))
+      } else if (Array.isArray(tender.cpv_codes)) {
         tenderCpvCodes = tender.cpv_codes;
-      else if (
+      } else if (
         typeof tender.cpv_codes === "object" &&
         tender.cpv_codes !== null
-      )
+      ) {
         tenderCpvCodes = Object.values(tender.cpv_codes);
+      }
 
-      for (const [key, ind] of Object.entries(industries)) {
+      for (const [industryKey, industry] of Object.entries(industries)) {
         let hasMatch = false;
-        for (const ic of ind.cpvCodes) {
-          for (const tc of tenderCpvCodes) {
-            if (cpvCodesMatch(ic, tc)) {
+        for (const industryCpv of industry.cpvCodes) {
+          for (const tenderCpv of tenderCpvCodes) {
+            if (cpvCodesMatch(industryCpv, tenderCpv)) {
               hasMatch = true;
               break;
             }
           }
           if (hasMatch) break;
         }
-        if (hasMatch) counts[key]++;
+        if (hasMatch) {
+          counts[industryKey]++;
+        }
       }
     }
+
     res.json(counts);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -333,20 +375,24 @@ app.get("/api/industries/counts", async (req, res) => {
   }
 });
 
-// Industry → tenders (with matching companies incl. contact_email)
+// Get tenders for an industry
 app.get("/api/industries/:industry/tenders", async (req, res) => {
   const industryKey = req.params.industry;
   const client = await getDbClient();
+
   try {
     if (!industries[industryKey]) {
       res.status(404).json({ error: "Industry not found" });
       return;
     }
-    const ind = industries[industryKey];
+
+    const industry = industries[industryKey];
+    const industryCpvCodes = industry.cpvCodes;
 
     const tendersResult = await client.query(
-      "SELECT * FROM tenders WHERE status IN ('active','planning','planned') ORDER BY publication_date DESC",
+      "SELECT * FROM tenders WHERE status IN ('active', 'planning', 'planned') ORDER BY publication_date DESC",
     );
+
     const matchingTenders = [];
 
     for (const tender of tendersResult.rows) {
@@ -354,24 +400,27 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
       if (typeof tender.cpv_codes === "string") {
         try {
           tenderCpvCodes = JSON.parse(tender.cpv_codes);
-        } catch {
+        } catch (e) {
           continue;
         }
-      } else if (Array.isArray(tender.cpv_codes))
+      } else if (Array.isArray(tender.cpv_codes)) {
         tenderCpvCodes = tender.cpv_codes;
-      else if (
+      } else if (
         typeof tender.cpv_codes === "object" &&
         tender.cpv_codes !== null
-      )
+      ) {
         tenderCpvCodes = Object.values(tender.cpv_codes);
+      }
+
       if (!Array.isArray(tenderCpvCodes) || tenderCpvCodes.length === 0)
         continue;
 
       let hasMatch = false;
-      for (const ic of ind.cpvCodes) {
-        for (const tc of tenderCpvCodes) {
-          if (!tc) continue;
-          if (cpvCodesMatch(ic, tc)) {
+
+      for (const industryCpv of industryCpvCodes) {
+        for (const tenderCpv of tenderCpvCodes) {
+          if (!tenderCpv) continue;
+          if (cpvCodesMatch(industryCpv, tenderCpv)) {
             hasMatch = true;
             break;
           }
@@ -384,6 +433,7 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
           tenderCpvCodes,
           client,
         );
+
         matchingTenders.push({
           id: tender.id,
           title: tender.title,
@@ -400,7 +450,11 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
     }
 
     res.json({
-      industry: { key: industryKey, name: ind.name, cpv_codes: ind.cpvCodes },
+      industry: {
+        key: industryKey,
+        name: industry.name,
+        cpv_codes: industryCpvCodes,
+      },
       tenders: matchingTenders,
     });
   } catch (error) {
@@ -410,19 +464,23 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
   }
 });
 
-// Add company (now accepts optional contact_email)
+// Add a new company
 app.post("/api/companies", async (req, res) => {
-  const { name, cpv_codes, contact_email } = req.body;
+  const { name, cpv_codes } = req.body;
+
   if (!name || !cpv_codes || !Array.isArray(cpv_codes)) {
     res.status(400).json({ error: "Name and CPV codes (array) required" });
     return;
   }
+
   const client = await getDbClient();
+
   try {
     const result = await client.query(
-      "INSERT INTO companies (name, cpv_codes, contact_email) VALUES ($1,$2::jsonb,$3) RETURNING *",
-      [name, JSON.stringify(cpv_codes), contact_email || null],
+      "INSERT INTO companies (name, cpv_codes) VALUES ($1, $2::jsonb) RETURNING *",
+      [name, JSON.stringify(cpv_codes)],
     );
+
     res.json({ success: true, company: result.rows[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -431,23 +489,28 @@ app.post("/api/companies", async (req, res) => {
   }
 });
 
-// Delete company
+// Delete a company
 app.delete("/api/companies/:id", async (req, res) => {
-  const companyId = parseInt(req.params.id, 10);
+  const companyId = parseInt(req.params.id);
+
   if (!companyId || isNaN(companyId)) {
     res.status(400).json({ error: "Valid company ID required" });
     return;
   }
+
   const client = await getDbClient();
+
   try {
     const result = await client.query(
-      "DELETE FROM companies WHERE id=$1 RETURNING name",
+      "DELETE FROM companies WHERE id = $1 RETURNING name",
       [companyId],
     );
+
     if (result.rows.length === 0) {
       res.status(404).json({ error: "Company not found" });
       return;
     }
+
     res.json({
       success: true,
       message: `Company "${result.rows[0].name}" deleted successfully`,
@@ -459,9 +522,12 @@ app.delete("/api/companies/:id", async (req, res) => {
   }
 });
 
-// Start
+// Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Tender Scanner running on http://localhost:${PORT}`);
-  console.log(`✅ Showing only open tenders (active, planning, planned)`);
+  console.log(`📊 Open your browser and visit: http://localhost:${PORT}\n`);
+  console.log(
+    `✅ UPDATED: Showing only open tenders (active, planning, planned)\n`,
+  );
   console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
 });
