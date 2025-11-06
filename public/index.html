@@ -159,7 +159,7 @@
                 box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
             }
 
-            /* Industry Categories Section */
+            /* Industry Categories Section - UPDATED for 7 industries */
             .industry-categories {
                 display: none;
                 margin-bottom: 40px;
@@ -423,9 +423,14 @@
                 color: #155724;
             }
 
-            .status-planned {
+            .status-planning {
                 background: #fff3cd;
                 color: #856404;
+            }
+
+            .status-planned {
+                background: #cfe2ff;
+                color: #084298;
             }
 
             /* Date Display */
@@ -573,7 +578,7 @@
                 font-size: 14px;
             }
 
-            /* Manage Companies Section - UPDATED WITH DARK RED CONTRAST */
+            /* Manage Companies Section */
             .manage-section {
                 display: none;
                 background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
@@ -670,7 +675,7 @@
                 box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             }
 
-            /* Add Company Form - UPDATED WITH DARK RED CONTRAST */
+            /* Add Company Form */
             .add-form {
                 display: none;
                 background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
@@ -832,17 +837,6 @@
             .icon {
                 font-size: 16px;
             }
-
-            /* Link Icon */
-            .link-icon {
-                color: #dc2626;
-                text-decoration: none;
-                font-size: 18px;
-            }
-
-            .link-icon:hover {
-                color: #b91c1c;
-            }
         </style>
     </head>
     <body>
@@ -902,7 +896,7 @@
                 </div>
             </div>
 
-            <!-- Manage Companies Section - MOVED HERE -->
+            <!-- Manage Companies Section -->
             <div class="manage-section" id="manageSection">
                 <div class="manage-header">
                     <h2 class="manage-title">Manage Companies</h2>
@@ -918,7 +912,7 @@
                 <div id="companiesList"></div>
             </div>
 
-            <!-- Add Company Form - MOVED HERE -->
+            <!-- Add Company Form -->
             <div class="add-form" id="addForm">
                 <h2 class="form-title">Add New Company</h2>
                 <form onsubmit="addCompany(event)">
@@ -1011,7 +1005,7 @@
                 </div>
             </div>
 
-            <!-- Industry Categories Section - Appears below dashboard when activated -->
+            <!-- Industry Categories Section - UPDATED WITH 7 INDUSTRIES -->
             <div class="industry-categories" id="industryCategories">
                 <div class="industries-grid">
                     <div
@@ -1057,6 +1051,39 @@
                             Loading...
                         </div>
                     </div>
+
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('construction')"
+                    >
+                        <div class="industry-icon">🏗️</div>
+                        <div class="industry-name">Construction</div>
+                        <div class="industry-count" id="constructionCount">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('facilities')"
+                    >
+                        <div class="industry-icon">🏢</div>
+                        <div class="industry-name">Facilities Management</div>
+                        <div class="industry-count" id="facilitiesCount">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <div
+                        class="industry-card"
+                        onclick="filterByIndustry('engineering')"
+                    >
+                        <div class="industry-icon">⚡</div>
+                        <div class="industry-name">M&E Engineering</div>
+                        <div class="industry-count" id="engineeringCount">
+                            Loading...
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1069,8 +1096,8 @@
                         </div>
                         <div class="cpv-info" id="cpvInfo"></div>
                         <div class="filter-info">
-                            Filtered to Pipeline, Planning, and Tender stages
-                            only
+                            Showing only open tenders (Active, Planning,
+                            Planned)
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 16px">
@@ -1106,7 +1133,7 @@
             let newCompanyCpvCodes = [];
             let allTendersData = [];
 
-            // Industry to CPV code mappings
+            // Industry to CPV code mappings - UPDATED with all 7 industries
             const industries = {
                 security: {
                     name: "Security",
@@ -1118,11 +1145,43 @@
                 },
                 cleaning: {
                     name: "Cleaning",
-                    cpvCodes: ["90910000", "90919200", "90911200", "90911300"],
+                    cpvCodes: [
+                        "90910000",
+                        "90919200",
+                        "90911200",
+                        "90911000",
+                        "90900000",
+                        "90919300",
+                    ],
                 },
                 waste: {
                     name: "Waste Management",
                     cpvCodes: ["90500000", "90511000", "90512000", "90513100"],
+                },
+                construction: {
+                    name: "Construction",
+                    cpvCodes: [
+                        "45000000",
+                        "45100000",
+                        "45200000",
+                        "45300000",
+                        "45400000",
+                        "45260000",
+                    ],
+                },
+                facilities: {
+                    name: "Facilities Management",
+                    cpvCodes: ["79993100", "79993000"],
+                },
+                engineering: {
+                    name: "Mechanical & Electrical Engineering",
+                    cpvCodes: [
+                        "71333000",
+                        "71314100",
+                        "45350000",
+                        "45311000",
+                        "45315100",
+                    ],
                 },
             };
 
@@ -1134,7 +1193,6 @@
                 if (isVisible) {
                     section.classList.remove("show");
                 } else {
-                    // Clear any active results
                     document
                         .getElementById("resultsSection")
                         .classList.remove("show");
@@ -1143,13 +1201,10 @@
                         .classList.remove("show");
                     document.getElementById("addForm").classList.remove("show");
 
-                    // Clear company selection
                     document.getElementById("companySelect").value = "";
 
-                    // Show industry categories
                     section.classList.add("show");
 
-                    // Scroll smoothly to the industry categories with better visibility
                     setTimeout(() => {
                         section.scrollIntoView({
                             behavior: "smooth",
@@ -1178,7 +1233,6 @@
                         select.appendChild(option);
                     });
 
-                    // Update dashboard stats
                     updateDashboardStats();
 
                     if (
@@ -1196,11 +1250,9 @@
             // Update dashboard statistics
             async function updateDashboardStats() {
                 try {
-                    // Update companies tracked
                     document.getElementById("companiesTracked").textContent =
                         companies.length;
 
-                    // Fetch all tenders for all companies
                     const allTenders = [];
                     for (const company of companies) {
                         try {
@@ -1222,7 +1274,6 @@
 
                     allTendersData = allTenders;
 
-                    // Calculate stats
                     const totalTenders = allTenders.length;
                     const now = new Date();
                     const weekAgo = new Date(
@@ -1243,7 +1294,6 @@
                             new Date(t.deadline_date) >= now,
                     ).length;
 
-                    // Update the DOM
                     document.getElementById("totalTenders").textContent =
                         totalTenders;
                     document.getElementById("newThisWeek").textContent =
@@ -1251,7 +1301,6 @@
                     document.getElementById("closingSoon").textContent =
                         closingSoon;
 
-                    // Update change indicators
                     document.getElementById("tendersChange").textContent =
                         "Across all tracked companies";
                     document.getElementById("newChange").textContent =
@@ -1268,12 +1317,10 @@
             // Load tenders for selected company
             async function loadTenders(companyId) {
                 if (!companyId) {
-                    // Reset to clean state
                     resetView();
                     return;
                 }
 
-                // Clear industry selection and hide industry cards
                 document.querySelectorAll(".industry-card").forEach((card) => {
                     card.classList.remove("active");
                 });
@@ -1281,14 +1328,11 @@
                     .getElementById("industryCategories")
                     .classList.remove("show");
 
-                // Ensure dashboard stays visible
                 document.getElementById("dashboardSection").style.display =
                     "block";
 
-                // Show results below dashboard
                 document.getElementById("resultsSection").classList.add("show");
 
-                // Scroll to results with offset for better visibility
                 setTimeout(() => {
                     document.getElementById("resultsSection").scrollIntoView({
                         behavior: "smooth",
@@ -1303,7 +1347,6 @@
                 document.getElementById("tendersTableBody").innerHTML =
                     '<tr><td colspan="5" class="loading">Loading tenders...</td></tr>';
 
-                // Set refresh time
                 const now = new Date();
                 document.getElementById("refreshTime").textContent =
                     now.toLocaleTimeString("en-GB", {
@@ -1432,7 +1475,6 @@
                 if (isVisible) {
                     section.classList.remove("show");
                 } else {
-                    // Clear any active results
                     document
                         .getElementById("resultsSection")
                         .classList.remove("show");
@@ -1440,7 +1482,6 @@
                         .getElementById("industryCategories")
                         .classList.remove("show");
 
-                    // Clear selections
                     document.getElementById("companySelect").value = "";
                     document
                         .querySelectorAll(".industry-card")
@@ -1448,10 +1489,8 @@
                             card.classList.remove("active");
                         });
 
-                    // Show manage section
                     section.classList.add("show");
 
-                    // Scroll to it with better visibility
                     setTimeout(() => {
                         section.scrollIntoView({
                             behavior: "smooth",
@@ -1536,7 +1575,6 @@
                     newCompanyCpvCodes = [];
                     renderCpvTags();
                 } else {
-                    // Clear any active results
                     document
                         .getElementById("resultsSection")
                         .classList.remove("show");
@@ -1544,7 +1582,6 @@
                         .getElementById("industryCategories")
                         .classList.remove("show");
 
-                    // Clear selections
                     document.getElementById("companySelect").value = "";
                     document
                         .querySelectorAll(".industry-card")
@@ -1552,10 +1589,8 @@
                             card.classList.remove("active");
                         });
 
-                    // Show form
                     form.classList.add("show");
 
-                    // Scroll to it with better visibility
                     setTimeout(() => {
                         form.scrollIntoView({
                             behavior: "smooth",
@@ -1670,7 +1705,7 @@
                 }
             });
 
-            // Update industry counts
+            // Update industry counts - UPDATED for 7 industries
             async function updateIndustryCounts() {
                 try {
                     const response = await fetch("/api/industries/counts");
@@ -1684,6 +1719,12 @@
                         `${counts.cleaning} opportunities`;
                     document.getElementById("wasteCount").textContent =
                         `${counts.waste} opportunities`;
+                    document.getElementById("constructionCount").textContent =
+                        `${counts.construction} opportunities`;
+                    document.getElementById("facilitiesCount").textContent =
+                        `${counts.facilities} opportunities`;
+                    document.getElementById("engineeringCount").textContent =
+                        `${counts.engineering} opportunities`;
                 } catch (error) {
                     console.error("Error updating industry counts:", error);
                 }
@@ -1691,23 +1732,18 @@
 
             // Filter tenders by industry
             async function filterByIndustry(industryKey) {
-                // Ensure dashboard stays visible
                 document.getElementById("dashboardSection").style.display =
                     "block";
 
-                // Clear company selection
                 document.getElementById("companySelect").value = "";
 
-                // Show results below dashboard
                 document.getElementById("resultsSection").classList.add("show");
 
-                // Mark active industry card
                 document.querySelectorAll(".industry-card").forEach((card) => {
                     card.classList.remove("active");
                 });
                 event.target.closest(".industry-card").classList.add("active");
 
-                // Scroll to results with offset for better visibility
                 setTimeout(() => {
                     document.getElementById("resultsSection").scrollIntoView({
                         behavior: "smooth",
@@ -1715,11 +1751,9 @@
                     });
                 }, 200);
 
-                // Show loading
                 document.getElementById("tendersTableBody").innerHTML =
                     '<tr><td colspan="5" class="loading">Loading tenders...</td></tr>';
 
-                // Set refresh time
                 const now = new Date();
                 document.getElementById("refreshTime").textContent =
                     now.toLocaleTimeString("en-GB", {
@@ -1776,7 +1810,6 @@
                                           ? "1 day ago"
                                           : `${daysAgo} days ago`;
 
-                                // Display matching clients
                                 const matchingClients =
                                     tender.matching_companies || [];
                                 const clientsHtml =
@@ -1857,7 +1890,6 @@
 
             // Reset view back to clean dashboard state
             function resetView() {
-                // Hide all sections except dashboard
                 document
                     .getElementById("resultsSection")
                     .classList.remove("show");
@@ -1869,13 +1901,11 @@
                     .classList.remove("show");
                 document.getElementById("addForm").classList.remove("show");
 
-                // Clear selections
                 document.getElementById("companySelect").value = "";
                 document.querySelectorAll(".industry-card").forEach((card) => {
                     card.classList.remove("active");
                 });
 
-                // Scroll back to top
                 window.scrollTo({ top: 0, behavior: "smooth" });
             }
 
