@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// FIXED: Removed restrictive status filtering to show all tenders
+// UPDATED: Added status filtering to show only open tenders (active, planning, planned)
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -31,6 +31,7 @@ const industries = {
 app.use(express.json());
 app.use(express.static("public"));
 
+// Prevent API caching
 app.use("/api", (req, res, next) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
   res.set("Pragma", "no-cache");
@@ -131,13 +132,15 @@ app.get("/api/stats", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    // Count ALL tenders
-    const tenderCount = await client.query("SELECT COUNT(*) FROM tenders");
+    // Count only open tenders
+    const tenderCount = await client.query(
+      "SELECT COUNT(*) FROM tenders WHERE status IN ('active', 'planning', 'planned')",
+    );
     const companyCount = await client.query("SELECT COUNT(*) FROM companies");
 
     // Get last tender publication date
     const lastTender = await client.query(
-      "SELECT MAX(publication_date) as last_update FROM tenders",
+      "SELECT MAX(publication_date) as last_update FROM tenders WHERE status IN ('active', 'planning', 'planned')",
     );
 
     res.json({
@@ -221,9 +224,9 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
       companyCpvCodes = Object.values(company.cpv_codes);
     }
 
-    // Get ALL tenders - no status filtering
+    // Get only open tenders (active, planning, planned)
     const tendersResult = await client.query(
-      "SELECT * FROM tenders ORDER BY publication_date DESC",
+      "SELECT * FROM tenders WHERE status IN ('active', 'planning', 'planned') ORDER BY publication_date DESC",
     );
 
     // Match tenders
@@ -299,8 +302,10 @@ app.get("/api/industries/counts", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    // Get ALL tenders - no status filtering
-    const tendersResult = await client.query("SELECT * FROM tenders");
+    // Get only open tenders (active, planning, planned)
+    const tendersResult = await client.query(
+      "SELECT * FROM tenders WHERE status IN ('active', 'planning', 'planned')",
+    );
 
     const counts = {
       security: 0,
@@ -366,9 +371,9 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
     const industry = industries[industryKey];
     const industryCpvCodes = industry.cpvCodes;
 
-    // Get ALL tenders - no status filtering
+    // Get only open tenders (active, planning, planned)
     const tendersResult = await client.query(
-      "SELECT * FROM tenders ORDER BY publication_date DESC",
+      "SELECT * FROM tenders WHERE status IN ('active', 'planning', 'planned') ORDER BY publication_date DESC",
     );
 
     const matchingTenders = [];
@@ -506,6 +511,8 @@ app.delete("/api/companies/:id", async (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Tender Scanner running on http://localhost:${PORT}`);
   console.log(`📊 Open your browser and visit: http://localhost:${PORT}\n`);
-  console.log(`✅ FIXED: Showing ALL tenders regardless of status\n`);
+  console.log(
+    `✅ UPDATED: Showing only open tenders (active, planning, planned)\n`,
+  );
   console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
 });
