@@ -1235,23 +1235,22 @@
             // Helper function to generate properly formatted email body
             function generateEmailBody(tender, firstName, pubDate, deadline) {
                 return [
-                    'Hi ' + (firstName || 'there') + ',',
-                    '',
-                    'I wanted to bring this tender opportunity to your attention:',
-                    '',
-                    'Title: ' + tender.title,
-                    'Buyer: ' + tender.buyer_name,
-                    'Published: ' + pubDate,
-                    'Deadline: ' + deadline,
-                    'Status: ' + tender.status.toUpperCase(),
-                    '',
-                    'View full details: ' + tender.tender_url,
-                    '',
-                    'Best regards,',
-                    'BWS Tender Scanning Team'
-                ].join('\n');
+                    "Hi " + (firstName || "there") + ",",
+                    "",
+                    "I wanted to bring this tender opportunity to your attention:",
+                    "",
+                    "Title: " + tender.title,
+                    "Buyer: " + tender.buyer_name,
+                    "Published: " + pubDate,
+                    "Deadline: " + deadline,
+                    "Status: " + tender.status.toUpperCase(),
+                    "",
+                    "View full details: " + tender.tender_url,
+                    "",
+                    "Best regards,",
+                    "BWS Tender Scanning Team",
+                ].join("\n");
             }
-
 
             // Toggle industry categories visibility
             function toggleIndustryCategories() {
@@ -1472,13 +1471,22 @@
                                           : `${daysAgo} days ago`;
 
                                 // Generate mailto link
-                                const mailtoLink = company.email ?
-                                    const emailBody = generateEmailBody(tender, company.first_name, pubDate, deadline);
-                                const mailtoLink = company.email ?
-                                    'mailto:' + encodeURIComponent(company.email) +
-                                    '?subject=' + encodeURIComponent('New Tender: ' + tender.title) +
-                                    '&body=' + encodeURIComponent(emailBody)
-                                    : '';
+                                const emailBody = generateEmailBody(
+                                    tender,
+                                    company.first_name,
+                                    pubDate,
+                                    deadline,
+                                );
+                                const mailtoLink = company.email
+                                    ? "mailto:" +
+                                      encodeURIComponent(company.email) +
+                                      "?subject=" +
+                                      encodeURIComponent(
+                                          "New Tender: " + tender.title,
+                                      ) +
+                                      "&body=" +
+                                      encodeURIComponent(emailBody)
+                                    : "";
 
                                 return `
                                 <tr>
@@ -1501,7 +1509,7 @@
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 8px;">
                                             <span class="cpv-tag">${company.name}</span>
-                                            ${company.email ? `<a href="${mailtoLink}" class="view-btn" style="padding: 6px 12px; font-size: 12px;">📧 Send</a>` : ''}
+                                            ${company.email ? `<a href="${mailtoLink}" class="view-btn" style="padding: 6px 12px; font-size: 12px;">📧 Send</a>` : ""}
                                         </div>
                                     </td>
                                     <td>
@@ -1586,8 +1594,8 @@
                     <div class="company-item">
                         <div class="company-info">
                             <div class="company-name">${company.name}</div>
-                            ${company.first_name || company.last_name ? `<div class="company-contact">Contact: ${company.first_name || ''} ${company.last_name || ''}</div>` : ''}
-                            ${company.email ? `<div class="company-contact">Email: ${company.email}</div>` : ''}
+                            ${company.first_name || company.last_name ? `<div class="company-contact">Contact: ${company.first_name || ""} ${company.last_name || ""}</div>` : ""}
+                            ${company.email ? `<div class="company-contact">Email: ${company.email}</div>` : ""}
                             <div class="company-cpv">CPV: ${company.cpv_codes.join(", ")}</div>
                         </div>
                         <button onclick="deleteCompany(${company.id}, '${company.name.replace(/'/g, "\\'")}');" class="delete-btn">
@@ -1741,9 +1749,7 @@
                 const lastName = document
                     .getElementById("lastName")
                     .value.trim();
-                const email = document
-                    .getElementById("email")
-                    .value.trim();
+                const email = document.getElementById("email").value.trim();
 
                 if (!name) {
                     alert("Please enter a company name");
@@ -1929,19 +1935,36 @@
                                             ${matchingClients.length} client${matchingClients.length !== 1 ? "s" : ""} ▼
                                         </div>
                                         <div class="matching-clients-list" id="clients-${tender.id}">
-                                            ${matchingClients.map((c) => {
-                                                const mailtoLink = c.email ?
-                                                    const emailBody = generateEmailBody(tender, c.first_name, pubDate, deadline);
-                                                const mailtoLink = c.email ?
-                                                    'mailto:' + encodeURIComponent(c.email) +
-                                                    '?subject=' + encodeURIComponent('New Tender: ' + tender.title) +
-                                                    '&body=' + encodeURIComponent(emailBody)
-                                                    : '';
-                                                return `<div class="client-match-item">
+                                            ${matchingClients
+                                                .map((c) => {
+                                                    const emailBody =
+                                                        generateEmailBody(
+                                                            tender,
+                                                            c.first_name,
+                                                            pubDate,
+                                                            deadline,
+                                                        );
+                                                    const mailtoLink = c.email
+                                                        ? "mailto:" +
+                                                          encodeURIComponent(
+                                                              c.email,
+                                                          ) +
+                                                          "?subject=" +
+                                                          encodeURIComponent(
+                                                              "New Tender: " +
+                                                                  tender.title,
+                                                          ) +
+                                                          "&body=" +
+                                                          encodeURIComponent(
+                                                              emailBody,
+                                                          )
+                                                        : "";
+                                                    return `<div class="client-match-item">
                                                     <span>${c.name}</span>
-                                                    ${c.email ? `<a href="${mailtoLink}" class="view-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 8px;">📧 Send</a>` : ''}
+                                                    ${c.email ? `<a href="${mailtoLink}" class="view-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 8px;">📧 Send</a>` : ""}
                                                 </div>`;
-                                            }).join("")}
+                                                })
+                                                .join("")}
                                         </div>
                                     </div>`
                                         : `<span style="color: #95a5a6; font-size: 12px;">No matches</span>`;
