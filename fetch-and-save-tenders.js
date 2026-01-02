@@ -13,9 +13,9 @@ function normalizeCpvCode(cpv) {
 async function fetchAndSaveTenders() {
   console.log("🚀 Starting tender fetch...\n");
 
-  // Calculate date from 14 days ago
+  // Calculate date from 21 days ago
   const fourteenDaysAgo = new Date();
-  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 21);
   const dateFrom = fourteenDaysAgo.toISOString();
 
   console.log(`📅 Fetching tenders from: ${dateFrom}\n`);
