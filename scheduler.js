@@ -37,6 +37,9 @@ exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
     console.error(`❌ Error: ${error.message}`);
     return;
   }
+  if (stderr) {
+    console.error(`⚠️  Warning: ${stderr}`);
+  }
   console.log(stdout);
   console.log("✅ Initial fetch complete\n");
 });
