@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// UPDATED: Added email contact fields for companies
+// UPDATED: Added comprehensive industry sectors with CPV codes
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -7,56 +7,159 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Industry to CPV code mappings
+// Industry to CPV code mappings - EXPANDED with new sectors
 const industries = {
-  security: {
-    name: "Security",
-    cpvCodes: ["79710000", "79711000", "79715000", "79714000"],
-    icon: "🔒",
-  },
-  fire: {
-    name: "Fire Safety",
-    cpvCodes: ["45331100", "50413200", "45331200", "45331210"],
-    icon: "🔥",
-  },
-  cleaning: {
-    name: "Cleaning",
+  healthcare: {
+    name: "Healthcare",
     cpvCodes: [
-      "90910000",
-      "90919200",
-      "90911200",
-      "90911000",
-      "90900000",
-      "90919300",
+      "33100000",
+      "33600000",
+      "33140000",
+      "85100000",
+      "85110000",
+      "85120000",
+      "85140000",
     ],
-    icon: "🧹",
+    icon: "🏥",
+  },
+  recruitment: {
+    name: "Recruitment",
+    cpvCodes: ["79600000", "79610000", "79620000", "79630000"],
+    icon: "👥",
+  },
+  construction: {
+    name: "Construction Work",
+    cpvCodes: ["45210000", "45220000", "45260000", "45300000", "45400000"],
+    icon: "🏗️",
   },
   waste: {
     name: "Waste Management",
-    cpvCodes: ["90500000", "90511000", "90512000", "90513100"],
+    cpvCodes: [
+      "90500000",
+      "90510000",
+      "90511000",
+      "90512000",
+      "90513000",
+      "90514000",
+    ],
     icon: "♻️",
   },
-  construction: {
-    name: "Construction",
+  gas: {
+    name: "Gas Servicing",
+    cpvCodes: ["45331100", "45331210", "50720000"],
+    icon: "🔥",
+  },
+  fire: {
+    name: "Fire Safety",
+    cpvCodes: ["35110000", "35111000", "50413200"],
+    icon: "🚒",
+  },
+  it: {
+    name: "IT",
     cpvCodes: [
-      "45000000",
-      "45100000",
-      "45200000",
-      "45300000",
-      "45400000",
-      "45260000",
+      "48000000",
+      "48100000",
+      "48200000",
+      "48800000",
+      "72000000",
+      "72200000",
+      "72400000",
+      "72500000",
     ],
+    icon: "💻",
+  },
+  grounds: {
+    name: "Grounds Maintenance",
+    cpvCodes: ["77300000", "77310000", "77314100", "77340000"],
+    icon: "🌳",
+  },
+  electrical: {
+    name: "Electrical Services",
+    cpvCodes: [
+      "45310000",
+      "45311000",
+      "45312000",
+      "45314000",
+      "45315000",
+      "50700000",
+    ],
+    icon: "⚡",
+  },
+  education: {
+    name: "Education",
+    cpvCodes: [
+      "80100000",
+      "80200000",
+      "80300000",
+      "80400000",
+      "80500000",
+      "80510000",
+    ],
+    icon: "📚",
+  },
+  me: {
+    name: "M&E",
+    cpvCodes: [
+      "45300000",
+      "45310000",
+      "45320000",
+      "45330000",
+      "45331000",
+      "45332000",
+      "50700000",
+    ],
+    icon: "🔧",
+  },
+  cleaning: {
+    name: "Cleaning",
+    cpvCodes: ["90910000", "90911000", "90919000", "90620000"],
+    icon: "🧹",
+  },
+  architect: {
+    name: "Architect",
+    cpvCodes: ["71200000", "71220000", "71221000", "71222000"],
+    icon: "📐",
+  },
+  civileng: {
+    name: "Civil Engineering",
+    cpvCodes: ["45221000", "45230000", "71300000", "71320000", "71330000"],
     icon: "🏗️",
+  },
+  catering: {
+    name: "Catering",
+    cpvCodes: [
+      "55300000",
+      "55320000",
+      "55321000",
+      "55322000",
+      "55500000",
+      "55520000",
+      "55521000",
+    ],
+    icon: "🍽️",
+  },
+  security: {
+    name: "Security",
+    cpvCodes: [
+      "79700000",
+      "79710000",
+      "79711000",
+      "79713000",
+      "79714000",
+      "79715000",
+      "98341000",
+    ],
+    icon: "🔒",
   },
   facilities: {
     name: "Facilities Management",
-    cpvCodes: ["79993100", "79993000"],
+    cpvCodes: ["98300000", "50800000", "70300000"],
     icon: "🏢",
   },
-  engineering: {
-    name: "Mechanical & Electrical Engineering",
-    cpvCodes: ["71333000", "71314100", "45350000", "45311000", "45315100"],
-    icon: "⚡",
+  pest: {
+    name: "Pest Control",
+    cpvCodes: ["90920000", "90921000", "90922000", "90923000", "90924000"],
+    icon: "🐛",
   },
 };
 
@@ -546,4 +649,5 @@ app.listen(PORT, "0.0.0.0", () => {
   );
   console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
   console.log(`📧 Email contact fields enabled\n`);
+  console.log(`🏭 ${Object.keys(industries).length} industries configured\n`);
 });

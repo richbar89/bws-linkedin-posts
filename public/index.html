@@ -1053,85 +1053,10 @@
                 </div>
             </div>
 
-            <!-- Industry Categories Section -->
+            <!-- Industry Categories Section - Now dynamically populated -->
             <div class="industry-categories" id="industryCategories">
-                <div class="industries-grid">
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('security')"
-                    >
-                        <div class="industry-icon">🔒</div>
-                        <div class="industry-name">Security</div>
-                        <div class="industry-count" id="securityCount">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('fire')"
-                    >
-                        <div class="industry-icon">🔥</div>
-                        <div class="industry-name">Fire Safety</div>
-                        <div class="industry-count" id="fireCount">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('cleaning')"
-                    >
-                        <div class="industry-icon">🧹</div>
-                        <div class="industry-name">Cleaning</div>
-                        <div class="industry-count" id="cleaningCount">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('waste')"
-                    >
-                        <div class="industry-icon">♻️</div>
-                        <div class="industry-name">Waste Management</div>
-                        <div class="industry-count" id="wasteCount">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('construction')"
-                    >
-                        <div class="industry-icon">🏗️</div>
-                        <div class="industry-name">Construction</div>
-                        <div class="industry-count" id="constructionCount">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('facilities')"
-                    >
-                        <div class="industry-icon">🏢</div>
-                        <div class="industry-name">Facilities Management</div>
-                        <div class="industry-count" id="facilitiesCount">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div
-                        class="industry-card"
-                        onclick="filterByIndustry('engineering')"
-                    >
-                        <div class="industry-icon">⚡</div>
-                        <div class="industry-name">M&E Engineering</div>
-                        <div class="industry-count" id="engineeringCount">
-                            Loading...
-                        </div>
-                    </div>
+                <div class="industries-grid" id="industriesGrid">
+                    <!-- Industries will be dynamically inserted here in alphabetical order -->
                 </div>
             </div>
 
@@ -1180,55 +1105,177 @@
             let newCompanyCpvCodes = [];
             let allTendersData = [];
 
-            // Industry to CPV code mappings
+            // Industry to CPV code mappings - EXPANDED with all 18 industries
             const industries = {
-                security: {
-                    name: "Security",
-                    cpvCodes: ["79710000", "79711000", "79715000", "79714000"],
-                },
-                fire: {
-                    name: "Fire Safety",
-                    cpvCodes: ["45331100", "50413200", "45331200", "45331210"],
-                },
-                cleaning: {
-                    name: "Cleaning",
+                healthcare: {
+                    name: "Healthcare",
                     cpvCodes: [
-                        "90910000",
-                        "90919200",
-                        "90911200",
-                        "90911000",
-                        "90900000",
-                        "90919300",
+                        "33100000",
+                        "33600000",
+                        "33140000",
+                        "85100000",
+                        "85110000",
+                        "85120000",
+                        "85140000",
                     ],
+                    icon: "🏥",
+                },
+                recruitment: {
+                    name: "Recruitment",
+                    cpvCodes: ["79600000", "79610000", "79620000", "79630000"],
+                    icon: "👥",
+                },
+                construction: {
+                    name: "Construction Work",
+                    cpvCodes: [
+                        "45210000",
+                        "45220000",
+                        "45260000",
+                        "45300000",
+                        "45400000",
+                    ],
+                    icon: "🏗️",
                 },
                 waste: {
                     name: "Waste Management",
-                    cpvCodes: ["90500000", "90511000", "90512000", "90513100"],
-                },
-                construction: {
-                    name: "Construction",
                     cpvCodes: [
-                        "45000000",
-                        "45100000",
-                        "45200000",
-                        "45300000",
-                        "45400000",
-                        "45260000",
+                        "90500000",
+                        "90510000",
+                        "90511000",
+                        "90512000",
+                        "90513000",
+                        "90514000",
                     ],
+                    icon: "♻️",
+                },
+                gas: {
+                    name: "Gas Servicing",
+                    cpvCodes: ["45331100", "45331210", "50720000"],
+                    icon: "🔥",
+                },
+                fire: {
+                    name: "Fire Safety",
+                    cpvCodes: ["35110000", "35111000", "50413200"],
+                    icon: "🚒",
+                },
+                it: {
+                    name: "IT",
+                    cpvCodes: [
+                        "48000000",
+                        "48100000",
+                        "48200000",
+                        "48800000",
+                        "72000000",
+                        "72200000",
+                        "72400000",
+                        "72500000",
+                    ],
+                    icon: "💻",
+                },
+                grounds: {
+                    name: "Grounds Maintenance",
+                    cpvCodes: ["77300000", "77310000", "77314100", "77340000"],
+                    icon: "🌳",
+                },
+                electrical: {
+                    name: "Electrical Services",
+                    cpvCodes: [
+                        "45310000",
+                        "45311000",
+                        "45312000",
+                        "45314000",
+                        "45315000",
+                        "50700000",
+                    ],
+                    icon: "⚡",
+                },
+                education: {
+                    name: "Education",
+                    cpvCodes: [
+                        "80100000",
+                        "80200000",
+                        "80300000",
+                        "80400000",
+                        "80500000",
+                        "80510000",
+                    ],
+                    icon: "📚",
+                },
+                me: {
+                    name: "M&E",
+                    cpvCodes: [
+                        "45300000",
+                        "45310000",
+                        "45320000",
+                        "45330000",
+                        "45331000",
+                        "45332000",
+                        "50700000",
+                    ],
+                    icon: "🔧",
+                },
+                cleaning: {
+                    name: "Cleaning",
+                    cpvCodes: ["90910000", "90911000", "90919000", "90620000"],
+                    icon: "🧹",
+                },
+                architect: {
+                    name: "Architect",
+                    cpvCodes: ["71200000", "71220000", "71221000", "71222000"],
+                    icon: "📐",
+                },
+                civileng: {
+                    name: "Civil Engineering",
+                    cpvCodes: [
+                        "45221000",
+                        "45230000",
+                        "71300000",
+                        "71320000",
+                        "71330000",
+                    ],
+                    icon: "🏗️",
+                },
+                catering: {
+                    name: "Catering",
+                    cpvCodes: [
+                        "55300000",
+                        "55320000",
+                        "55321000",
+                        "55322000",
+                        "55500000",
+                        "55520000",
+                        "55521000",
+                    ],
+                    icon: "🍽️",
+                },
+                security: {
+                    name: "Security",
+                    cpvCodes: [
+                        "79700000",
+                        "79710000",
+                        "79711000",
+                        "79713000",
+                        "79714000",
+                        "79715000",
+                        "98341000",
+                    ],
+                    icon: "🔒",
                 },
                 facilities: {
                     name: "Facilities Management",
-                    cpvCodes: ["79993100", "79993000"],
+                    cpvCodes: ["98300000", "50800000", "70300000"],
+                    icon: "🏢",
                 },
-                engineering: {
-                    name: "Mechanical & Electrical Engineering",
+                pest: {
+                    name: "Pest Control",
                     cpvCodes: [
-                        "71333000",
-                        "71314100",
-                        "45350000",
-                        "45311000",
-                        "45315100",
+                        "90920000",
+                        "90921000",
+                        "90922000",
+                        "90923000",
+                        "90924000",
                     ],
+                    icon: "🐛",
                 },
             };
 
@@ -1250,6 +1297,31 @@
                     "Best regards,",
                     "BWS Tender Scanning Team",
                 ].join("\n");
+            }
+
+            // Function to render industries in alphabetical order
+            function renderIndustries() {
+                const grid = document.getElementById("industriesGrid");
+
+                // Sort industries alphabetically by name
+                const sortedIndustries = Object.entries(industries).sort(
+                    (a, b) => {
+                        return a[1].name.localeCompare(b[1].name);
+                    },
+                );
+
+                // Generate HTML for each industry card
+                grid.innerHTML = sortedIndustries
+                    .map(
+                        ([key, industry]) => `
+                    <div class="industry-card" onclick="filterByIndustry('${key}')">
+                        <div class="industry-icon">${industry.icon}</div>
+                        <div class="industry-name">${industry.name}</div>
+                        <div class="industry-count" id="${key}Count">Loading...</div>
+                    </div>
+                `,
+                    )
+                    .join("");
             }
 
             // Toggle industry categories visibility
@@ -1827,20 +1899,15 @@
                     const response = await fetch("/api/industries/counts");
                     const counts = await response.json();
 
-                    document.getElementById("securityCount").textContent =
-                        `${counts.security} opportunities`;
-                    document.getElementById("fireCount").textContent =
-                        `${counts.fire} opportunities`;
-                    document.getElementById("cleaningCount").textContent =
-                        `${counts.cleaning} opportunities`;
-                    document.getElementById("wasteCount").textContent =
-                        `${counts.waste} opportunities`;
-                    document.getElementById("constructionCount").textContent =
-                        `${counts.construction} opportunities`;
-                    document.getElementById("facilitiesCount").textContent =
-                        `${counts.facilities} opportunities`;
-                    document.getElementById("engineeringCount").textContent =
-                        `${counts.engineering} opportunities`;
+                    // Update each industry count dynamically
+                    Object.keys(industries).forEach((key) => {
+                        const countElement = document.getElementById(
+                            `${key}Count`,
+                        );
+                        if (countElement) {
+                            countElement.textContent = `${counts[key] || 0} opportunities`;
+                        }
+                    });
                 } catch (error) {
                     console.error("Error updating industry counts:", error);
                 }
@@ -2042,7 +2109,8 @@
                 window.scrollTo({ top: 0, behavior: "smooth" });
             }
 
-            // Initialize
+            // Initialize - render industries on page load
+            renderIndustries();
             loadCompanies();
         </script>
     </body>
