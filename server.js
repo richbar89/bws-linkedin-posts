@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// UPDATED: Added comprehensive industry sectors with CPV codes
+// UPDATED: Simplified since we only store "active" tenders now
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -7,7 +7,7 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Industry to CPV code mappings - EXPANDED with new sectors
+// Industry to CPV code mappings
 const industries = {
   healthcare: {
     name: "Healthcare",
@@ -266,13 +266,12 @@ app.get("/api/stats", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    const tenderCount = await client.query(
-      "SELECT COUNT(*) FROM tenders WHERE status IN ('active', 'planning', 'planned')",
-    );
+    // No need to filter by status - all tenders are "active"
+    const tenderCount = await client.query("SELECT COUNT(*) FROM tenders");
     const companyCount = await client.query("SELECT COUNT(*) FROM companies");
 
     const lastTender = await client.query(
-      "SELECT MAX(publication_date) as last_update FROM tenders WHERE status IN ('active', 'planning', 'planned')",
+      "SELECT MAX(publication_date) as last_update FROM tenders",
     );
 
     res.json({
@@ -356,8 +355,9 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
       companyCpvCodes = Object.values(company.cpv_codes);
     }
 
+    // No status filter needed - all tenders are "active"
     const tendersResult = await client.query(
-      "SELECT * FROM tenders WHERE status IN ('active', 'planning', 'planned') ORDER BY publication_date DESC",
+      "SELECT * FROM tenders ORDER BY publication_date DESC",
     );
 
     const matchingTenders = [];
@@ -433,9 +433,8 @@ app.get("/api/industries/counts", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    const tendersResult = await client.query(
-      "SELECT * FROM tenders WHERE status IN ('active', 'planning', 'planned')",
-    );
+    // No status filter needed
+    const tendersResult = await client.query("SELECT * FROM tenders");
 
     const counts = {};
 
@@ -500,8 +499,9 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
     const industry = industries[industryKey];
     const industryCpvCodes = industry.cpvCodes;
 
+    // No status filter needed
     const tendersResult = await client.query(
-      "SELECT * FROM tenders WHERE status IN ('active', 'planning', 'planned') ORDER BY publication_date DESC",
+      "SELECT * FROM tenders ORDER BY publication_date DESC",
     );
 
     const matchingTenders = [];
@@ -643,9 +643,7 @@ app.delete("/api/companies/:id", async (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Tender Scanner running on http://localhost:${PORT}`);
   console.log(`📊 Open your browser and visit: http://localhost:${PORT}\n`);
-  console.log(
-    `✅ UPDATED: Showing only open tenders (active, planning, planned)\n`,
-  );
+  console.log(`✅ UPDATED: Showing ONLY ACTIVE tenders (live tenders only)\n`);
   console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
   console.log(`📧 Email contact fields enabled\n`);
   console.log(`🏭 ${Object.keys(industries).length} industries configured\n`);

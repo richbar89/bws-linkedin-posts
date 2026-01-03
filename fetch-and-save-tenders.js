@@ -1,5 +1,5 @@
 // Fetch tenders from API and save to database
-// IMPROVED: Normalizes CPV codes and extracts from ALL sources including item.classification
+// FIXED: Only fetch tenders with status "active" (live tenders only)
 const { Client } = require("pg");
 
 // Helper function to normalize CPV codes
@@ -11,7 +11,7 @@ function normalizeCpvCode(cpv) {
 }
 
 async function fetchAndSaveTenders() {
-  console.log("🚀 Starting tender fetch...\n");
+  console.log("🚀 Starting tender fetch (ACTIVE TENDERS ONLY)...\n");
 
   // Calculate date from 21 days ago
   const fourteenDaysAgo = new Date();
@@ -35,8 +35,8 @@ async function fetchAndSaveTenders() {
     let nextUrl = null;
     let pageCount = 0;
 
-    // Initial URL - NO stages filter to get all tenders
-    let apiUrl = `https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages?updatedFrom=${dateFrom}&limit=50`;
+    // Initial URL - ONLY fetch tenders with status "active" (live tenders)
+    let apiUrl = `https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages?updatedFrom=${dateFrom}&limit=50&stages=tender`;
 
     do {
       pageCount++;
@@ -79,15 +79,26 @@ async function fetchAndSaveTenders() {
     let savedCount = 0;
     let skippedCount = 0;
     let cpvIssues = 0;
+    let nonActiveTenders = 0;
 
-    // Clear existing tenders first (rolling 14-day window)
+    // Clear existing tenders first (rolling 21-day window)
     await client.query("DELETE FROM tenders");
     console.log("🧹 Cleared old tenders\n");
 
     for (const release of allTenders) {
-      // Only process if it has tender data
+      // Only process if it has tender data AND status is "active"
       if (release.tender) {
-        // Extract CPV codes - IMPROVED: Get from ALL sources!
+        // CRITICAL FIX: Skip any tenders that are NOT "active"
+        const tenderStatus = release.tender.status || "";
+        if (tenderStatus.toLowerCase() !== "active") {
+          nonActiveTenders++;
+          console.log(
+            `   ⏭️  Skipping non-active tender: ${release.id} (status: ${tenderStatus})`,
+          );
+          continue;
+        }
+
+        // Extract CPV codes - Get from ALL sources
         let cpvCodes = [];
 
         // 1. Get main classification CPV code (tender level)
@@ -98,10 +109,10 @@ async function fetchAndSaveTenders() {
           }
         }
 
-        // 2. Get CPV codes from items - FIXED to include item.classification!
+        // 2. Get CPV codes from items
         if (release.tender.items) {
           for (const item of release.tender.items) {
-            // Get main item classification (THIS WAS MISSING - often the primary CPV!)
+            // Get main item classification
             if (item.classification && item.classification.id) {
               const normalized = normalizeCpvCode(item.classification.id);
               if (normalized) {
@@ -145,7 +156,7 @@ async function fetchAndSaveTenders() {
         // Build tender URL
         const tenderUrl = `https://www.find-tender.service.gov.uk/Notice/${release.id}`;
 
-        // Save to database
+        // Save to database - ONLY save "active" tenders
         try {
           await client.query(
             `
@@ -168,7 +179,7 @@ async function fetchAndSaveTenders() {
               JSON.stringify(cpvCodes),
               release.date,
               deadline,
-              release.tender.status || "active",
+              "active", // Force status to "active" since we've already filtered
               buyerName,
               tenderUrl,
             ],
@@ -187,11 +198,14 @@ async function fetchAndSaveTenders() {
 
     console.log(`\n📊 Results:`);
     console.log(`   Total releases fetched: ${allTenders.length}`);
-    console.log(`   Saved to database: ${savedCount}`);
+    console.log(`   Saved to database (active only): ${savedCount}`);
+    console.log(`   Skipped (non-active status): ${nonActiveTenders}`);
     console.log(`   Skipped (no tender data): ${skippedCount}`);
     console.log(`   Tenders with no CPV codes: ${cpvIssues}`);
     console.log(`   Pages fetched: ${pageCount}`);
-    console.log("\n✨ Done! Rolling 14-day window updated.\n");
+    console.log(
+      "\n✨ Done! Rolling 21-day window updated (ACTIVE TENDERS ONLY).\n",
+    );
 
     // Show status breakdown
     const statusBreakdown = await client.query(`
