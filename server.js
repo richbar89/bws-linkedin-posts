@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// UPDATED: Simplified since we only store "active" tenders now
+// UPDATED: Added /api/tenders/latest endpoint for homepage
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -184,14 +184,14 @@ async function getDbClient() {
   return client;
 }
 
-// Helper function to normalize CPV code (remove dashes and extra chars)
+// Helper function to normalize CPV code
 function normalizeCpvCode(cpv) {
   if (!cpv) return "";
   const cpvStr = String(cpv).replace(/-/g, "");
   return cpvStr.substring(0, 8);
 }
 
-// Helper function to check if CPV codes match (using 5-digit logic)
+// Helper function to check if CPV codes match
 function cpvCodesMatch(cpv1, cpv2) {
   const cpv1Normalized = normalizeCpvCode(cpv1);
   const cpv2Normalized = normalizeCpvCode(cpv2);
@@ -216,7 +216,7 @@ function cpvCodesMatch(cpv1, cpv2) {
   return false;
 }
 
-// Helper function to find matching companies for tender CPV codes
+// Helper function to find matching companies
 async function findMatchingCompanies(tenderCpvCodes, client) {
   const companiesResult = await client.query("SELECT * FROM companies");
   const matchingCompanies = [];
@@ -261,12 +261,58 @@ async function findMatchingCompanies(tenderCpvCodes, client) {
 
 // API Routes
 
+// NEW: Get latest N tenders (for homepage)
+app.get("/api/tenders/latest", async (req, res) => {
+  const limit = parseInt(req.query.limit) || 10;
+  const client = await getDbClient();
+
+  try {
+    const result = await client.query(
+      `SELECT * FROM tenders 
+       ORDER BY publication_date DESC 
+       LIMIT $1`,
+      [limit],
+    );
+
+    const tenders = result.rows.map((tender) => {
+      let cpvCodes = [];
+      if (typeof tender.cpv_codes === "string") {
+        cpvCodes = JSON.parse(tender.cpv_codes);
+      } else if (Array.isArray(tender.cpv_codes)) {
+        cpvCodes = tender.cpv_codes;
+      } else if (
+        typeof tender.cpv_codes === "object" &&
+        tender.cpv_codes !== null
+      ) {
+        cpvCodes = Object.values(tender.cpv_codes);
+      }
+
+      return {
+        id: tender.id,
+        title: tender.title,
+        description: tender.description,
+        buyer_name: tender.buyer_name,
+        status: tender.status,
+        publication_date: tender.publication_date,
+        deadline_date: tender.deadline_date,
+        cpv_codes: cpvCodes,
+        tender_url: tender.tender_url,
+      };
+    });
+
+    res.json(tenders);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
 // Get statistics
 app.get("/api/stats", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    // No need to filter by status - all tenders are "active"
     const tenderCount = await client.query("SELECT COUNT(*) FROM tenders");
     const companyCount = await client.query("SELECT COUNT(*) FROM companies");
 
@@ -355,7 +401,6 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
       companyCpvCodes = Object.values(company.cpv_codes);
     }
 
-    // No status filter needed - all tenders are "active"
     const tendersResult = await client.query(
       "SELECT * FROM tenders ORDER BY publication_date DESC",
     );
@@ -433,12 +478,10 @@ app.get("/api/industries/counts", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    // No status filter needed
     const tendersResult = await client.query("SELECT * FROM tenders");
 
     const counts = {};
 
-    // Initialize counts for all industries
     for (const industryKey of Object.keys(industries)) {
       counts[industryKey] = 0;
     }
@@ -499,7 +542,6 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
     const industry = industries[industryKey];
     const industryCpvCodes = industry.cpvCodes;
 
-    // No status filter needed
     const tendersResult = await client.query(
       "SELECT * FROM tenders ORDER BY publication_date DESC",
     );
@@ -643,8 +685,4 @@ app.delete("/api/companies/:id", async (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Tender Scanner running on http://localhost:${PORT}`);
   console.log(`📊 Open your browser and visit: http://localhost:${PORT}\n`);
-  console.log(`✅ UPDATED: Showing ONLY ACTIVE tenders (live tenders only)\n`);
-  console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
-  console.log(`📧 Email contact fields enabled\n`);
-  console.log(`🏭 ${Object.keys(industries).length} industries configured\n`);
 });

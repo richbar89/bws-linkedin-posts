@@ -241,7 +241,7 @@
             /* Dashboard Stats Section - Always Visible */
             .dashboard-section {
                 display: block;
-                margin-bottom: 80px;
+                margin-bottom: 40px;
             }
 
             .stats-grid {
@@ -289,6 +289,22 @@
 
             .stat-change.negative {
                 color: #dc2626;
+            }
+
+            /* Latest Tenders Section - NEW */
+            .latest-tenders-section {
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                margin-bottom: 40px;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+            }
+
+            .latest-tenders-section h2 {
+                font-size: 24px;
+                font-weight: 600;
+                color: #1c2541;
+                margin-bottom: 20px;
             }
 
             /* Results Section */
@@ -1053,10 +1069,34 @@
                 </div>
             </div>
 
-            <!-- Industry Categories Section - Now dynamically populated -->
+            <!-- Latest Tenders Section - NEW -->
+            <div class="latest-tenders-section" id="latestTendersSection">
+                <h2>🔥 Latest 10 Tenders</h2>
+                <div class="tender-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 45%">TITLE</th>
+                                <th style="width: 20%">PUBLISHED</th>
+                                <th style="width: 20%">BUYER</th>
+                                <th style="width: 15%"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="latestTendersTableBody">
+                            <tr>
+                                <td colspan="4" class="loading">
+                                    Loading latest tenders...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Industry Categories Section -->
             <div class="industry-categories" id="industryCategories">
                 <div class="industries-grid" id="industriesGrid">
-                    <!-- Industries will be dynamically inserted here in alphabetical order -->
+                    <!-- Industries will be dynamically inserted here -->
                 </div>
             </div>
 
@@ -1105,7 +1145,7 @@
             let newCompanyCpvCodes = [];
             let allTendersData = [];
 
-            // Industry to CPV code mappings - EXPANDED with all 18 industries
+            // Industry to CPV code mappings
             const industries = {
                 healthcare: {
                     name: "Healthcare",
@@ -1299,18 +1339,104 @@
                 ].join("\n");
             }
 
+            // NEW: Load latest 10 tenders
+            async function loadLatestTenders() {
+                try {
+                    const response = await fetch(
+                        "/api/tenders/latest?limit=10",
+                    );
+                    const tenders = await response.json();
+
+                    const tbody = document.getElementById(
+                        "latestTendersTableBody",
+                    );
+
+                    if (tenders.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="4">
+                                    <div class="empty-state">
+                                        <h3>No tenders found</h3>
+                                        <p>Run the fetch script to load tenders</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    tbody.innerHTML = tenders
+                        .map((tender) => {
+                            const pubDate = new Date(
+                                tender.publication_date,
+                            ).toLocaleDateString("en-GB");
+                            const deadline = tender.deadline_date
+                                ? new Date(
+                                      tender.deadline_date,
+                                  ).toLocaleDateString("en-GB")
+                                : "Not specified";
+
+                            const daysAgo = Math.floor(
+                                (Date.now() -
+                                    new Date(tender.publication_date)) /
+                                    (1000 * 60 * 60 * 24),
+                            );
+                            const publishedText =
+                                daysAgo === 0
+                                    ? "today"
+                                    : daysAgo === 1
+                                      ? "1 day ago"
+                                      : `${daysAgo} days ago`;
+
+                            return `
+                            <tr>
+                                <td>
+                                    <div>
+                                        <span class="tender-title">${tender.title}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <span class="status-badge status-${tender.status}">${tender.status.toUpperCase()}</span>
+                                        <div style="margin-top: 6px; font-size: 12px; color: #495057;">
+                                            <div class="date-display">📅 ${pubDate}</div>
+                                            <div class="date-display deadline-display">⏰ ${deadline}</div>
+                                        </div>
+                                        <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">${publishedText}</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span style="font-size: 13px; color: #6c757d;">${tender.buyer_name}</span>
+                                </td>
+                                <td>
+                                    <a href="${tender.tender_url}" target="_blank" class="view-btn">
+                                        View Details →
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                        })
+                        .join("");
+                } catch (error) {
+                    console.error("Error loading latest tenders:", error);
+                    document.getElementById(
+                        "latestTendersTableBody",
+                    ).innerHTML = `
+                        <tr><td colspan="4" class="empty-state">Error loading tenders</td></tr>
+                    `;
+                }
+            }
+
             // Function to render industries in alphabetical order
             function renderIndustries() {
                 const grid = document.getElementById("industriesGrid");
 
-                // Sort industries alphabetically by name
                 const sortedIndustries = Object.entries(industries).sort(
                     (a, b) => {
                         return a[1].name.localeCompare(b[1].name);
                     },
                 );
 
-                // Generate HTML for each industry card
                 grid.innerHTML = sortedIndustries
                     .map(
                         ([key, industry]) => `
@@ -1542,7 +1668,6 @@
                                           ? "1 day ago"
                                           : `${daysAgo} days ago`;
 
-                                // Generate mailto link
                                 const emailBody = generateEmailBody(
                                     tender,
                                     company.first_name,
@@ -1758,10 +1883,6 @@
                 const input = document.getElementById("cpvInput");
                 const code = input.value.trim();
 
-                console.log("Adding CPV code:", code);
-                console.log("Code length:", code.length);
-                console.log("Is 8 digits:", /^[0-9]{8}$/.test(code));
-
                 if (code.length !== 8 || !/^[0-9]{8}$/.test(code)) {
                     alert("CPV code must be exactly 8 digits");
                     return;
@@ -1773,7 +1894,6 @@
                 }
 
                 newCompanyCpvCodes.push(code);
-                console.log("CPV codes array:", newCompanyCpvCodes);
                 input.value = "";
                 renderCpvTags();
             }
@@ -1851,8 +1971,6 @@
                     email: email,
                 };
 
-                console.log("Sending payload:", payload);
-
                 try {
                     const response = await fetch("/api/companies", {
                         method: "POST",
@@ -1862,10 +1980,7 @@
                         body: JSON.stringify(payload),
                     });
 
-                    console.log("Response status:", response.status);
-
                     const data = await response.json();
-                    console.log("Response data:", data);
 
                     if (!response.ok) {
                         throw new Error(data.error || "Failed to add company");
@@ -1875,7 +1990,6 @@
                     toggleAddForm();
                     await loadCompanies();
                 } catch (error) {
-                    console.error("Error details:", error);
                     alert(`Error adding company: ${error.message}`);
                 }
             }
@@ -1899,7 +2013,6 @@
                     const response = await fetch("/api/industries/counts");
                     const counts = await response.json();
 
-                    // Update each industry count dynamically
                     Object.keys(industries).forEach((key) => {
                         const countElement = document.getElementById(
                             `${key}Count`,
@@ -2109,9 +2222,10 @@
                 window.scrollTo({ top: 0, behavior: "smooth" });
             }
 
-            // Initialize - render industries on page load
+            // Initialize - render industries and load data on page load
             renderIndustries();
             loadCompanies();
+            loadLatestTenders(); // NEW: Load latest 10 tenders on page load
         </script>
     </body>
 </html>
