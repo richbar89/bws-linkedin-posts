@@ -1,0 +1,19 @@
+{
+  "cursor": null,
+  "page": 1,
+  "totals": {
+    "totalFetched": 100,
+    "totalOpen": 98,
+    "totalKept": 80,
+    "totalSaved": 80
+  },
+  "lastRun": {
+    "at": "2026-01-05T09:25:54.150Z",
+    "updatedFrom": "2025-09-07T09:25:52",
+    "updatedTo": "2026-01-05T09:25:52",
+    "stages": "tender",
+    "limit": 100,
+    "fetchDays": 120,
+    "keepDays": 21
+  }
+}
