@@ -1,4 +1,5 @@
 // Simple Express server for tender scanner
+// UPDATED: Added /api/tenders/latest endpoint for homepage
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -146,7 +147,6 @@ const industries = {
       "79713000",
       "79714000",
       "79715000",
-      "98341000",
     ],
     icon: "🔒",
   },
@@ -164,10 +164,7 @@ const industries = {
 
 // Middleware
 app.use(express.json());
-
-// Serve static files from current directory (where index.html should be)
-app.use(express.static(__dirname));
-app.use(express.static(process.cwd()));
+app.use(express.static("public"));
 
 // Prevent API caching
 app.use("/api", (req, res, next) => {
@@ -264,7 +261,7 @@ async function findMatchingCompanies(tenderCpvCodes, client) {
 
 // API Routes
 
-// Get latest N tenders (for homepage)
+// NEW: Get latest N tenders (for homepage)
 app.get("/api/tenders/latest", async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const client = await getDbClient();
@@ -435,7 +432,7 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
       for (const companyCpv of companyCpvCodes) {
         for (const tenderCpv of tenderCpvCodes) {
           if (!tenderCpv) continue;
-          if (cpvCodesMatch(companyCpv, tenderCv)) {
+          if (cpvCodesMatch(companyCpv, tenderCpv)) {
             hasMatch = true;
             break;
           }
@@ -684,9 +681,8 @@ app.delete("/api/companies/:id", async (req, res) => {
   }
 });
 
-// Force update endpoint - triggers tender fetch script
+// FORCE UPDATE ENDPOINTS - NEW
 app.post("/api/force-update", async (req, res) => {
-  // Prevent multiple simultaneous updates
   if (global.updateInProgress) {
     return res.status(429).json({
       error: "Update already in progress",
@@ -699,10 +695,8 @@ app.post("/api/force-update", async (req, res) => {
   try {
     const { exec } = require("child_process");
 
-    console.log("🔄 Force update triggered by user");
-    console.log(`📅 Time: ${new Date().toLocaleString("en-GB")}`);
+    console.log("🔄 Force update triggered");
 
-    // Execute the fetch script
     exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
       global.updateInProgress = false;
 
@@ -711,29 +705,24 @@ app.post("/api/force-update", async (req, res) => {
         return;
       }
       if (stderr) {
-        console.error(`⚠️  Update stderr: ${stderr}`);
+        console.error(`⚠️ Update stderr: ${stderr}`);
       }
-      console.log(`✅ Update completed successfully`);
-      console.log(stdout);
+      console.log(`✅ Update completed`);
     });
 
-    // Return immediately - update runs in background
     res.json({
       success: true,
-      message: "Update started in background. This may take 2-3 minutes.",
+      message: "Update started in background",
     });
   } catch (error) {
     global.updateInProgress = false;
-    console.error(`❌ Force update error: ${error.message}`);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Check update status endpoint
 app.get("/api/update-status", (req, res) => {
   res.json({
     inProgress: global.updateInProgress || false,
-    lastUpdate: global.lastUpdateTime || null,
   });
 });
 
