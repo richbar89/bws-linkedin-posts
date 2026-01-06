@@ -1,72 +1,60 @@
 /**
  * fetch-and-save-tenders.js
  *
- * GOAL (what you described):
- * - Rolling last 3 weeks of "live" tenders
- * - No planning, no awarded, no contract notices
- * - Only what can be bid on now
+ * Correct approach to match what you see in the Find-a-Tender WEBSITE search:
  *
- * IMPORTANT DETAIL:
- * The Find a Tender OCDS API filters by UPDATED date (updatedFrom/updatedTo),
- * not strictly by PUBLISHED date.
+ * 1) You provide the exact SEARCH_URL you use manually (with filters like Stage=Tender, published last 3 weeks, etc).
+ * 2) Script crawls all pages of that search and extracts Notice IDs (e.g. 000109-2026).
+ * 3) For each Notice ID, it fetches structured JSON via:
+ *      https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages/{NOTICE_ID}
+ *    (This is officially supported by the API docs.)
+ * 4) Filters to “live” (deadline not passed) and rolling KEEP_DAYS (default 21).
+ * 5) Batch upserts into Postgres with retries (robust on Replit-hosted DBs).
  *
- * So we:
- * 1) Fetch a wider UPDATED window (default 60 days) from tender stage
- * 2) Filter locally to keep only:
- *    - published within KEEP_DAYS (default 21 days)
- *    - deadline not passed
- * 3) Upsert into Postgres in batches with retries, so it doesn't crash mid-run.
+ * Run:
+ *   SEARCH_URL="https://www.find-tender.service.gov.uk/...your search..." node fetch-and-save-tenders.js
+ *
+ * Optional knobs:
+ *   KEEP_DAYS=21
+ *   MAX_PAGES=999
+ *   PAGE_PAUSE_MS=200
+ *   API_PAUSE_MS=120
+ *   DB_BATCH_SIZE=50
+ *   RESUME_PAGE=1
  */
 
 const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
 
-// -------------------------
-// Config (env overrides)
-// -------------------------
-
-// Fetch wider than 21 days because API uses UPDATED, not PUBLISHED
-const FETCH_DAYS = parseInt(process.env.FETCH_DAYS || "60", 10);
-
-// Keep exactly what you want for the front-end (rolling 3 weeks)
-const KEEP_DAYS = parseInt(process.env.KEEP_DAYS || "21", 10);
-
-const PAGE_LIMIT = Math.min(
-  Math.max(parseInt(process.env.PAGE_LIMIT || "100", 10), 1),
-  100,
-);
-const STAGES = process.env.STAGES || "tender"; // tender only
-
-// API base
+// ---------- Config ----------
 const FTS_BASE_URL =
   process.env.FTS_BASE_URL || "https://www.find-tender.service.gov.uk";
-const FTS_OCDS_ENDPOINT = `${FTS_BASE_URL}/api/1.0/ocdsReleasePackages`;
+const OCDS_BY_NOTICE_ENDPOINT = `${FTS_BASE_URL}/api/1.0/ocdsReleasePackages`;
 
-// DB
-const connectionString =
-  process.env.DATABASE_URL ||
-  process.env.LOCAL_DATABASE_URL ||
-  "postgresql://postgres:postgres@localhost:5432/tenders";
+const SEARCH_URL = process.env.SEARCH_URL; // REQUIRED
 
-// Resume state
-const STATE_FILE = path.join(process.cwd(), ".tender_fetch_state.json");
+const KEEP_DAYS = parseInt(process.env.KEEP_DAYS || "21", 10);
+const MAX_PAGES = parseInt(process.env.MAX_PAGES || "2000", 10);
+const RESUME_PAGE = parseInt(process.env.RESUME_PAGE || "1", 10);
 
-// Batch size for DB upserts
+const PAGE_PAUSE_MS = parseInt(process.env.PAGE_PAUSE_MS || "200", 10);
+const API_PAUSE_MS = parseInt(process.env.API_PAUSE_MS || "120", 10);
 const DB_BATCH_SIZE = Math.min(
   Math.max(parseInt(process.env.DB_BATCH_SIZE || "50", 10), 10),
   200,
 );
 
-// Safety cap
-const MAX_PAGES = parseInt(process.env.MAX_PAGES || "9999", 10);
+const connectionString =
+  process.env.DATABASE_URL ||
+  process.env.LOCAL_DATABASE_URL ||
+  "postgresql://postgres:postgres@localhost:5432/tenders";
 
-// -------------------------
-// Helpers
-// -------------------------
+const STATE_FILE = path.join(process.cwd(), ".tender_fetch_state.json");
 
+// ---------- Helpers ----------
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 function gbDateTime(x) {
@@ -75,30 +63,6 @@ function gbDateTime(x) {
   } catch {
     return String(x);
   }
-}
-
-function isoNoTz(date) {
-  // API wants YYYY-MM-DDTHH:MM:SS with no timezone
-  const pad = (n) => String(n).padStart(2, "0");
-  return (
-    date.getFullYear() +
-    "-" +
-    pad(date.getMonth() + 1) +
-    "-" +
-    pad(date.getDate()) +
-    "T" +
-    pad(date.getHours()) +
-    ":" +
-    pad(date.getMinutes()) +
-    ":" +
-    pad(date.getSeconds())
-  );
-}
-
-function daysAgoNoTz(days) {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return isoNoTz(d);
 }
 
 function normalizeCpvCode(cpv) {
@@ -152,16 +116,15 @@ function buildTenderUrlFromId(noticeId) {
 
 function isDeadlineStillOpen(release) {
   const end = release?.tender?.tenderPeriod?.endDate;
-  if (!end) return true; // keep if missing deadline (you can tighten later)
+  if (!end) return true; // keep if missing deadline
   const endDate = new Date(end);
   if (Number.isNaN(endDate.getTime())) return true;
   return endDate.getTime() >= Date.now();
 }
 
-function isPublishedWithinKeepWindow(release) {
-  // release.date is the release timestamp (often aligns with publish time)
-  const published = release?.date;
-  if (!published) return true; // if missing, don't drop (rare)
+function isWithinKeepDays(release) {
+  const published = release?.date; // OCDS release date (typically aligns to publication/update)
+  if (!published) return true;
   const d = new Date(published);
   if (Number.isNaN(d.getTime())) return true;
 
@@ -171,7 +134,7 @@ function isPublishedWithinKeepWindow(release) {
 }
 
 function mapReleaseToDbTender(release) {
-  const id = release?.id; // notice ID like 000109-2026
+  const id = release?.id; // notice id like 000109-2026
   const title = release?.tender?.title || null;
   const description =
     release?.tender?.description || release?.description || null;
@@ -182,9 +145,8 @@ function mapReleaseToDbTender(release) {
   const buyer_name = extractBuyerName(release);
   const cpv_codes = extractCpvCodesFromRelease(release);
 
-  // Your app uses "active" for items shown as live
+  // We only store "live bid-able" results for your front end
   const status = "active";
-
   const tender_url = buildTenderUrlFromId(id);
 
   return {
@@ -217,14 +179,45 @@ function writeState(state) {
   }
 }
 
-// API fetch with retries (429/503)
-async function fetchJsonWithRetry(url, { maxRetries = 8 } = {}) {
+function ensureSearchUrlHasPage(url, pageNum) {
+  const u = new URL(url);
+
+  // Common patterns:
+  // - ?p=1
+  // - ?page=1
+  // We’ll prefer p, but support either.
+  if (u.searchParams.has("p")) {
+    u.searchParams.set("p", String(pageNum));
+    return u.toString();
+  }
+  if (u.searchParams.has("page")) {
+    u.searchParams.set("page", String(pageNum));
+    return u.toString();
+  }
+
+  // If neither exists, add p=
+  u.searchParams.set("p", String(pageNum));
+  return u.toString();
+}
+
+function extractNoticeIdsFromHtml(html) {
+  // Find-a-Tender notice links look like /Notice/000109-2026
+  const re = /\/Notice\/(\d{6}-\d{4})/g;
+  const ids = new Set();
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    ids.add(m[1]);
+  }
+  return Array.from(ids);
+}
+
+async function fetchTextWithRetry(url, { maxRetries = 8 } = {}) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const res = await fetch(url, {
         headers: {
-          Accept: "application/json",
           "User-Agent": "BWS-Tender-Scanner/1.0",
+          Accept: "text/html,*/*",
         },
       });
 
@@ -234,7 +227,46 @@ async function fetchJsonWithRetry(url, { maxRetries = 8 } = {}) {
         const waitMs = Number.isFinite(waitSeconds)
           ? waitSeconds * 1000
           : Math.min(30000, 1000 * attempt * 2);
+        console.log(
+          `   ⏳ Throttled (${res.status}). Waiting ${Math.round(waitMs / 1000)}s...`,
+        );
+        await sleep(waitMs);
+        continue;
+      }
 
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+      }
+
+      return await res.text();
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      const backoff = Math.min(20000, 500 * attempt * attempt);
+      console.log(
+        `   ⚠️  Page fetch error: ${err.message}. Retrying in ${Math.round(backoff / 1000)}s...`,
+      );
+      await sleep(backoff);
+    }
+  }
+}
+
+async function fetchJsonWithRetry(url, { maxRetries = 8 } = {}) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "BWS-Tender-Scanner/1.0",
+          Accept: "application/json",
+        },
+      });
+
+      if (res.status === 429 || res.status === 503) {
+        const retryAfter = res.headers.get("retry-after");
+        const waitSeconds = retryAfter ? parseInt(retryAfter, 10) : null;
+        const waitMs = Number.isFinite(waitSeconds)
+          ? waitSeconds * 1000
+          : Math.min(30000, 1000 * attempt * 2);
         console.log(
           `   ⏳ API throttled (${res.status}). Waiting ${Math.round(waitMs / 1000)}s...`,
         );
@@ -259,7 +291,6 @@ async function fetchJsonWithRetry(url, { maxRetries = 8 } = {}) {
   }
 }
 
-// DB retry wrapper for terminated connections
 async function dbWithRetry(fn, { maxRetries = 6 } = {}) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -269,7 +300,7 @@ async function dbWithRetry(fn, { maxRetries = 6 } = {}) {
       const msg = String(err?.message || "").toLowerCase();
 
       const transient =
-        code === "57P01" || // terminating connection due to administrator command
+        code === "57P01" ||
         code === "ECONNRESET" ||
         code === "ETIMEDOUT" ||
         code === "EPIPE" ||
@@ -311,7 +342,7 @@ function buildUpsertQuery(tenders) {
         t.id,
         t.title,
         t.description,
-        JSON.stringify(t.cpv_codes || []), // store as JSONB
+        JSON.stringify(t.cpv_codes || []),
         t.publication_date ? new Date(t.publication_date) : null,
         t.deadline_date ? new Date(t.deadline_date) : null,
         t.status,
@@ -342,22 +373,21 @@ function buildUpsertQuery(tenders) {
   return { sql, values };
 }
 
-// -------------------------
-// Main
-// -------------------------
-
+// ---------- Main ----------
 async function main() {
-  console.log("🚀 Starting tender fetch...\n");
-  console.log("📋 Strategy:");
+  if (!SEARCH_URL) {
+    console.error(
+      '\n❌ Missing SEARCH_URL.\n\nRun like:\nSEARCH_URL="<your Find-a-Tender search URL>" node fetch-and-save-tenders.js\n',
+    );
+    process.exit(1);
+  }
+
+  console.log("🚀 Starting tender fetch (MATCH WEBSITE SEARCH)...\n");
+  console.log(`📅 Today: ${new Date().toLocaleDateString("en-GB")}`);
+  console.log(`🔎 SEARCH_URL: ${SEARCH_URL}`);
   console.log(
-    "   1) Fetch tender-stage releases using UPDATED window (wider than 3 weeks)",
+    `🎯 Keeping only: deadline not passed + published within last ${KEEP_DAYS} days\n`,
   );
-  console.log(
-    "   2) Keep only those PUBLISHED in last 3 weeks AND still open\n",
-  );
-  console.log(`📅 Today: ${new Date().toLocaleDateString("en-GB")}\n`);
-  console.log(`🧲 FETCH_DAYS (updated window): ${FETCH_DAYS} days`);
-  console.log(`🎯 KEEP_DAYS (published window): ${KEEP_DAYS} days\n`);
 
   const pool = new Pool({
     connectionString,
@@ -378,141 +408,132 @@ async function main() {
 
   console.log("✅ Connected to database\n");
 
-  const saved = readState();
-  const resumeCursor = process.env.RESUME_CURSOR || saved?.cursor || null;
-
-  const updatedFrom = process.env.UPDATED_FROM || daysAgoNoTz(FETCH_DAYS);
-  const updatedTo = process.env.UPDATED_TO || isoNoTz(new Date());
-
-  console.log("⚡ Fetching ALL tenders in 'tender' procurement stage...");
-  console.log("⚡ Will filter locally by:");
-  console.log("   - deadline not passed");
-  console.log(`   - published within last ${KEEP_DAYS} days`);
-  console.log(
-    `🕒 API UPDATED window: updatedFrom=${updatedFrom} -> updatedTo=${updatedTo}`,
+  const state = readState();
+  const startPage = parseInt(
+    process.env.RESUME_PAGE || state?.page || RESUME_PAGE,
+    10,
   );
-  if (resumeCursor) console.log(`🔁 Resuming from cursor: ${resumeCursor}`);
-  console.log("");
 
-  let cursor = resumeCursor;
-  let page = 0;
+  let page = startPage;
+  let allNoticeIds = [];
+  const seen = new Set();
 
-  let totalFetched = 0;
-  let totalOpen = 0;
-  let totalKept = 0;
-  let totalSaved = 0;
+  console.log(`📚 Crawling search pages starting at page ${startPage}...\n`);
 
-  try {
-    while (page < MAX_PAGES) {
-      page++;
+  while (page <= MAX_PAGES) {
+    const pageUrl = ensureSearchUrlHasPage(SEARCH_URL, page);
 
-      const url =
-        `${FTS_OCDS_ENDPOINT}?limit=${PAGE_LIMIT}` +
-        `&stages=${encodeURIComponent(STAGES)}` +
-        `&updatedFrom=${encodeURIComponent(updatedFrom)}` +
-        `&updatedTo=${encodeURIComponent(updatedTo)}` +
-        (cursor ? `&cursor=${encodeURIComponent(cursor)}` : "");
+    console.log(`📄 Page ${page}: ${pageUrl}`);
 
-      console.log(`📡 Fetching page ${page}...`);
+    const html = await fetchTextWithRetry(pageUrl);
+    const ids = extractNoticeIdsFromHtml(html);
 
-      const data = await fetchJsonWithRetry(url);
-      const releases = Array.isArray(data?.releases) ? data.releases : [];
-      const nextCursor = data?.cursor || null;
+    // If a page has 0 IDs, we've hit the end (or the HTML layout changed)
+    if (ids.length === 0) {
+      console.log(
+        "🛑 No notice IDs found on this page. Stopping pagination.\n",
+      );
+      break;
+    }
 
-      totalFetched += releases.length;
-
-      // Filter: deadline open
-      const open = releases.filter(isDeadlineStillOpen);
-      totalOpen += open.length;
-
-      // Filter: published within KEEP_DAYS
-      const kept = open.filter(isPublishedWithinKeepWindow);
-      totalKept += kept.length;
-
-      // Map to DB rows
-      const tenders = kept
-        .map(mapReleaseToDbTender)
-        .filter((t) => t.id && t.title);
-
-      // Save in DB batches
-      let savedThisPage = 0;
-      for (let i = 0; i < tenders.length; i += DB_BATCH_SIZE) {
-        const batch = tenders.slice(i, i + DB_BATCH_SIZE);
-
-        await dbWithRetry(async () => {
-          const client = await pool.connect();
-          try {
-            const { sql, values } = buildUpsertQuery(batch);
-            await client.query(sql, values);
-          } finally {
-            client.release();
-          }
-        });
-
-        savedThisPage += batch.length;
-        totalSaved += batch.length;
+    let newCount = 0;
+    for (const id of ids) {
+      if (!seen.has(id)) {
+        seen.add(id);
+        allNoticeIds.push(id);
+        newCount++;
       }
+    }
 
-      console.log(
-        `   Got ${releases.length} releases (${open.length} still open, ${kept.length} kept, ${totalKept} kept total)`,
-      );
-      console.log(
-        `   💾 Saved/updated ${savedThisPage} tenders this page (${totalSaved} total)\n`,
-      );
+    console.log(
+      `   ✅ Found ${ids.length} IDs (${newCount} new). Total unique IDs: ${allNoticeIds.length}\n`,
+    );
 
-      writeState({
-        cursor: nextCursor,
-        page,
-        totals: { totalFetched, totalOpen, totalKept, totalSaved },
-        lastRun: {
-          at: new Date().toISOString(),
-          updatedFrom,
-          updatedTo,
-          stages: STAGES,
-          limit: PAGE_LIMIT,
-          fetchDays: FETCH_DAYS,
-          keepDays: KEEP_DAYS,
-        },
+    writeState({
+      page,
+      totalIds: allNoticeIds.length,
+      lastRun: { at: new Date().toISOString(), searchUrl: SEARCH_URL },
+    });
+
+    page++;
+    await sleep(PAGE_PAUSE_MS);
+  }
+
+  console.log("📌 Finished crawling search pages.");
+  console.log(`📦 Total unique notice IDs collected: ${allNoticeIds.length}\n`);
+
+  console.log("⚡ Fetching OCDS JSON per notice ID and saving to DB...\n");
+
+  let processed = 0;
+  let kept = 0;
+  let saved = 0;
+
+  // Process in chunks to avoid hammering API/DB
+  const NOTICE_BATCH = 25;
+
+  for (let i = 0; i < allNoticeIds.length; i += NOTICE_BATCH) {
+    const chunk = allNoticeIds.slice(i, i + NOTICE_BATCH);
+
+    const tendersToSave = [];
+
+    for (const noticeId of chunk) {
+      const url = `${OCDS_BY_NOTICE_ENDPOINT}/${noticeId}`;
+
+      const pkg = await fetchJsonWithRetry(url);
+      const releases = Array.isArray(pkg?.releases) ? pkg.releases : [];
+      const release = releases[0];
+
+      processed++;
+
+      if (!release) continue;
+
+      // “Live” + rolling window filters
+      if (!isDeadlineStillOpen(release)) continue;
+      if (!isWithinKeepDays(release)) continue;
+
+      kept++;
+      tendersToSave.push(mapReleaseToDbTender(release));
+
+      await sleep(API_PAUSE_MS);
+    }
+
+    // Save mapped tenders in DB batches
+    for (let j = 0; j < tendersToSave.length; j += DB_BATCH_SIZE) {
+      const batch = tendersToSave.slice(j, j + DB_BATCH_SIZE);
+
+      if (batch.length === 0) continue;
+
+      await dbWithRetry(async () => {
+        const client = await pool.connect();
+        try {
+          const { sql, values } = buildUpsertQuery(batch);
+          await client.query(sql, values);
+        } finally {
+          client.release();
+        }
       });
 
-      if (!nextCursor || releases.length === 0) {
-        console.log("✅ No more pages. Finished.\n");
-        break;
-      }
-
-      cursor = nextCursor;
-
-      // Small pause to be kind to API + DB
-      await sleep(200);
+      saved += batch.length;
     }
 
-    console.log("📈 FINAL SUMMARY");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log(`   Total releases fetched: ${totalFetched}`);
-    console.log(`   Total open releases: ${totalOpen}`);
     console.log(
-      `   Total kept (open + published within ${KEEP_DAYS}d): ${totalKept}`,
+      `📦 Chunk ${Math.floor(i / NOTICE_BATCH) + 1}: processed ${Math.min(i + NOTICE_BATCH, allNoticeIds.length)}/${allNoticeIds.length} | kept ${kept} | saved ${saved}`,
     );
-    console.log(`   Total saved/updated: ${totalSaved}`);
-    console.log(`   Finished at: ${gbDateTime(new Date())}`);
-    console.log(
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n",
-    );
-  } catch (err) {
-    console.error("❌ Fetch run failed:", err.message);
-
-    const st = readState();
-    if (st?.cursor) {
-      console.error(
-        `\n🔁 Resume with:\nRESUME_CURSOR=${st.cursor} node fetch-and-save-tenders.js\n`,
-      );
-    }
-    process.exitCode = 1;
-  } finally {
-    try {
-      await pool.end();
-    } catch {}
   }
+
+  console.log("\n📈 FINAL SUMMARY");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log(`   Notice IDs collected: ${allNoticeIds.length}`);
+  console.log(`   Notices processed (JSON fetched): ${processed}`);
+  console.log(`   Kept (live + within ${KEEP_DAYS}d): ${kept}`);
+  console.log(`   Saved/updated: ${saved}`);
+  console.log(`   Finished at: ${gbDateTime(new Date())}`);
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+  await pool.end();
 }
 
-main();
+main().catch((e) => {
+  console.error("❌ Fatal error:", e.message);
+  process.exit(1);
+});

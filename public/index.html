@@ -291,7 +291,7 @@
                 color: #dc2626;
             }
 
-            /* Latest Tenders Section - NEW */
+            /* Latest Tenders Section */
             .latest-tenders-section {
                 background: white;
                 padding: 30px;
@@ -1069,7 +1069,7 @@
                 </div>
             </div>
 
-            <!-- Latest Tenders Section - NEW -->
+            <!-- Latest Tenders Section -->
             <div class="latest-tenders-section" id="latestTendersSection">
                 <h2>🔥 Latest 10 Tenders</h2>
                 <div class="tender-table">
@@ -1339,7 +1339,7 @@
                 ].join("\n");
             }
 
-            // NEW: Load latest 10 tenders
+            // Load latest 10 tenders
             async function loadLatestTenders() {
                 try {
                     const response = await fetch(
@@ -1808,7 +1808,7 @@
             async function deleteCompany(id, name) {
                 if (
                     !confirm(
-                        `Are you sure you want to delete "${name}"?\\n\\nThis action cannot be undone.`,
+                        `Are you sure you want to delete "${name}"?\n\nThis action cannot be undone.`,
                     )
                 ) {
                     return;
@@ -1834,7 +1834,7 @@
                         resetView();
                     }
                 } catch (error) {
-                    alert(`❌ Error deleting company:\\n\\n${error.message}`);
+                    alert(`❌ Error deleting company:\n\n${error.message}`);
                 }
             }
 
@@ -2222,10 +2222,17 @@
                 window.scrollTo({ top: 0, behavior: "smooth" });
             }
 
-            // Initialize - render industries and load data on page load
+            // ========================================
+            // CRITICAL FIX: Initialize on page load
+            // ========================================
             renderIndustries();
             loadCompanies();
-            loadLatestTenders(); // NEW: Load latest 10 tenders on page load
+            loadLatestTenders();
+            updateIndustryCounts(); // ✅ FIX: This line was missing!
+
+            // Optional: Auto-refresh industry counts every 5 minutes
+            // Uncomment the line below if you want automatic updates
+            // setInterval(updateIndustryCounts, 300000);
         </script>
     </body>
 </html>
