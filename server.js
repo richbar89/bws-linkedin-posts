@@ -3,6 +3,7 @@
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -168,7 +169,37 @@ app.use(express.json());
 
 // Serve index.html at root
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  // Try multiple possible locations for index.html
+  const possiblePaths = [
+    path.join(__dirname, "index.html"),
+    path.join(process.cwd(), "index.html"),
+    "/home/runner/workspace/index.html",
+    "index.html",
+  ];
+
+  const fs = require("fs");
+  let filePath = null;
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      filePath = p;
+      break;
+    }
+  }
+
+  if (filePath) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send(`
+      <h1>index.html not found</h1>
+      <p>Tried these locations:</p>
+      <ul>
+        ${possiblePaths.map((p) => `<li>${p}</li>`).join("")}
+      </ul>
+      <p>Current directory: ${process.cwd()}</p>
+      <p>__dirname: ${__dirname}</p>
+    `);
+  }
 });
 
 // Serve static files from public folder
