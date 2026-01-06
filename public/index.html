@@ -291,7 +291,7 @@
                 color: #dc2626;
             }
 
-            /* Latest Tenders Section */
+            /* Latest Tenders Section - NEW */
             .latest-tenders-section {
                 background: white;
                 padding: 30px;
@@ -1069,7 +1069,7 @@
                 </div>
             </div>
 
-            <!-- Latest Tenders Section -->
+            <!-- Latest Tenders Section - NEW -->
             <div class="latest-tenders-section" id="latestTendersSection">
                 <h2>🔥 Latest 10 Tenders</h2>
                 <div class="tender-table">
@@ -1339,7 +1339,7 @@
                 ].join("\n");
             }
 
-            // Load latest 10 tenders
+            // NEW: Load latest 10 tenders
             async function loadLatestTenders() {
                 try {
                     const response = await fetch(
@@ -2222,17 +2222,11 @@
                 window.scrollTo({ top: 0, behavior: "smooth" });
             }
 
-            // ========================================
-            // CRITICAL FIX: Initialize on page load
-            // ========================================
+            // Initialize - render industries and load data on page load
             renderIndustries();
             loadCompanies();
             loadLatestTenders();
-            updateIndustryCounts(); // ✅ FIX: This line was missing!
-
-            // Optional: Auto-refresh industry counts every 5 minutes
-            // Uncomment the line below if you want automatic updates
-            // setInterval(updateIndustryCounts, 300000);
+            updateIndustryCounts(); // ✅ FIX: Update industry counts on page load!
         </script>
     </body>
 </html>

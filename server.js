@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// COMPLETE VERSION with all endpoints
+// UPDATED: Added /api/tenders/latest endpoint for homepage
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -147,7 +147,6 @@ const industries = {
       "79713000",
       "79714000",
       "79715000",
-      "98341000",
     ],
     icon: "🔒",
   },
@@ -166,11 +165,6 @@ const industries = {
 // Middleware
 app.use(express.json());
 app.use(express.static("public"));
-
-// Serve index.html at root
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
-});
 
 // Prevent API caching
 app.use("/api", (req, res, next) => {
@@ -267,7 +261,7 @@ async function findMatchingCompanies(tenderCpvCodes, client) {
 
 // API Routes
 
-// Get latest N tenders (for homepage)
+// NEW: Get latest N tenders (for homepage)
 app.get("/api/tenders/latest", async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const client = await getDbClient();
