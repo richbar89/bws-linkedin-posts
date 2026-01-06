@@ -1,9 +1,7 @@
 // Simple Express server for tender scanner
-// Complete rewrite with proper file serving
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
-const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -167,43 +165,9 @@ const industries = {
 // Middleware
 app.use(express.json());
 
-// Serve index.html at root
-app.get("/", (req, res) => {
-  // Try multiple possible locations for index.html
-  const possiblePaths = [
-    path.join(__dirname, "index.html"),
-    path.join(process.cwd(), "index.html"),
-    "/home/runner/workspace/index.html",
-    "index.html",
-  ];
-
-  const fs = require("fs");
-  let filePath = null;
-
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      filePath = p;
-      break;
-    }
-  }
-
-  if (filePath) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).send(`
-      <h1>index.html not found</h1>
-      <p>Tried these locations:</p>
-      <ul>
-        ${possiblePaths.map((p) => `<li>${p}</li>`).join("")}
-      </ul>
-      <p>Current directory: ${process.cwd()}</p>
-      <p>__dirname: ${__dirname}</p>
-    `);
-  }
-});
-
-// Serve static files from public folder
-app.use(express.static("public"));
+// Serve static files from current directory (where index.html should be)
+app.use(express.static(__dirname));
+app.use(express.static(process.cwd()));
 
 // Prevent API caching
 app.use("/api", (req, res, next) => {
@@ -471,7 +435,7 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
       for (const companyCpv of companyCpvCodes) {
         for (const tenderCpv of tenderCpvCodes) {
           if (!tenderCpv) continue;
-          if (cpvCodesMatch(companyCpv, tenderCpv)) {
+          if (cpvCodesMatch(companyCpv, tenderCv)) {
             hasMatch = true;
             break;
           }
@@ -734,36 +698,24 @@ app.post("/api/force-update", async (req, res) => {
 
   try {
     const { exec } = require("child_process");
-    const searchUrl = process.env.SEARCH_URL;
-
-    if (!searchUrl) {
-      global.updateInProgress = false;
-      return res.status(500).json({
-        error: "SEARCH_URL environment variable not set",
-        message: "Please configure SEARCH_URL in Replit Secrets",
-      });
-    }
 
     console.log("🔄 Force update triggered by user");
     console.log(`📅 Time: ${new Date().toLocaleString("en-GB")}`);
 
     // Execute the fetch script
-    exec(
-      `SEARCH_URL="${searchUrl}" node fetch-and-save-tenders.js`,
-      (error, stdout, stderr) => {
-        global.updateInProgress = false;
+    exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
+      global.updateInProgress = false;
 
-        if (error) {
-          console.error(`❌ Update error: ${error.message}`);
-          return;
-        }
-        if (stderr) {
-          console.error(`⚠️  Update stderr: ${stderr}`);
-        }
-        console.log(`✅ Update completed successfully`);
-        console.log(stdout);
-      },
-    );
+      if (error) {
+        console.error(`❌ Update error: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.error(`⚠️  Update stderr: ${stderr}`);
+      }
+      console.log(`✅ Update completed successfully`);
+      console.log(stdout);
+    });
 
     // Return immediately - update runs in background
     res.json({
