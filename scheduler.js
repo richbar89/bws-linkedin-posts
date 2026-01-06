@@ -44,5 +44,10 @@ exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
   console.log("✅ Initial fetch complete\n");
 });
 
+// Export so server.js can use it
+module.exports = {
+  initializeScheduler: () => console.log("Scheduler initialized"),
+};
+
 // Keep the scheduler running
 console.log("✨ Scheduler is running. Press Ctrl+C to stop.\n");

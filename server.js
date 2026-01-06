@@ -1,8 +1,11 @@
 // Simple Express server for tender scanner
-// UPDATED: Simplified since we only store "active" tenders now
+// UPDATED: Includes scheduler initialization
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
+
+// IMPORTANT: Initialize the scheduler
+require("./scheduler");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -647,4 +650,5 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
   console.log(`📧 Email contact fields enabled\n`);
   console.log(`🏭 ${Object.keys(industries).length} industries configured\n`);
+  console.log(`⏰ SCHEDULER: Active - will update at 5:00 AM daily\n`);
 });

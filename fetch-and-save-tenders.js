@@ -1,21 +1,20 @@
-// Fetch tenders from API and save to database
-// COMPLETE FINAL VERSION - Uses stages=tender filter with proper pagination to get 650+ tenders
+// CORRECTED: Fetch tenders from API - removes stages filter to enable pagination
+// Filters for active/planning/planned statuses AFTER fetching
 const { Client } = require("pg");
 
 // Helper function to normalize CPV codes
 function normalizeCpvCode(cpv) {
   if (!cpv) return null;
-  // Remove dashes and take first 8 digits
   const normalized = String(cpv).replace(/-/g, "").substring(0, 8);
   return normalized.length === 8 ? normalized : null;
 }
 
 async function fetchAndSaveTenders() {
-  console.log(
-    "🚀 Starting tender fetch (TENDER STAGE ONLY - LIVE TENDERS)...\n",
-  );
+  console.log("\n" + "=".repeat(70));
+  console.log("🚀 TENDER FETCH STARTING - CORRECTED VERSION");
+  console.log("=".repeat(70) + "\n");
 
-  // Calculate date from 21 days ago (3 weeks)
+  // Calculate date from 21 days ago
   const threeWeeksAgo = new Date();
   threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
   const dateFrom = threeWeeksAgo.toISOString();
@@ -35,208 +34,208 @@ async function fetchAndSaveTenders() {
   console.log("✅ Connected to database\n");
 
   try {
-    // Fetch from API with pagination
-    let allTenders = [];
-    let nextUrl = null;
+    let allReleases = [];
     let pageCount = 0;
 
-    // Use stages=tender to match the website's "Tender" procurement stage filter
-    // This gets ONLY live tenders (not planning, award, contract, etc.)
-    let apiUrl = `https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages?updatedFrom=${dateFrom}&limit=100&stages=tender`;
+    // IMPORTANT: Removed stages=tender filter to enable pagination!
+    let nextUrl = `https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages?updatedFrom=${dateFrom}&limit=100`;
 
-    console.log("⚡ Fetching tenders with stages=tender filter...");
+    console.log("⚡ Starting pagination...");
     console.log(
-      "⚡ This matches the 'Tender' checkbox on Find-a-Tender website\n",
+      "⚡ NOTE: Fetching ALL statuses, will filter for active ones after\n",
     );
 
-    do {
+    // Pagination loop
+    while (nextUrl && pageCount < 30) {
       pageCount++;
+      console.log(`📡 Page ${pageCount}...`);
 
-      // Use nextUrl if we have it from previous response, otherwise use initial URL
-      const urlToFetch = nextUrl || apiUrl;
+      try {
+        const response = await fetch(nextUrl);
 
-      console.log(`📡 Fetching page ${pageCount}...`);
-
-      const response = await fetch(urlToFetch);
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.releases && data.releases.length > 0) {
-        allTenders = allTenders.concat(data.releases);
-        console.log(
-          `   Got ${data.releases.length} releases (Total so far: ${allTenders.length})`,
-        );
-      } else {
-        console.log(`   Got 0 releases`);
-      }
-
-      // Check for next page - use the FULL next URL from API response
-      nextUrl = data.links?.next || null;
-
-      if (nextUrl) {
-        console.log(`   ➡️  More pages available, continuing...\n`);
-      } else {
-        console.log(`   ✋ No more pages available\n`);
-      }
-
-      // Safety limit - stop after 30 pages to avoid infinite loops
-      if (pageCount >= 30) {
-        console.log("   ⚠️  Reached safety limit (30 pages)\n");
-        break;
-      }
-
-      // Small delay to be nice to the API
-      if (nextUrl) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    } while (nextUrl);
-
-    console.log(
-      `\n✅ Fetched ${allTenders.length} total releases from ${pageCount} pages\n`,
-    );
-
-    // Process and save tenders
-    console.log("💾 Processing and saving tenders to database...\n");
-
-    let savedCount = 0;
-    let skippedNoTender = 0;
-    let skippedNonActive = 0;
-    let cpvIssues = 0;
-    let statusCounts = {};
-
-    // Clear existing tenders first (rolling 21-day window)
-    await client.query("DELETE FROM tenders");
-    console.log("🧹 Cleared old tenders from database\n");
-
-    for (const release of allTenders) {
-      // Only process if it has tender data
-      if (release.tender) {
-        const tenderStatus = (release.tender.status || "unknown").toLowerCase();
-
-        // Track ALL status counts for reporting
-        statusCounts[tenderStatus] = (statusCounts[tenderStatus] || 0) + 1;
-
-        // Save ALL tenders from the "tender" stage, regardless of status
-        // (The stages=tender filter already gave us only live procurement stage)
-
-        // Extract CPV codes - Get from ALL sources
-        let cpvCodes = [];
-
-        // 1. Get main classification CPV code (tender level)
-        if (release.tender.classification && release.tender.classification.id) {
-          const normalized = normalizeCpvCode(release.tender.classification.id);
-          if (normalized) {
-            cpvCodes.push(normalized);
-          }
-        }
-
-        // 2. Get CPV codes from items
-        if (release.tender.items) {
-          for (const item of release.tender.items) {
-            // Get main item classification
-            if (item.classification && item.classification.id) {
-              const normalized = normalizeCpvCode(item.classification.id);
-              if (normalized) {
-                cpvCodes.push(normalized);
-              }
-            }
-
-            // Get additional classifications
-            if (item.additionalClassifications) {
-              for (const classification of item.additionalClassifications) {
-                if (classification.scheme === "CPV" && classification.id) {
-                  const normalized = normalizeCpvCode(classification.id);
-                  if (normalized) {
-                    cpvCodes.push(normalized);
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        // Remove duplicates
-        cpvCodes = [...new Set(cpvCodes)];
-
-        if (cpvCodes.length === 0) {
-          cpvIssues++;
-        }
-
-        // Extract deadline
-        let deadline = null;
-        if (release.tender.tenderPeriod?.endDate) {
-          deadline = release.tender.tenderPeriod.endDate;
-        }
-
-        // Extract buyer name
-        let buyerName = "Unknown";
-        if (release.buyer && release.buyer.name) {
-          buyerName = release.buyer.name;
-        }
-
-        // Build tender URL
-        const tenderUrl = `https://www.find-tender.service.gov.uk/Notice/${release.id}`;
-
-        // Save to database
-        try {
-          await client.query(
-            `
-            INSERT INTO tenders (
-              id, title, description, cpv_codes, 
-              publication_date, deadline_date, status, 
-              buyer_name, tender_url
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            ON CONFLICT (id) DO UPDATE SET
-              title = EXCLUDED.title,
-              description = EXCLUDED.description,
-              cpv_codes = EXCLUDED.cpv_codes,
-              deadline_date = EXCLUDED.deadline_date,
-              status = EXCLUDED.status
-          `,
-            [
-              release.id,
-              release.tender.title || "No title",
-              release.tender.description || "",
-              JSON.stringify(cpvCodes),
-              release.date,
-              deadline,
-              tenderStatus, // Save the actual status from API
-              buyerName,
-              tenderUrl,
-            ],
-          );
-
-          savedCount++;
-
-          // Log progress every 100 tenders
-          if (savedCount % 100 === 0) {
-            console.log(`   Saved ${savedCount} tenders so far...`);
-          }
-        } catch (dbError) {
+        if (!response.ok) {
           console.log(
-            `   ⚠️  Error saving tender ${release.id}: ${dbError.message}`,
+            `   ❌ HTTP Error: ${response.status} ${response.statusText}`,
           );
+          break;
         }
-      } else {
-        skippedNoTender++;
+
+        const data = await response.json();
+
+        if (data.releases && Array.isArray(data.releases)) {
+          const newReleases = data.releases.length;
+          allReleases = allReleases.concat(data.releases);
+          console.log(
+            `   ✅ Got ${newReleases} releases (Total: ${allReleases.length})`,
+          );
+        } else {
+          console.log(`   ⚠️  No releases in response`);
+        }
+
+        // Check for next page
+        if (data.links?.next) {
+          nextUrl = data.links.next;
+          console.log(`   ➡️  Next page available`);
+
+          // Be nice to the API
+          await new Promise((resolve) => setTimeout(resolve, 200));
+        } else {
+          console.log(`   ✋ No more pages`);
+          nextUrl = null;
+        }
+      } catch (fetchError) {
+        console.log(`   ❌ Fetch error: ${fetchError.message}`);
+        break;
       }
     }
 
-    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-    console.log(`📊 RESULTS SUMMARY`);
-    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
-    console.log(`   Total releases fetched: ${allTenders.length}`);
-    console.log(`   Pages fetched: ${pageCount}`);
-    console.log(`   Releases with no tender data: ${skippedNoTender}`);
-    console.log(`   ✅ SAVED to database: ${savedCount} tenders`);
-    console.log(`   Tenders with no CPV codes: ${cpvIssues}`);
+    if (pageCount >= 30) {
+      console.log("\n⚠️  Reached 30-page safety limit");
+    }
 
-    console.log(`\n📊 Status breakdown (all tenders in "tender" stage):`);
-    Object.entries(statusCounts)
+    console.log("\n" + "=".repeat(70));
+    console.log(
+      `📊 FETCH COMPLETE: ${allReleases.length} releases from ${pageCount} pages`,
+    );
+    console.log("=".repeat(70) + "\n");
+
+    // Now process and filter
+    console.log("💾 Processing and filtering tenders...\n");
+
+    let processedCount = 0;
+    let savedCount = 0;
+    let skippedNoTender = 0;
+    let skippedInactive = 0;
+    let cpvIssues = 0;
+    let allStatusCounts = {};
+    let savedStatusCounts = {};
+
+    // Clear old tenders
+    await client.query("DELETE FROM tenders");
+    console.log("🧹 Cleared existing tenders\n");
+
+    // Define which statuses we want to keep
+    const ACTIVE_STATUSES = ["active", "planning", "planned"];
+
+    for (const release of allReleases) {
+      if (!release.tender) {
+        skippedNoTender++;
+        continue;
+      }
+
+      processedCount++;
+      const tenderStatus = (release.tender.status || "unknown").toLowerCase();
+
+      // Count ALL statuses for reporting
+      allStatusCounts[tenderStatus] = (allStatusCounts[tenderStatus] || 0) + 1;
+
+      // Skip if not an active status
+      if (!ACTIVE_STATUSES.includes(tenderStatus)) {
+        skippedInactive++;
+        continue;
+      }
+
+      // Count saved statuses
+      savedStatusCounts[tenderStatus] =
+        (savedStatusCounts[tenderStatus] || 0) + 1;
+
+      // Extract CPV codes
+      let cpvCodes = [];
+
+      if (release.tender.classification?.id) {
+        const normalized = normalizeCpvCode(release.tender.classification.id);
+        if (normalized) cpvCodes.push(normalized);
+      }
+
+      if (release.tender.items) {
+        for (const item of release.tender.items) {
+          if (item.classification?.id) {
+            const normalized = normalizeCpvCode(item.classification.id);
+            if (normalized) cpvCodes.push(normalized);
+          }
+
+          if (item.additionalClassifications) {
+            for (const ac of item.additionalClassifications) {
+              if (ac.scheme === "CPV" && ac.id) {
+                const normalized = normalizeCpvCode(ac.id);
+                if (normalized) cpvCodes.push(normalized);
+              }
+            }
+          }
+        }
+      }
+
+      cpvCodes = [...new Set(cpvCodes)];
+
+      if (cpvCodes.length === 0) {
+        cpvIssues++;
+      }
+
+      const deadline = release.tender.tenderPeriod?.endDate || null;
+      const buyerName = release.buyer?.name || "Unknown";
+      const tenderUrl = `https://www.find-tender.service.gov.uk/Notice/${release.id}`;
+
+      // Save to database
+      try {
+        await client.query(
+          `INSERT INTO tenders (
+            id, title, description, cpv_codes, 
+            publication_date, deadline_date, status, 
+            buyer_name, tender_url
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          ON CONFLICT (id) DO UPDATE SET
+            title = EXCLUDED.title,
+            description = EXCLUDED.description,
+            cpv_codes = EXCLUDED.cpv_codes,
+            deadline_date = EXCLUDED.deadline_date,
+            status = EXCLUDED.status`,
+          [
+            release.id,
+            release.tender.title || "No title",
+            release.tender.description || "",
+            JSON.stringify(cpvCodes),
+            release.date,
+            deadline,
+            tenderStatus,
+            buyerName,
+            tenderUrl,
+          ],
+        );
+
+        savedCount++;
+
+        if (savedCount % 100 === 0) {
+          console.log(`   📝 Saved ${savedCount} tenders...`);
+        }
+      } catch (dbError) {
+        console.log(`   ⚠️  DB error for ${release.id}: ${dbError.message}`);
+      }
+    }
+
+    // Results summary
+    console.log("\n" + "=".repeat(70));
+    console.log("📊 PROCESSING SUMMARY");
+    console.log("=".repeat(70) + "\n");
+    console.log(`   Total releases fetched: ${allReleases.length}`);
+    console.log(`   Pages fetched: ${pageCount}`);
+    console.log(`   Releases with tender data: ${processedCount}`);
+    console.log(`   Releases without tender data: ${skippedNoTender}`);
+    console.log(`   Tenders with inactive status: ${skippedInactive}`);
+    console.log(`   ✅ SAVED active tenders: ${savedCount}`);
+    console.log(`   Tenders missing CPV codes: ${cpvIssues}`);
+
+    console.log("\n📊 All statuses found in API:");
+    Object.entries(allStatusCounts)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([status, count]) => {
+        const kept = ACTIVE_STATUSES.includes(status)
+          ? "✅ KEPT"
+          : "❌ FILTERED";
+        console.log(`   ${status}: ${count} ${kept}`);
+      });
+
+    console.log("\n📊 Statuses saved to database:");
+    Object.entries(savedStatusCounts)
       .sort((a, b) => b[1] - a[1])
       .forEach(([status, count]) => {
         console.log(`   ${status}: ${count}`);
@@ -252,29 +251,43 @@ async function fetchAndSaveTenders() {
     `);
 
     console.log(`\n✅ Database now contains: ${dbCount.rows[0].count} tenders`);
-    console.log(`\n📊 Status breakdown in database:`);
+    console.log("\n📊 Database status verification:");
     dbStatusBreakdown.rows.forEach((row) => {
       console.log(`   ${row.status}: ${row.count}`);
     });
 
-    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+    console.log("\n" + "=".repeat(70));
 
+    // Health check
     if (savedCount < 500) {
-      console.log("⚠️  WARNING: Expected around 650 tenders based on website");
-      console.log(`⚠️  Only saved ${savedCount} tenders`);
-      console.log("\n💡 Possible issues:");
-      console.log(`   - Only fetched ${pageCount} pages - may need more pages`);
-      console.log(`   - Check if pagination stopped early`);
-      console.log(`   - Try running again - API might have been slow\n`);
+      console.log("\n⚠️  WARNING: Lower than expected tender count");
+      console.log(`   Expected: ~650+ active tenders in 21-day window`);
+      console.log(`   Got: ${savedCount} tenders`);
+      console.log("\n💡 This might be normal if:");
+      console.log(`   - Few tenders published recently`);
+      console.log(`   - Many tenders have completed/closed status`);
+      console.log(`   - API is experiencing issues`);
     } else {
-      console.log("✅ Tender count looks good!\n");
+      console.log("\n✅ SUCCESS: Healthy tender count!");
+      console.log(`   ${savedCount} active tenders saved`);
     }
+
+    console.log("\n" + "=".repeat(70) + "\n");
   } catch (error) {
-    console.log("❌ Error:", error.message);
-    console.log("Stack:", error.stack);
+    console.log("\n" + "=".repeat(70));
+    console.log("❌ FATAL ERROR");
+    console.log("=".repeat(70));
+    console.log(`\nError: ${error.message}`);
+    console.log(`\nStack: ${error.stack}`);
+    console.log("\n" + "=".repeat(70) + "\n");
   } finally {
     await client.end();
   }
 }
 
-fetchAndSaveTenders();
+// Run if called directly
+if (require.main === module) {
+  fetchAndSaveTenders().catch(console.error);
+}
+
+module.exports = { fetchAndSaveTenders };
