@@ -862,6 +862,48 @@
             .icon {
                 font-size: 16px;
             }
+
+            /* Force Update Button */
+            .force-update-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 14px 20px;
+                background: #dc2626;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                color: white;
+                cursor: pointer;
+                transition: all 0.2s;
+                white-space: nowrap;
+            }
+
+            .force-update-btn:hover:not(:disabled) {
+                background: #b91c1c;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+            }
+
+            .force-update-btn:disabled {
+                background: #9ca3af;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .force-update-btn.updating .icon {
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                from {
+                    transform: rotate(0deg);
+                }
+                to {
+                    transform: rotate(360deg);
+                }
+            }
         </style>
     </head>
     <body>
@@ -871,11 +913,21 @@
                 <div class="header-left">
                     <h1>Bid Scanner</h1>
                 </div>
-                <img
-                    src="https://bidwritingservice.com/wp-content/uploads/2023/02/CY-003-BWS-Logo-CYMK-1.png"
-                    alt="BWS Bid Writing Service"
-                    class="logo"
-                />
+                <div style="display: flex; align-items: center; gap: 16px">
+                    <button
+                        onclick="forceUpdate()"
+                        class="force-update-btn"
+                        id="forceUpdateBtn"
+                    >
+                        <span class="icon">🔄</span>
+                        <span>Force Update</span>
+                    </button>
+                    <img
+                        src="https://bidwritingservice.com/wp-content/uploads/2023/02/CY-003-BWS-Logo-CYMK-1.png"
+                        alt="BWS Bid Writing Service"
+                        class="logo"
+                    />
+                </div>
             </header>
 
             <!-- Selection Row: Company Selection + Industry Filter -->
@@ -2220,6 +2272,102 @@
                 });
 
                 window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+
+            // Force Update Functions
+            async function forceUpdate() {
+                const btn = document.getElementById("forceUpdateBtn");
+                const icon = btn.querySelector(".icon");
+                const text = btn.querySelector("span:last-child");
+
+                if (btn.disabled) return;
+
+                // Confirm with user
+                if (
+                    !confirm(
+                        "This will fetch the latest tenders from the Find-a-Tender API.\n\nThis may take 2-3 minutes. Continue?",
+                    )
+                ) {
+                    return;
+                }
+
+                // Disable button and show loading
+                btn.disabled = true;
+                btn.classList.add("updating");
+                icon.textContent = "⏳";
+                text.textContent = "Updating...";
+
+                try {
+                    const response = await fetch("/api/force-update", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Poll for completion
+                        pollUpdateStatus(btn, icon, text);
+                    } else {
+                        throw new Error(data.error || "Update failed");
+                    }
+                } catch (error) {
+                    alert(`Error starting update: ${error.message}`);
+                    resetUpdateButton(btn, icon, text);
+                }
+            }
+
+            async function pollUpdateStatus(btn, icon, text) {
+                let pollCount = 0;
+                const maxPolls = 100; // 5 minutes at 3 second intervals
+
+                const interval = setInterval(async () => {
+                    pollCount++;
+
+                    // Show elapsed time
+                    const minutes = Math.floor((pollCount * 3) / 60);
+                    const seconds = (pollCount * 3) % 60;
+                    text.textContent = `Updating... ${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+                    try {
+                        const response = await fetch("/api/update-status");
+                        const data = await response.json();
+
+                        if (!data.inProgress) {
+                            clearInterval(interval);
+
+                            // Update complete
+                            icon.textContent = "✅";
+                            text.textContent = "Complete!";
+                            btn.classList.remove("updating");
+
+                            // Reload page after 2 seconds
+                            setTimeout(() => {
+                                location.reload();
+                            }, 2000);
+                        }
+
+                        // Timeout after maxPolls
+                        if (pollCount >= maxPolls) {
+                            clearInterval(interval);
+                            alert(
+                                "Update is taking longer than expected. The update may still be running. Please refresh the page manually in a few minutes.",
+                            );
+                            resetUpdateButton(btn, icon, text);
+                        }
+                    } catch (error) {
+                        console.error("Error polling status:", error);
+                    }
+                }, 3000); // Check every 3 seconds
+            }
+
+            function resetUpdateButton(btn, icon, text) {
+                btn.disabled = false;
+                btn.classList.remove("updating");
+                icon.textContent = "🔄";
+                text.textContent = "Force Update";
             }
 
             // Initialize - render industries and load data on page load

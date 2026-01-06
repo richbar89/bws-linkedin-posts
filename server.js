@@ -689,6 +689,71 @@ app.delete("/api/companies/:id", async (req, res) => {
   }
 });
 
+// Force update endpoint - triggers tender fetch script
+app.post("/api/force-update", async (req, res) => {
+  // Prevent multiple simultaneous updates
+  if (global.updateInProgress) {
+    return res.status(429).json({
+      error: "Update already in progress",
+      message: "Please wait for the current update to complete",
+    });
+  }
+
+  global.updateInProgress = true;
+
+  try {
+    const { exec } = require("child_process");
+    const searchUrl = process.env.SEARCH_URL;
+
+    if (!searchUrl) {
+      global.updateInProgress = false;
+      return res.status(500).json({
+        error: "SEARCH_URL environment variable not set",
+        message: "Please configure SEARCH_URL in Replit Secrets",
+      });
+    }
+
+    console.log("🔄 Force update triggered by user");
+    console.log(`📅 Time: ${new Date().toLocaleString("en-GB")}`);
+
+    // Execute the fetch script
+    exec(
+      `SEARCH_URL="${searchUrl}" node fetch-and-save-tenders.js`,
+      (error, stdout, stderr) => {
+        global.updateInProgress = false;
+
+        if (error) {
+          console.error(`❌ Update error: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          console.error(`⚠️  Update stderr: ${stderr}`);
+        }
+        console.log(`✅ Update completed successfully`);
+        console.log(stdout);
+      },
+    );
+
+    // Return immediately - update runs in background
+    res.json({
+      success: true,
+      message: "Update started in background. This may take 2-3 minutes.",
+    });
+  } catch (error) {
+    global.updateInProgress = false;
+    console.error(`❌ Force update error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check update status endpoint
+app.get("/api/update-status", (req, res) => {
+  res.json({
+    inProgress: global.updateInProgress || false,
+    lastUpdate: global.lastUpdateTime || null,
+  });
+});
+
 // Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Tender Scanner running on http://localhost:${PORT}`);
