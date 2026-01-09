@@ -1,14 +1,12 @@
 // Simple Express server for tender scanner
-// UPDATED: Includes scheduler initialization
+// UPDATED: Includes manual refresh endpoint + Replit deployment fixes
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
-
-// IMPORTANT: Initialize the scheduler
-require("./scheduler");
+const { exec } = require("child_process");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 // Industry to CPV code mappings
 const industries = {
@@ -177,6 +175,11 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
+// Health check endpoint for Replit Autoscale deployment
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 // Database connection helper
 async function getDbClient() {
   const client = new Client({
@@ -263,6 +266,33 @@ async function findMatchingCompanies(tenderCpvCodes, client) {
 }
 
 // API Routes
+
+// Manual refresh endpoint - triggers tender fetch
+app.post("/api/refresh-tenders", async (req, res) => {
+  console.log("🔄 Manual refresh triggered...");
+  console.log(`📅 ${new Date().toLocaleString()}\n`);
+
+  exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
+    if (error) {
+      console.error(`❌ Error: ${error.message}`);
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    if (stderr) {
+      console.error(`⚠️  Warning: ${stderr}`);
+    }
+    console.log(stdout);
+    console.log("✅ Manual refresh complete\n");
+
+    res.json({
+      success: true,
+      message: "Tenders refreshed successfully",
+      timestamp: new Date().toISOString(),
+    });
+  });
+});
 
 // Get statistics
 app.get("/api/stats", async (req, res) => {
@@ -644,11 +674,13 @@ app.delete("/api/companies/:id", async (req, res) => {
 
 // Start server
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`\n🚀 Tender Scanner running on http://localhost:${PORT}`);
-  console.log(`📊 Open your browser and visit: http://localhost:${PORT}\n`);
-  console.log(`✅ UPDATED: Showing ONLY ACTIVE tenders (live tenders only)\n`);
+  console.log(`\n🚀 Tender Scanner running on port ${PORT}`);
+  console.log(`📊 Server ready and listening for connections\n`);
+  console.log(`✅ Showing ONLY ACTIVE tenders (live tenders only)\n`);
   console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
   console.log(`📧 Email contact fields enabled\n`);
   console.log(`🏭 ${Object.keys(industries).length} industries configured\n`);
-  console.log(`⏰ SCHEDULER: Active - will update at 5:00 AM daily\n`);
+  console.log(`🔄 MANUAL REFRESH: POST /api/refresh-tenders\n`);
+  console.log(`💚 HEALTH CHECK: GET /health\n`);
+  console.log(`🎯 ADMIN PAGE: /admin.html\n`);
 });

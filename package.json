@@ -1,18 +1,21 @@
 {
   "name": "tender-scanner",
   "version": "1.0.0",
-  "description": "Tender scanning application",
+  "description": "Tender scanning application with manual refresh",
   "main": "server.js",
   "scripts": {
     "build": "echo 'No build step required'",
     "start": "node server.js",
+    "start-all": "node server.js",
     "dev": "node server.js",
-    "scheduler": "node scheduler.js",
-    "start-all": "node scheduler.js & node server.js"
+    "setup": "node setup-database.js",
+    "fetch": "node fetch-and-save-tenders.js"
   },
   "dependencies": {
     "express": "^5.1.0",
-    "pg": "^8.16.3",
-    "node-cron": "^3.0.3"
+    "pg": "^8.16.3"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }

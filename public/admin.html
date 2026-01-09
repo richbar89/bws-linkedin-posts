@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Tender Scanner</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .admin-container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+        width: 100%;
+        padding: 40px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .header h1 {
+        color: #333;
+        font-size: 32px;
+        margin-bottom: 10px;
+      }
+
+      .header .emoji {
+        font-size: 48px;
+        margin-bottom: 15px;
+        display: block;
+      }
+
+      .header p {
+        color: #666;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        border: 2px solid #e9ecef;
+      }
+
+      .stat-card .label {
+        font-size: 12px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+
+      .stat-card .value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #495057;
+      }
+
+      .refresh-section {
+        background: #f8f9fa;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 25px;
+      }
+
+      .refresh-section h2 {
+        color: #333;
+        font-size: 20px;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+
+      button {
+        padding: 15px 30px;
+        font-size: 16px;
+        font-weight: 600;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: inherit;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        transform: none !important;
+      }
+
+      .btn-refresh {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        flex: 1;
+      }
+
+      .btn-refresh:hover {
+        background: linear-gradient(135deg, #218838 0%, #1aa179 100%);
+      }
+
+      .btn-reload {
+        background: #6c757d;
+        color: white;
+      }
+
+      .btn-reload:hover {
+        background: #5a6268;
+      }
+
+      .status-message {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 10px;
+        font-size: 14px;
+        display: none;
+        animation: slideIn 0.3s ease;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .status-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 2px solid #c3e6cb;
+        display: block;
+      }
+
+      .status-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 2px solid #f5c6cb;
+        display: block;
+      }
+
+      .status-message.loading {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 2px solid #bee5eb;
+        display: block;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 25px;
+        padding: 12px 25px;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        text-align: center;
+        width: 100%;
+        background: #f8f9fa;
+      }
+
+      .back-link:hover {
+        background: #e9ecef;
+        transform: translateX(-5px);
+      }
+
+      .info-box {
+        background: #e7f3ff;
+        border-left: 4px solid #2196f3;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        font-size: 14px;
+        color: #0d47a1;
+        line-height: 1.6;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 600px) {
+        .admin-container {
+          padding: 25px;
+        }
+
+        .header h1 {
+          font-size: 24px;
+        }
+
+        .button-group {
+          flex-direction: column;
+        }
+
+        .stat-card .value {
+          font-size: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-container">
+      <div class="header">
+        <span class="emoji">🔧</span>
+        <h1>Admin Panel</h1>
+        <p>Manage and refresh your tender database</p>
+      </div>
+
+      <div class="info-box">
+        💡 <strong>Tip:</strong> Click the refresh button to fetch the latest
+        tenders from the source. This may take 30-60 seconds to complete.
+      </div>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="label">Total Tenders</div>
+          <div class="value" id="totalTenders">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Total Companies</div>
+          <div class="value" id="totalCompanies">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Last Updated</div>
+          <div class="value" id="lastUpdated" style="font-size: 14px">-</div>
+        </div>
+      </div>
+
+      <div class="refresh-section">
+        <h2>🔄 Refresh Tender Data</h2>
+        <div class="button-group">
+          <button
+            class="btn-refresh"
+            id="refreshButton"
+            onclick="refreshTenders()"
+          >
+            <span>🔄</span>
+            <span>Fetch New Tenders</span>
+          </button>
+          <button class="btn-reload" onclick="location.reload()">
+            <span>↻</span>
+            <span>Reload Stats</span>
+          </button>
+        </div>
+
+        <div id="statusMessage" class="status-message"></div>
+      </div>
+
+      <a href="/" class="back-link">← Back to Dashboard</a>
+    </div>
+
+    <script>
+      // Load stats on page load
+      window.addEventListener("DOMContentLoaded", loadStats);
+
+      async function loadStats() {
+        try {
+          const response = await fetch("/api/stats");
+          const data = await response.json();
+
+          document.getElementById("totalTenders").textContent =
+            data.total_tenders || 0;
+          document.getElementById("totalCompanies").textContent =
+            data.total_companies || 0;
+
+          if (data.last_updated) {
+            const date = new Date(data.last_updated);
+            document.getElementById("lastUpdated").textContent =
+              date.toLocaleDateString();
+          } else {
+            document.getElementById("lastUpdated").textContent = "Never";
+          }
+        } catch (error) {
+          console.error("Error loading stats:", error);
+        }
+      }
+
+      async function refreshTenders() {
+        const button = document.getElementById("refreshButton");
+        const statusMessage = document.getElementById("statusMessage");
+
+        // Disable button and show loading state
+        button.disabled = true;
+        button.innerHTML =
+          '<span class="spinner"></span><span>Fetching tenders...</span>';
+
+        // Show loading message
+        statusMessage.className = "status-message loading";
+        statusMessage.textContent =
+          "⏳ Fetching new tenders from the source... This may take 30-60 seconds.";
+
+        try {
+          const response = await fetch("/api/refresh-tenders", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            statusMessage.className = "status-message success";
+            statusMessage.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 5px;">✅ Success!</div>
+            <div>Tenders refreshed successfully at ${new Date(data.timestamp).toLocaleTimeString()}</div>
+            <div style="margin-top: 10px; font-size: 12px;">Reloading stats in 2 seconds...</div>
+          `;
+
+            // Reload stats after 2 seconds
+            setTimeout(() => {
+              loadStats();
+              button.disabled = false;
+              button.innerHTML =
+                "<span>🔄</span><span>Fetch New Tenders</span>";
+            }, 2000);
+          } else {
+            throw new Error(data.error || "Unknown error occurred");
+          }
+        } catch (error) {
+          statusMessage.className = "status-message error";
+          statusMessage.innerHTML = `
+          <div style="font-weight: bold; margin-bottom: 5px;">❌ Error</div>
+          <div>${error.message}</div>
+          <div style="margin-top: 10px; font-size: 12px;">Please try again or check the server logs.</div>
+        `;
+
+          button.disabled = false;
+          button.innerHTML = "<span>🔄</span><span>Fetch New Tenders</span>";
+        }
+      }
+    </script>
+  </body>
+</html>
