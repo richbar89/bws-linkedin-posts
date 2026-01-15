@@ -1,9 +1,8 @@
-// Database setup script
+// Database setup script - UPDATED WITH VALUE FIELDS
 const { Client } = require("pg");
 
 async function setupDatabase() {
   console.log("🗄️  Setting up database...\n");
-
   const client = new Client({
     connectionString:
       process.env.DATABASE_URL || "postgresql://localhost:5432/tenders",
@@ -31,10 +30,12 @@ async function setupDatabase() {
         status VARCHAR(50),
         buyer_name VARCHAR(500),
         tender_url TEXT,
+        value_amount DECIMAL(15,2),
+        value_currency VARCHAR(10),
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
-    console.log("✅ Tenders table created\n");
+    console.log("✅ Tenders table created (with value fields!)\n");
 
     console.log("🏢 Creating companies table...");
     await client.query(`
@@ -64,6 +65,9 @@ async function setupDatabase() {
     console.log("✅ Indexes created\n");
 
     console.log("🎉 Database setup complete!\n");
+    console.log(
+      "💡 NOTE: Added value_amount and value_currency fields to tenders table\n",
+    );
   } catch (error) {
     console.log("❌ Error:", error.message);
   } finally {

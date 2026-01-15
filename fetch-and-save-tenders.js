@@ -1,5 +1,4 @@
-// CORRECTED: Fetch tenders from API - removes stages filter to enable pagination
-// Filters for active/planning/planned statuses AFTER fetching
+// UPDATED: Fetch tenders from API - NOW INCLUDES CONTRACT VALUE!
 const { Client } = require("pg");
 
 // Helper function to normalize CPV codes
@@ -11,7 +10,7 @@ function normalizeCpvCode(cpv) {
 
 async function fetchAndSaveTenders() {
   console.log("\n" + "=".repeat(70));
-  console.log("🚀 TENDER FETCH STARTING - CORRECTED VERSION");
+  console.log("🚀 TENDER FETCH STARTING - WITH VALUE EXTRACTION");
   console.log("=".repeat(70) + "\n");
 
   // Calculate date from 21 days ago
@@ -37,7 +36,6 @@ async function fetchAndSaveTenders() {
     let allReleases = [];
     let pageCount = 0;
 
-    // IMPORTANT: Removed stages=tender filter to enable pagination!
     let nextUrl = `https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages?updatedFrom=${dateFrom}&limit=100`;
 
     console.log("⚡ Starting pagination...");
@@ -76,8 +74,6 @@ async function fetchAndSaveTenders() {
         if (data.links?.next) {
           nextUrl = data.links.next;
           console.log(`   ➡️  Next page available`);
-
-          // Be nice to the API
           await new Promise((resolve) => setTimeout(resolve, 200));
         } else {
           console.log(`   ✋ No more pages`);
@@ -107,6 +103,8 @@ async function fetchAndSaveTenders() {
     let skippedNoTender = 0;
     let skippedInactive = 0;
     let cpvIssues = 0;
+    let valuesFound = 0;
+    let valuesMissing = 0;
     let allStatusCounts = {};
     let savedStatusCounts = {};
 
@@ -171,24 +169,36 @@ async function fetchAndSaveTenders() {
         cpvIssues++;
       }
 
+      // **NEW: Extract contract value**
+      const valueAmount = release.tender.value?.amount || null;
+      const valueCurrency = release.tender.value?.currency || "GBP";
+
+      if (valueAmount) {
+        valuesFound++;
+      } else {
+        valuesMissing++;
+      }
+
       const deadline = release.tender.tenderPeriod?.endDate || null;
       const buyerName = release.buyer?.name || "Unknown";
       const tenderUrl = `https://www.find-tender.service.gov.uk/Notice/${release.id}`;
 
-      // Save to database
+      // Save to database with value fields
       try {
         await client.query(
           `INSERT INTO tenders (
             id, title, description, cpv_codes, 
             publication_date, deadline_date, status, 
-            buyer_name, tender_url
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            buyer_name, tender_url, value_amount, value_currency
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           ON CONFLICT (id) DO UPDATE SET
             title = EXCLUDED.title,
             description = EXCLUDED.description,
             cpv_codes = EXCLUDED.cpv_codes,
             deadline_date = EXCLUDED.deadline_date,
-            status = EXCLUDED.status`,
+            status = EXCLUDED.status,
+            value_amount = EXCLUDED.value_amount,
+            value_currency = EXCLUDED.value_currency`,
           [
             release.id,
             release.tender.title || "No title",
@@ -199,6 +209,8 @@ async function fetchAndSaveTenders() {
             tenderStatus,
             buyerName,
             tenderUrl,
+            valueAmount,
+            valueCurrency,
           ],
         );
 
@@ -223,6 +235,8 @@ async function fetchAndSaveTenders() {
     console.log(`   Tenders with inactive status: ${skippedInactive}`);
     console.log(`   ✅ SAVED active tenders: ${savedCount}`);
     console.log(`   Tenders missing CPV codes: ${cpvIssues}`);
+    console.log(`   💰 Tenders WITH contract value: ${valuesFound}`);
+    console.log(`   ⚠️  Tenders WITHOUT contract value: ${valuesMissing}`);
 
     console.log("\n📊 All statuses found in API:");
     Object.entries(allStatusCounts)
@@ -256,6 +270,34 @@ async function fetchAndSaveTenders() {
       console.log(`   ${row.status}: ${row.count}`);
     });
 
+    // Value summary
+    const valueStats = await client.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE value_amount IS NOT NULL) as with_value,
+        COUNT(*) FILTER (WHERE value_amount IS NULL) as without_value,
+        MIN(value_amount) as min_value,
+        MAX(value_amount) as max_value,
+        AVG(value_amount) as avg_value
+      FROM tenders
+    `);
+
+    console.log("\n💰 Contract Value Statistics:");
+    console.log(`   Tenders with value: ${valueStats.rows[0].with_value}`);
+    console.log(
+      `   Tenders without value: ${valueStats.rows[0].without_value}`,
+    );
+    if (valueStats.rows[0].min_value) {
+      console.log(
+        `   Min value: £${parseFloat(valueStats.rows[0].min_value).toLocaleString()}`,
+      );
+      console.log(
+        `   Max value: £${parseFloat(valueStats.rows[0].max_value).toLocaleString()}`,
+      );
+      console.log(
+        `   Avg value: £${parseFloat(valueStats.rows[0].avg_value).toLocaleString()}`,
+      );
+    }
+
     console.log("\n" + "=".repeat(70));
 
     // Health check
@@ -263,13 +305,10 @@ async function fetchAndSaveTenders() {
       console.log("\n⚠️  WARNING: Lower than expected tender count");
       console.log(`   Expected: ~650+ active tenders in 21-day window`);
       console.log(`   Got: ${savedCount} tenders`);
-      console.log("\n💡 This might be normal if:");
-      console.log(`   - Few tenders published recently`);
-      console.log(`   - Many tenders have completed/closed status`);
-      console.log(`   - API is experiencing issues`);
     } else {
       console.log("\n✅ SUCCESS: Healthy tender count!");
       console.log(`   ${savedCount} active tenders saved`);
+      console.log(`   ${valuesFound} have contract values`);
     }
 
     console.log("\n" + "=".repeat(70) + "\n");
