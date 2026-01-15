@@ -1,5 +1,5 @@
 // Simple Express server for tender scanner
-// UPDATED: Includes manual refresh endpoint + Replit deployment fixes
+// UPDATED: Includes LinkedIn Posts Generator
 const express = require("express");
 const { Client } = require("pg");
 const path = require("path");
@@ -672,6 +672,208 @@ app.delete("/api/companies/:id", async (req, res) => {
   }
 });
 
+// ============================================================================
+// LINKEDIN POSTS GENERATOR - NEW FEATURE
+// ============================================================================
+
+// Team members for rotation
+const TEAM_MEMBERS = [
+  "Matt Burton",
+  "James Wignall",
+  "Stacey Crawford",
+  "Mike Baron",
+];
+
+// Helper function to extract value
+function formatValue(tender) {
+  if (tender.value_amount != null) {
+    const amount = parseFloat(tender.value_amount);
+
+    if (amount >= 1000000) {
+      return `£${(amount / 1000000).toFixed(1)} million`;
+    } else if (amount >= 1000) {
+      return `£${(amount / 1000).toFixed(0)}k`;
+    } else if (amount > 0) {
+      return `£${amount.toLocaleString()}`;
+    }
+  }
+  return "Value TBC";
+}
+
+// Helper function to extract location
+function formatLocation(tender) {
+  const description = tender.description || "";
+  const buyerName = tender.buyer_name || "";
+
+  const locationPatterns = [
+    /in ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:,\s*[A-Z][a-z]+)?)/,
+    /Location:\s*([A-Za-z\s,&]+)/i,
+    /\(([A-Z][a-z]+(?:\s*[&/]\s*[A-Z][a-z]+)*)\)/,
+  ];
+
+  for (const pattern of locationPatterns) {
+    const match = description.match(pattern);
+    if (match) return match[1].trim();
+  }
+
+  if (buyerName) {
+    const namePatterns = [
+      /([A-Z][a-z]+)\s+(?:Council|Borough|City|County|District)/i,
+      /(?:Council|Borough|City|County|District)\s+of\s+([A-Z][a-z]+)/i,
+    ];
+
+    for (const pattern of namePatterns) {
+      const match = buyerName.match(pattern);
+      if (match) return match[1].trim();
+    }
+
+    if (buyerName.length < 50) {
+      return buyerName;
+    }
+  }
+
+  return "UK";
+}
+
+// Helper function to format date
+function formatDeadline(dateString) {
+  if (!dateString) return null;
+
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleString("en-GB", { month: "long" });
+  const year = date.getFullYear();
+
+  const suffix = ["th", "st", "nd", "rd"][
+    day % 10 > 3 || [11, 12, 13].includes(day % 100) ? 0 : day % 10
+  ];
+
+  return `${day}${suffix} ${month} ${year}`;
+}
+
+// Helper function to create summary
+function createSummary(description) {
+  if (!description) return "";
+
+  let summary = description.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+
+  const sentences = summary.match(/[^.!?]+[.!?]+/g) || [summary];
+  const firstSentences = sentences.slice(0, 3).join(" ");
+
+  if (firstSentences.length > 250) {
+    return firstSentences.substring(0, 247) + "...";
+  }
+
+  return firstSentences;
+}
+
+// Serve LinkedIn posts page
+app.get("/linkedinPosts", (req, res) => {
+  res.sendFile(__dirname + "/linkedinPosts.html");
+});
+
+// API endpoint to get LinkedIn posts for a sector
+app.get("/api/linkedin-posts/:industry", async (req, res) => {
+  const industryKey = req.params.industry;
+  const client = await getDbClient();
+
+  try {
+    if (!industries[industryKey]) {
+      res.status(404).json({ error: "Industry not found" });
+      return;
+    }
+
+    const industry = industries[industryKey];
+    const industryCpvCodes = industry.cpvCodes;
+
+    // Get tenders for this industry
+    const tendersResult = await client.query(
+      "SELECT * FROM tenders ORDER BY publication_date DESC LIMIT 100",
+    );
+
+    const matchingTenders = [];
+
+    for (const tender of tendersResult.rows) {
+      let tenderCpvCodes = [];
+
+      if (typeof tender.cpv_codes === "string") {
+        try {
+          tenderCpvCodes = JSON.parse(tender.cpv_codes);
+        } catch (e) {
+          continue;
+        }
+      } else if (Array.isArray(tender.cpv_codes)) {
+        tenderCpvCodes = tender.cpv_codes;
+      } else if (
+        typeof tender.cpv_codes === "object" &&
+        tender.cpv_codes !== null
+      ) {
+        tenderCpvCodes = Object.values(tender.cpv_codes);
+      }
+
+      if (!Array.isArray(tenderCpvCodes) || tenderCpvCodes.length === 0)
+        continue;
+
+      let hasMatch = false;
+
+      for (const industryCpv of industryCpvCodes) {
+        for (const tenderCpv of tenderCpvCodes) {
+          if (!tenderCpv) continue;
+          if (cpvCodesMatch(industryCpv, tenderCpv)) {
+            hasMatch = true;
+            break;
+          }
+        }
+        if (hasMatch) break;
+      }
+
+      if (hasMatch) {
+        matchingTenders.push(tender);
+        if (matchingTenders.length >= 10) break; // Limit to 10 posts
+      }
+    }
+
+    // Format as LinkedIn posts
+    const posts = matchingTenders.map((tender, index) => {
+      const teamMember = TEAM_MEMBERS[index % TEAM_MEMBERS.length];
+      const value = formatValue(tender);
+      const location = formatLocation(tender);
+      const deadline = formatDeadline(tender.deadline_date);
+      const summary = createSummary(tender.description);
+
+      let postText = `🚨 NEW TENDER ALERT – ${tender.title} 🚨\n\n`;
+      postText += `${summary}\n\n`;
+      postText += `Value: ${value}\n`;
+      postText += `Location: ${location}\n`;
+
+      if (deadline) {
+        postText += `Submission Deadline: ${deadline}\n`;
+      }
+
+      postText += `\n${tender.tender_url}\n\n`;
+      postText += `To discuss how Bid Writing Service can help your company win tenders just like this, contact ${teamMember}.\n\n`;
+      postText += `#Tenders #${industry.name.replace(/\s+/g, "")} #BidWriting #Procurement`;
+
+      return {
+        text: postText,
+        team_member: teamMember,
+        tender_url: tender.tender_url,
+        title: tender.title,
+      };
+    });
+
+    res.json({
+      sector: industry.name,
+      posts: posts,
+      total: posts.length,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
 // Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🚀 Tender Scanner running on port ${PORT}`);
@@ -683,4 +885,5 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`🔄 MANUAL REFRESH: POST /api/refresh-tenders\n`);
   console.log(`💚 HEALTH CHECK: GET /health\n`);
   console.log(`🎯 ADMIN PAGE: /admin.html\n`);
+  console.log(`📱 LINKEDIN POSTS: /linkedinPosts\n`);
 });

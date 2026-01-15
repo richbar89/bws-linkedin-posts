@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>LinkedIn Posts Generator - Bid Writing Service</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Oxygen, Ubuntu, Cantarell, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 20px;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            .header {
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                margin-bottom: 30px;
+                text-align: center;
+            }
+
+            .header h1 {
+                color: #333;
+                font-size: 32px;
+                margin-bottom: 10px;
+            }
+
+            .header p {
+                color: #666;
+                font-size: 16px;
+            }
+
+            .controls {
+                background: white;
+                padding: 25px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                margin-bottom: 30px;
+            }
+
+            .control-group {
+                display: flex;
+                gap: 20px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+
+            .control-group label {
+                font-weight: 600;
+                color: #333;
+                font-size: 16px;
+            }
+
+            .control-group select {
+                flex: 1;
+                min-width: 250px;
+                padding: 12px 20px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 16px;
+                background: white;
+                cursor: pointer;
+                transition: border-color 0.3s;
+            }
+
+            .control-group select:hover {
+                border-color: #667eea;
+            }
+
+            .control-group select:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+
+            .stats {
+                display: flex;
+                gap: 20px;
+                margin-top: 15px;
+                flex-wrap: wrap;
+            }
+
+            .stat {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                text-align: center;
+                flex: 1;
+                min-width: 150px;
+            }
+
+            .stat-number {
+                font-size: 32px;
+                font-weight: bold;
+                display: block;
+            }
+
+            .stat-label {
+                font-size: 14px;
+                opacity: 0.9;
+                margin-top: 5px;
+            }
+
+            .loading {
+                background: white;
+                padding: 60px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                text-align: center;
+                display: none;
+            }
+
+            .loading.show {
+                display: block;
+            }
+
+            .spinner {
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #667eea;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 20px;
+            }
+
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .posts-container {
+                display: none;
+            }
+
+            .posts-container.show {
+                display: block;
+            }
+
+            .post-card {
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                margin-bottom: 25px;
+                overflow: hidden;
+                transition:
+                    transform 0.3s,
+                    box-shadow 0.3s;
+            }
+
+            .post-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            }
+
+            .post-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px 25px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .post-number {
+                font-size: 14px;
+                opacity: 0.9;
+            }
+
+            .post-sector {
+                font-size: 18px;
+                font-weight: 600;
+            }
+
+            .post-meta {
+                font-size: 13px;
+                opacity: 0.8;
+            }
+
+            .post-content {
+                padding: 25px;
+            }
+
+            .post-text {
+                font-family: "Segoe UI", Arial, sans-serif;
+                line-height: 1.8;
+                white-space: pre-wrap;
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                border-left: 4px solid #667eea;
+                color: #333;
+                font-size: 15px;
+                margin-bottom: 20px;
+            }
+
+            .post-actions {
+                display: flex;
+                gap: 15px;
+            }
+
+            .btn {
+                padding: 12px 24px;
+                border: none;
+                border-radius: 8px;
+                font-size: 15px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .btn-copy {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                flex: 1;
+            }
+
+            .btn-copy:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            }
+
+            .btn-copy.copied {
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            }
+
+            .btn-link {
+                background: #f3f4f6;
+                color: #667eea;
+            }
+
+            .btn-link:hover {
+                background: #e5e7eb;
+            }
+
+            .empty-state {
+                background: white;
+                padding: 60px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+                text-align: center;
+                display: none;
+            }
+
+            .empty-state.show {
+                display: block;
+            }
+
+            .empty-state h3 {
+                color: #333;
+                font-size: 24px;
+                margin-bottom: 10px;
+            }
+
+            .empty-state p {
+                color: #666;
+                font-size: 16px;
+            }
+
+            .back-link {
+                display: inline-block;
+                background: white;
+                color: #667eea;
+                padding: 12px 24px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-weight: 600;
+                margin-bottom: 20px;
+                transition: all 0.3s;
+            }
+
+            .back-link:hover {
+                background: #f3f4f6;
+                transform: translateY(-2px);
+            }
+
+            @media (max-width: 768px) {
+                .header h1 {
+                    font-size: 24px;
+                }
+
+                .control-group {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
+                .control-group select {
+                    min-width: 100%;
+                }
+
+                .stats {
+                    flex-direction: column;
+                }
+
+                .post-header {
+                    flex-direction: column;
+                    gap: 10px;
+                    align-items: flex-start;
+                }
+
+                .post-actions {
+                    flex-direction: column;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <a href="/" class="back-link">← Back to Tender Scanner</a>
+
+            <div class="header">
+                <h1>📱 LinkedIn Posts Generator</h1>
+                <p>
+                    Select a sector to view formatted tender posts ready to copy
+                    and paste
+                </p>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="sectorSelect">Select Sector:</label>
+                    <select id="sectorSelect">
+                        <option value="">-- Choose a sector --</option>
+                        <option value="healthcare">🏥 Healthcare</option>
+                        <option value="recruitment">👥 Recruitment</option>
+                        <option value="construction">
+                            🏗️ Construction Work
+                        </option>
+                        <option value="waste">♻️ Waste Management</option>
+                        <option value="gas">🔥 Gas Servicing</option>
+                        <option value="fire">🚒 Fire Safety</option>
+                        <option value="it">💻 IT</option>
+                        <option value="grounds">🌳 Grounds Maintenance</option>
+                        <option value="electrical">
+                            ⚡ Electrical Services
+                        </option>
+                        <option value="education">📚 Education</option>
+                        <option value="me">🔧 M&E</option>
+                        <option value="cleaning">🧹 Cleaning</option>
+                        <option value="architect">📐 Architect</option>
+                        <option value="civileng">🏗️ Civil Engineering</option>
+                        <option value="catering">🍽️ Catering</option>
+                        <option value="security">🔒 Security</option>
+                        <option value="facilities">
+                            🏢 Facilities Management
+                        </option>
+                        <option value="pest">🐛 Pest Control</option>
+                    </select>
+                </div>
+
+                <div class="stats">
+                    <div class="stat">
+                        <span class="stat-number" id="totalPosts">0</span>
+                        <span class="stat-label">Posts Ready</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="withValue">0</span>
+                        <span class="stat-label">With Contract Value</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading posts...</p>
+            </div>
+
+            <div class="empty-state" id="emptyState">
+                <h3>Select a sector to get started</h3>
+                <p>
+                    Choose a sector from the dropdown above to view
+                    LinkedIn-ready tender posts
+                </p>
+            </div>
+
+            <div class="posts-container" id="postsContainer">
+                <!-- Posts will be inserted here -->
+            </div>
+        </div>
+
+        <script>
+            const sectorSelect = document.getElementById("sectorSelect");
+            const loading = document.getElementById("loading");
+            const emptyState = document.getElementById("emptyState");
+            const postsContainer = document.getElementById("postsContainer");
+            const totalPostsEl = document.getElementById("totalPosts");
+            const withValueEl = document.getElementById("withValue");
+
+            // Show empty state initially
+            emptyState.classList.add("show");
+
+            sectorSelect.addEventListener("change", async (e) => {
+                const sector = e.target.value;
+
+                if (!sector) {
+                    postsContainer.classList.remove("show");
+                    emptyState.classList.add("show");
+                    loading.classList.remove("show");
+                    return;
+                }
+
+                // Show loading
+                loading.classList.add("show");
+                postsContainer.classList.remove("show");
+                emptyState.classList.remove("show");
+
+                try {
+                    const response = await fetch(
+                        `/api/linkedin-posts/${sector}`,
+                    );
+                    const data = await response.json();
+
+                    // Hide loading
+                    loading.classList.remove("show");
+
+                    if (data.posts && data.posts.length > 0) {
+                        displayPosts(data.posts, data.sector);
+                        updateStats(data.posts);
+                        postsContainer.classList.add("show");
+                    } else {
+                        emptyState.querySelector("h3").textContent =
+                            `No posts found for ${data.sector}`;
+                        emptyState.querySelector("p").textContent =
+                            "There are currently no active tenders in this sector.";
+                        emptyState.classList.add("show");
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                    loading.classList.remove("show");
+                    emptyState.querySelector("h3").textContent =
+                        "Error loading posts";
+                    emptyState.querySelector("p").textContent =
+                        "Please try again or contact support.";
+                    emptyState.classList.add("show");
+                }
+            });
+
+            function displayPosts(posts, sectorName) {
+                postsContainer.innerHTML = "";
+
+                posts.forEach((post, index) => {
+                    const postCard = document.createElement("div");
+                    postCard.className = "post-card";
+                    postCard.innerHTML = `
+                    <div class="post-header">
+                        <div>
+                            <div class="post-sector">${sectorName}</div>
+                            <div class="post-meta">Bid Writing Service | ${sectorName}</div>
+                        </div>
+                        <div class="post-number">Post ${index + 1} of ${posts.length}</div>
+                    </div>
+                    <div class="post-content">
+                        <div class="post-text" id="post-${index}">${escapeHtml(post.text)}</div>
+                        <div class="post-actions">
+                            <button class="btn btn-copy" onclick="copyPost(${index})">
+                                📋 Copy to Clipboard
+                            </button>
+                            <button class="btn btn-link" onclick="window.open('${post.tender_url}', '_blank')">
+                                🔗 View Tender
+                            </button>
+                        </div>
+                        <div style="margin-top: 15px; padding: 10px; background: #f0f9ff; border-radius: 6px; font-size: 13px; color: #0369a1;">
+                            💡 <strong>Team Member:</strong> ${post.team_member}
+                        </div>
+                    </div>
+                `;
+                    postsContainer.appendChild(postCard);
+                });
+            }
+
+            function updateStats(posts) {
+                totalPostsEl.textContent = posts.length;
+                const withValueCount = posts.filter(
+                    (p) => !p.text.includes("Value TBC"),
+                ).length;
+                withValueEl.textContent = withValueCount;
+            }
+
+            function copyPost(index) {
+                const postText = document.getElementById(
+                    `post-${index}`,
+                ).textContent;
+                navigator.clipboard.writeText(postText).then(() => {
+                    const btn = event.target;
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = "✅ Copied!";
+                    btn.classList.add("copied");
+
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.remove("copied");
+                    }, 2000);
+                });
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement("div");
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        </script>
+    </body>
+</html>
