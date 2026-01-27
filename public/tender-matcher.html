@@ -404,7 +404,10 @@
       // Display tender details
       function displayTenderDetails(tender) {
         const detailsDiv = document.getElementById("tenderDetails");
-        const cpvCodes = JSON.parse(tender.cpv_codes);
+        const cpvCodes =
+          typeof tender.cpv_codes === "string"
+            ? JSON.parse(tender.cpv_codes)
+            : tender.cpv_codes;
 
         detailsDiv.innerHTML = `
         <div class="tender-info">
@@ -451,8 +454,17 @@
       `;
 
         try {
+          console.log("Fetching matches for tender:", tenderId);
           const response = await fetch(`/api/match/${tenderId}`);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("API Error:", errorText);
+            throw new Error(`API failed: ${response.statusText}`);
+          }
+
           const matches = await response.json();
+          console.log("Received matches:", matches.length);
           currentMatches = matches;
 
           document.getElementById("matchCount").textContent =
@@ -514,7 +526,7 @@
               <div style="margin-top: 12px;">
                 <div class="tender-info-label">Matched CPV Codes</div>
                 <div class="matched-cpv">
-                  ${m.matched_cpv_codes.map((code) => `<span class="matched-cpv-badge">${code}</span>`).join("")}
+                  ${(m.matched_cpv_codes || []).map((code) => `<span class="matched-cpv-badge">${code}</span>`).join("")}
                 </div>
               </div>
             </div>
