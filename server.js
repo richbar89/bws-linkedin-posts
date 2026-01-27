@@ -28,28 +28,50 @@ function getDbClient() {
   });
 }
 
-function parseCSVWithQuotes(content) {
-  const allLines = content.split(/\r?\n/);
-  const records = [];
-  let currentRecord = "";
-  let quoteCount = 0;
+function parseCSVProperly(text) {
+  const rows = [];
+  let currentRow = [];
+  let currentField = "";
+  let inQuotes = false;
 
-  for (const line of allLines) {
-    currentRecord += line;
-    quoteCount += (line.match(/"/g) || []).length;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
 
-    if (quoteCount % 2 === 0) {
-      if (currentRecord.trim()) {
-        records.push(currentRecord);
+    if (char === '"' && nextChar === '"') {
+      currentField += '"';
+      i++; // Skip next quote
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      currentRow.push(currentField.trim());
+      currentField = "";
+    } else if (char === "\n" && !inQuotes) {
+      currentRow.push(currentField.trim());
+      if (currentRow.length > 1) {
+        rows.push(currentRow);
       }
-      currentRecord = "";
-      quoteCount = 0;
+      currentRow = [];
+      currentField = "";
     } else {
-      currentRecord += "\n";
+      currentField += char;
     }
   }
 
-  return records;
+  // Add last field and row
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField.trim());
+    if (currentRow.length > 1) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
+}
+
+function parseCSVWithQuotes(content) {
+  // Old function - kept for compatibility but not used
+  return parseCSVProperly(content);
 }
 
 function splitCSVLine(line) {
@@ -179,10 +201,10 @@ app.post("/api/import-prospects", upload.single("csv"), async (req, res) => {
     const content = fs.readFileSync(req.file.path, "utf8");
     sendLog(`📄 File size: ${content.length} bytes`);
 
-    // Parse CSV
+    // Parse CSV with proper quote handling
     sendLog("🔍 Parsing CSV...");
-    const records = parseCSVWithQuotes(content);
-    sendLog(`✅ Found ${records.length} records`);
+    const records = parseCSVProperly(content);
+    sendLog(`✅ Parsed ${records.length} records`);
 
     if (records.length < 2) {
       sendMessage({ type: "error", message: "CSV has no data rows" });
@@ -227,7 +249,7 @@ app.post("/api/import-prospects", upload.single("csv"), async (req, res) => {
     sendLog("✅ Table ready");
 
     // Parse header
-    const header = splitCSVLine(records[0]);
+    const header = records[0];
     sendLog(`📋 Found ${header.length} columns`);
 
     const emailIdx = header.indexOf("Email");
@@ -283,7 +305,7 @@ app.post("/api/import-prospects", upload.single("csv"), async (req, res) => {
 
     // Import records
     for (let i = 1; i < records.length; i++) {
-      const fields = splitCSVLine(records[i]);
+      const fields = records[i];
 
       // Progress updates
       if (i % 500 === 0) {
