@@ -418,19 +418,7 @@ app.get("/api/tenders/construction", async (req, res) => {
   try {
     await client.connect();
 
-    // Get all tenders with construction-related CPV codes
-    const constructionPrefixes = [
-      "45", // Construction
-      "71", // Architecture/Engineering
-      "44", // Construction materials
-      "77", // Landscaping
-      "90", // Waste/Cleaning
-      "70", // Real estate
-      "09", // Utilities
-      "66", // Insurance
-      "79", // Business services
-    ];
-
+    // Get ONLY Division 45 tenders (pure construction) to match our prospects
     const result = await client.query(
       `
       SELECT 
@@ -440,14 +428,7 @@ app.get("/api/tenders/construction", async (req, res) => {
       FROM tenders
       WHERE 
         status IN ('active', 'planning', 'planned')
-        AND (
-          ${constructionPrefixes
-            .map(
-              (prefix, idx) =>
-                `cpv_codes::text LIKE '%"${prefix}%' ${idx < constructionPrefixes.length - 1 ? "OR" : ""}`,
-            )
-            .join("\n          ")}
-        )
+        AND cpv_codes::text LIKE '%"45%'
       ORDER BY publication_date DESC
       LIMIT 100
     `,
