@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Import Prospects - CSV Upload</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .container {
+        max-width: 800px;
+        width: 100%;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      }
+
+      h1 {
+        font-size: 2rem;
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+      }
+
+      .upload-zone {
+        border: 3px dashed #ccc;
+        border-radius: 12px;
+        padding: 60px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: #f9fafb;
+      }
+
+      .upload-zone:hover {
+        border-color: #667eea;
+        background: #f0f4ff;
+      }
+
+      .upload-zone.dragover {
+        border-color: #667eea;
+        background: #e0e7ff;
+        transform: scale(1.02);
+      }
+
+      .upload-icon {
+        font-size: 3rem;
+        margin-bottom: 20px;
+      }
+
+      .upload-text {
+        font-size: 1.2rem;
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      .upload-hint {
+        color: #999;
+        font-size: 0.9rem;
+      }
+
+      #fileInput {
+        display: none;
+      }
+
+      .progress-container {
+        margin-top: 30px;
+        display: none;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 30px;
+        background: #e0e0e0;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-bottom: 15px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        width: 0%;
+        transition: width 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+      }
+
+      .status-message {
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+      }
+
+      .status-message.info {
+        background: #e0f2fe;
+        color: #0369a1;
+      }
+
+      .status-message.success {
+        background: #d1fae5;
+        color: #065f46;
+      }
+
+      .status-message.error {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .log-container {
+        max-height: 300px;
+        overflow-y: auto;
+        background: #f9fafb;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        font-family: "Courier New", monospace;
+        font-size: 0.85rem;
+      }
+
+      .log-line {
+        margin: 5px 0;
+        color: #333;
+      }
+
+      .log-line.success {
+        color: #059669;
+      }
+
+      .log-line.error {
+        color: #dc2626;
+      }
+
+      .log-line.info {
+        color: #2563eb;
+      }
+
+      .button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: background 0.3s;
+      }
+
+      .button:hover {
+        background: #5568d3;
+      }
+
+      .button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      .stat-box {
+        background: #f0f4ff;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .stat-label {
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>📊 Import Construction Prospects</h1>
+        <p class="subtitle">Upload your CSV file with construction leads</p>
+
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-icon">📁</div>
+          <div class="upload-text">
+            Drag & drop your CSV here or click to browse
+          </div>
+          <div class="upload-hint">
+            Expected: ConstructionLeads_with_5_CPVs.csv
+          </div>
+          <input
+            type="file"
+            id="fileInput"
+            accept=".csv"
+            style="display: none"
+          />
+        </div>
+
+        <div class="progress-container" id="progressContainer">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill">0%</div>
+          </div>
+
+          <div id="statusMessage"></div>
+
+          <div id="statsContainer"></div>
+
+          <div class="log-container" id="logContainer"></div>
+
+          <button class="button" id="viewMatcherBtn" style="display: none">
+            Go to Tender Matcher →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const uploadZone = document.getElementById("uploadZone");
+      const fileInput = document.getElementById("fileInput");
+      const progressContainer = document.getElementById("progressContainer");
+      const progressFill = document.getElementById("progressFill");
+      const statusMessage = document.getElementById("statusMessage");
+      const logContainer = document.getElementById("logContainer");
+      const statsContainer = document.getElementById("statsContainer");
+      const viewMatcherBtn = document.getElementById("viewMatcherBtn");
+
+      // Drag and drop handlers
+      uploadZone.addEventListener("click", () => fileInput.click());
+
+      uploadZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadZone.classList.add("dragover");
+      });
+
+      uploadZone.addEventListener("dragleave", () => {
+        uploadZone.classList.remove("dragover");
+      });
+
+      uploadZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove("dragover");
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          handleFile(files[0]);
+        }
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) {
+          handleFile(e.target.files[0]);
+        }
+      });
+
+      viewMatcherBtn.addEventListener("click", () => {
+        window.location.href = "/matcher";
+      });
+
+      async function handleFile(file) {
+        if (!file.name.endsWith(".csv")) {
+          showStatus("Please upload a CSV file", "error");
+          return;
+        }
+
+        progressContainer.style.display = "block";
+        uploadZone.style.display = "none";
+        logContainer.innerHTML = "";
+        statsContainer.innerHTML = "";
+        viewMatcherBtn.style.display = "none";
+
+        showStatus(`Uploading ${file.name}...`, "info");
+        setProgress(10);
+
+        const formData = new FormData();
+        formData.append("csv", file);
+
+        try {
+          const response = await fetch("/api/import-prospects", {
+            method: "POST",
+            body: formData,
+          });
+
+          setProgress(50);
+
+          if (!response.ok) {
+            throw new Error(`Upload failed: ${response.statusText}`);
+          }
+
+          // Stream the response
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop(); // Keep incomplete line in buffer
+
+            lines.forEach((line) => {
+              if (line.trim()) {
+                try {
+                  const data = JSON.parse(line);
+                  handleMessage(data);
+                } catch (e) {
+                  // Not JSON, just a log line
+                  addLog(line, "info");
+                }
+              }
+            });
+          }
+
+          setProgress(100);
+          showStatus("✅ Import complete!", "success");
+          viewMatcherBtn.style.display = "inline-block";
+        } catch (error) {
+          setProgress(0);
+          showStatus(`❌ Error: ${error.message}`, "error");
+          addLog(error.message, "error");
+        }
+      }
+
+      function handleMessage(data) {
+        if (data.type === "progress") {
+          setProgress(data.progress);
+          addLog(data.message, "info");
+        } else if (data.type === "log") {
+          addLog(data.message, data.level || "info");
+        } else if (data.type === "stats") {
+          showStats(data.stats);
+        } else if (data.type === "complete") {
+          showStatus("✅ Import complete!", "success");
+          if (data.stats) {
+            showStats(data.stats);
+          }
+        } else if (data.type === "error") {
+          showStatus(`❌ ${data.message}`, "error");
+        }
+      }
+
+      function setProgress(percent) {
+        progressFill.style.width = percent + "%";
+        progressFill.textContent = Math.round(percent) + "%";
+      }
+
+      function showStatus(message, type) {
+        statusMessage.className = `status-message ${type}`;
+        statusMessage.textContent = message;
+      }
+
+      function addLog(message, level) {
+        const line = document.createElement("div");
+        line.className = `log-line ${level}`;
+        line.textContent = message;
+        logContainer.appendChild(line);
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
+
+      function showStats(stats) {
+        statsContainer.innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-number">${stats.imported || 0}</div>
+            <div class="stat-label">Imported</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number">${stats.skipped || 0}</div>
+            <div class="stat-label">Skipped</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number">${stats.total || 0}</div>
+            <div class="stat-label">Total in DB</div>
+          </div>
+        </div>
+      `;
+      }
+    </script>
+  </body>
+</html>

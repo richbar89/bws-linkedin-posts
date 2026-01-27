@@ -1,889 +1,603 @@
-// Simple Express server for tender scanner
-// UPDATED: Includes LinkedIn Posts Generator
+// COMPLETE SERVER.JS FOR TENDER MATCHER
+// This includes: CSV upload, tender matching, and all API routes
+
 const express = require("express");
+const multer = require("multer");
 const { Client } = require("pg");
+const fs = require("fs");
 const path = require("path");
-const { exec } = require("child_process");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
-// Industry to CPV code mappings
-const industries = {
-  healthcare: {
-    name: "Healthcare",
-    cpvCodes: [
-      "33100000",
-      "33600000",
-      "33140000",
-      "85100000",
-      "85110000",
-      "85120000",
-      "85140000",
-    ],
-    icon: "🏥",
-  },
-  recruitment: {
-    name: "Recruitment",
-    cpvCodes: ["79600000", "79610000", "79620000", "79630000"],
-    icon: "👥",
-  },
-  construction: {
-    name: "Construction Work",
-    cpvCodes: ["45210000", "45220000", "45260000", "45300000", "45400000"],
-    icon: "🏗️",
-  },
-  waste: {
-    name: "Waste Management",
-    cpvCodes: [
-      "90500000",
-      "90510000",
-      "90511000",
-      "90512000",
-      "90513000",
-      "90514000",
-    ],
-    icon: "♻️",
-  },
-  gas: {
-    name: "Gas Servicing",
-    cpvCodes: ["45331100", "45331210", "50720000"],
-    icon: "🔥",
-  },
-  fire: {
-    name: "Fire Safety",
-    cpvCodes: ["35110000", "35111000", "50413200"],
-    icon: "🚒",
-  },
-  it: {
-    name: "IT",
-    cpvCodes: [
-      "48000000",
-      "48100000",
-      "48200000",
-      "48800000",
-      "72000000",
-      "72200000",
-      "72400000",
-      "72500000",
-    ],
-    icon: "💻",
-  },
-  grounds: {
-    name: "Grounds Maintenance",
-    cpvCodes: ["77300000", "77310000", "77314100", "77340000"],
-    icon: "🌳",
-  },
-  electrical: {
-    name: "Electrical Services",
-    cpvCodes: [
-      "45310000",
-      "45311000",
-      "45312000",
-      "45314000",
-      "45315000",
-      "50700000",
-    ],
-    icon: "⚡",
-  },
-  education: {
-    name: "Education",
-    cpvCodes: [
-      "80100000",
-      "80200000",
-      "80300000",
-      "80400000",
-      "80500000",
-      "80510000",
-    ],
-    icon: "📚",
-  },
-  me: {
-    name: "M&E",
-    cpvCodes: [
-      "45300000",
-      "45310000",
-      "45320000",
-      "45330000",
-      "45331000",
-      "45332000",
-      "50700000",
-    ],
-    icon: "🔧",
-  },
-  cleaning: {
-    name: "Cleaning",
-    cpvCodes: ["90910000", "90911000", "90919000", "90620000"],
-    icon: "🧹",
-  },
-  architect: {
-    name: "Architect",
-    cpvCodes: ["71200000", "71220000", "71221000", "71222000"],
-    icon: "📐",
-  },
-  civileng: {
-    name: "Civil Engineering",
-    cpvCodes: ["45221000", "45230000", "71300000", "71320000", "71330000"],
-    icon: "🏗️",
-  },
-  catering: {
-    name: "Catering",
-    cpvCodes: [
-      "55300000",
-      "55320000",
-      "55321000",
-      "55322000",
-      "55500000",
-      "55520000",
-      "55521000",
-    ],
-    icon: "🍽️",
-  },
-  security: {
-    name: "Security",
-    cpvCodes: [
-      "79700000",
-      "79710000",
-      "79711000",
-      "79713000",
-      "79714000",
-      "79715000",
-    ],
-    icon: "🔒",
-  },
-  facilities: {
-    name: "Facilities Management",
-    cpvCodes: ["98300000", "50800000", "70300000"],
-    icon: "🏢",
-  },
-  pest: {
-    name: "Pest Control",
-    cpvCodes: ["90920000", "90921000", "90922000", "90923000", "90924000"],
-    icon: "🐛",
-  },
-};
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
 app.use(express.static("public"));
 
-// Prevent API caching
-app.use("/api", (req, res, next) => {
-  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.set("Pragma", "no-cache");
-  res.set("Expires", "0");
-  next();
-});
+// Configure multer for file uploads
+const upload = multer({ dest: "/tmp/" });
 
-// Health check endpoint for Replit Autoscale deployment
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-});
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
-// Database connection helper
-async function getDbClient() {
-  const client = new Client({
+function getDbClient() {
+  return new Client({
     connectionString:
       process.env.DATABASE_URL || "postgresql://localhost:5432/tenders",
   });
-  await client.connect();
-  return client;
 }
 
-// Helper function to normalize CPV code (remove dashes and extra chars)
-function normalizeCpvCode(cpv) {
-  if (!cpv) return "";
-  const cpvStr = String(cpv).replace(/-/g, "");
-  return cpvStr.substring(0, 8);
-}
+function parseCSVWithQuotes(content) {
+  const allLines = content.split(/\r?\n/);
+  const records = [];
+  let currentRecord = "";
+  let quoteCount = 0;
 
-// Helper function to check if CPV codes match (using 5-digit logic)
-function cpvCodesMatch(cpv1, cpv2) {
-  const cpv1Normalized = normalizeCpvCode(cpv1);
-  const cpv2Normalized = normalizeCpvCode(cpv2);
+  for (const line of allLines) {
+    currentRecord += line;
+    quoteCount += (line.match(/"/g) || []).length;
 
-  if (!cpv1Normalized || !cpv2Normalized) return false;
-
-  // Exact match (8 digits)
-  if (cpv1Normalized === cpv2Normalized) return true;
-
-  // Partial match (6 digits)
-  if (cpv1Normalized.length >= 6 && cpv2Normalized.length >= 6) {
-    if (cpv1Normalized.substring(0, 6) === cpv2Normalized.substring(0, 6))
-      return true;
-  }
-
-  // Category match (5 digits)
-  if (cpv1Normalized.length >= 5 && cpv2Normalized.length >= 5) {
-    if (cpv1Normalized.substring(0, 5) === cpv2Normalized.substring(0, 5))
-      return true;
-  }
-
-  return false;
-}
-
-// Helper function to find matching companies for tender CPV codes
-async function findMatchingCompanies(tenderCpvCodes, client) {
-  const companiesResult = await client.query("SELECT * FROM companies");
-  const matchingCompanies = [];
-
-  for (const company of companiesResult.rows) {
-    let companyCpvCodes = [];
-    if (typeof company.cpv_codes === "string") {
-      companyCpvCodes = JSON.parse(company.cpv_codes);
-    } else if (Array.isArray(company.cpv_codes)) {
-      companyCpvCodes = company.cpv_codes;
-    } else if (
-      typeof company.cpv_codes === "object" &&
-      company.cpv_codes !== null
-    ) {
-      companyCpvCodes = Object.values(company.cpv_codes);
-    }
-
-    let hasMatch = false;
-    for (const companyCpv of companyCpvCodes) {
-      for (const tenderCpv of tenderCpvCodes) {
-        if (cpvCodesMatch(companyCpv, tenderCpv)) {
-          hasMatch = true;
-          break;
-        }
+    if (quoteCount % 2 === 0) {
+      if (currentRecord.trim()) {
+        records.push(currentRecord);
       }
-      if (hasMatch) break;
-    }
-
-    if (hasMatch) {
-      matchingCompanies.push({
-        id: company.id,
-        name: company.name,
-        first_name: company.first_name,
-        last_name: company.last_name,
-        email: company.email,
-      });
+      currentRecord = "";
+      quoteCount = 0;
+    } else {
+      currentRecord += "\n";
     }
   }
 
-  return matchingCompanies;
+  return records;
 }
 
-// API Routes
+function splitCSVLine(line) {
+  const fields = [];
+  let current = "";
+  let inQuotes = false;
 
-// Manual refresh endpoint - triggers tender fetch
-app.post("/api/refresh-tenders", async (req, res) => {
-  console.log("🔄 Manual refresh triggered...");
-  console.log(`📅 ${new Date().toLocaleString()}\n`);
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
 
-  exec("node fetch-and-save-tenders.js", (error, stdout, stderr) => {
-    if (error) {
-      console.error(`❌ Error: ${error.message}`);
-      return res.status(500).json({
-        success: false,
-        error: error.message,
-      });
-    }
-    if (stderr) {
-      console.error(`⚠️  Warning: ${stderr}`);
-    }
-    console.log(stdout);
-    console.log("✅ Manual refresh complete\n");
-
-    res.json({
-      success: true,
-      message: "Tenders refreshed successfully",
-      timestamp: new Date().toISOString(),
-    });
-  });
-});
-
-// Get statistics
-app.get("/api/stats", async (req, res) => {
-  const client = await getDbClient();
-
-  try {
-    // No need to filter by status - all tenders are "active"
-    const tenderCount = await client.query("SELECT COUNT(*) FROM tenders");
-    const companyCount = await client.query("SELECT COUNT(*) FROM companies");
-
-    const lastTender = await client.query(
-      "SELECT MAX(publication_date) as last_update FROM tenders",
-    );
-
-    res.json({
-      total_tenders: parseInt(tenderCount.rows[0].count),
-      total_companies: parseInt(companyCount.rows[0].count),
-      last_updated: lastTender.rows[0].last_update,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  } finally {
-    await client.end();
-  }
-});
-
-// Get all companies
-app.get("/api/companies", async (req, res) => {
-  const client = await getDbClient();
-
-  try {
-    const result = await client.query("SELECT * FROM companies ORDER BY name");
-
-    const companies = result.rows.map((company) => {
-      let cpvCodes = [];
-      if (typeof company.cpv_codes === "string") {
-        cpvCodes = JSON.parse(company.cpv_codes);
-      } else if (Array.isArray(company.cpv_codes)) {
-        cpvCodes = company.cpv_codes;
-      } else if (
-        typeof company.cpv_codes === "object" &&
-        company.cpv_codes !== null
-      ) {
-        cpvCodes = Object.values(company.cpv_codes);
+    if (char === '"') {
+      if (line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
       }
-
-      return {
-        id: company.id,
-        name: company.name,
-        first_name: company.first_name,
-        last_name: company.last_name,
-        email: company.email,
-        cpv_codes: cpvCodes,
-        created_at: company.created_at,
-      };
-    });
-
-    res.json(companies);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  } finally {
-    await client.end();
+    } else if (char === "," && !inQuotes) {
+      fields.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
   }
-});
 
-// Get matching tenders for a company
-app.get("/api/companies/:id/tenders", async (req, res) => {
-  const companyId = parseInt(req.params.id);
-  const client = await getDbClient();
+  fields.push(current.trim());
+  return fields;
+}
 
-  try {
-    const companyResult = await client.query(
-      "SELECT * FROM companies WHERE id = $1",
-      [companyId],
-    );
+// ============================================================================
+// HTML PAGES ROUTES
+// ============================================================================
 
-    if (companyResult.rows.length === 0) {
-      res.status(404).json({ error: "Company not found" });
-      return;
-    }
-
-    const company = companyResult.rows[0];
-
-    let companyCpvCodes = [];
-    if (typeof company.cpv_codes === "string") {
-      companyCpvCodes = JSON.parse(company.cpv_codes);
-    } else if (Array.isArray(company.cpv_codes)) {
-      companyCpvCodes = company.cpv_codes;
-    } else if (
-      typeof company.cpv_codes === "object" &&
-      company.cpv_codes !== null
-    ) {
-      companyCpvCodes = Object.values(company.cpv_codes);
-    }
-
-    // No status filter needed - all tenders are "active"
-    const tendersResult = await client.query(
-      "SELECT * FROM tenders ORDER BY publication_date DESC",
-    );
-
-    const matchingTenders = [];
-
-    for (const tender of tendersResult.rows) {
-      let tenderCpvCodes = [];
-      if (typeof tender.cpv_codes === "string") {
-        try {
-          tenderCpvCodes = JSON.parse(tender.cpv_codes);
-        } catch (e) {
-          continue;
-        }
-      } else if (Array.isArray(tender.cpv_codes)) {
-        tenderCpvCodes = tender.cpv_codes;
-      } else if (
-        typeof tender.cpv_codes === "object" &&
-        tender.cpv_codes !== null
-      ) {
-        tenderCpvCodes = Object.values(tender.cpv_codes);
-      }
-
-      if (!Array.isArray(tenderCpvCodes) || tenderCpvCodes.length === 0)
-        continue;
-
-      let hasMatch = false;
-
-      for (const companyCpv of companyCpvCodes) {
-        for (const tenderCpv of tenderCpvCodes) {
-          if (!tenderCpv) continue;
-          if (cpvCodesMatch(companyCpv, tenderCpv)) {
-            hasMatch = true;
-            break;
+app.get("/", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Tender Matcher System</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
           }
-        }
-        if (hasMatch) break;
-      }
+          .container {
+            background: white;
+            padding: 60px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 500px;
+          }
+          h1 { color: #333; margin-bottom: 20px; }
+          p { color: #666; margin-bottom: 40px; }
+          .button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 10px;
+            transition: background 0.3s;
+          }
+          .button:hover { background: #5568d3; }
+          .button.secondary {
+            background: #10b981;
+          }
+          .button.secondary:hover {
+            background: #059669;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🎯 Tender Matcher System</h1>
+          <p>Construction prospect matching prototype</p>
+          <a href="/upload" class="button">📤 Upload Prospects</a>
+          <a href="/matcher" class="button secondary">🔍 Match Tenders</a>
+        </div>
+      </body>
+    </html>
+  `);
+});
 
-      if (hasMatch) {
-        matchingTenders.push({
-          id: tender.id,
-          title: tender.title,
-          description: tender.description,
-          buyer_name: tender.buyer_name,
-          status: tender.status,
-          publication_date: tender.publication_date,
-          deadline_date: tender.deadline_date,
-          cpv_codes: tenderCpvCodes,
-          tender_url: tender.tender_url,
+app.get("/upload", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "upload-prospects.html"));
+});
+
+app.get("/matcher", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "tender-matcher.html"));
+});
+
+// ============================================================================
+// API ROUTES - CSV UPLOAD
+// ============================================================================
+
+app.post("/api/import-prospects", upload.single("csv"), async (req, res) => {
+  // Set up streaming response
+  res.setHeader("Content-Type", "application/x-ndjson");
+  res.setHeader("Transfer-Encoding", "chunked");
+
+  const sendMessage = (data) => {
+    res.write(JSON.stringify(data) + "\n");
+  };
+
+  const sendLog = (message, level = "info") => {
+    sendMessage({ type: "log", message, level });
+  };
+
+  try {
+    if (!req.file) {
+      sendMessage({ type: "error", message: "No file uploaded" });
+      return res.end();
+    }
+
+    sendLog("📁 File uploaded: " + req.file.originalname);
+    sendMessage({ type: "progress", progress: 10, message: "Reading CSV..." });
+
+    // Read the uploaded file
+    const content = fs.readFileSync(req.file.path, "utf8");
+    sendLog(`📄 File size: ${content.length} bytes`);
+
+    // Parse CSV
+    sendLog("🔍 Parsing CSV...");
+    const records = parseCSVWithQuotes(content);
+    sendLog(`✅ Found ${records.length} records`);
+
+    if (records.length < 2) {
+      sendMessage({ type: "error", message: "CSV has no data rows" });
+      return res.end();
+    }
+
+    sendMessage({
+      type: "progress",
+      progress: 20,
+      message: "Connecting to database...",
+    });
+
+    // Connect to database
+    const client = getDbClient();
+    await client.connect();
+    sendLog("✅ Connected to database");
+
+    // Create table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS prospects (
+        id SERIAL PRIMARY KEY,
+        first_name VARCHAR(255),
+        last_name VARCHAR(255),
+        full_name VARCHAR(255),
+        email VARCHAR(255) UNIQUE,
+        title VARCHAR(255),
+        company_name VARCHAR(255),
+        company_website VARCHAR(255),
+        linkedin_url VARCHAR(500),
+        company_linkedin VARCHAR(500),
+        employees_count INTEGER,
+        city VARCHAR(255),
+        country VARCHAR(255),
+        cpv_codes JSONB,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_prospects_cpv ON prospects USING GIN (cpv_codes);
+      CREATE INDEX IF NOT EXISTS idx_prospects_email ON prospects(email);
+    `);
+
+    sendLog("✅ Table ready");
+
+    // Parse header
+    const header = splitCSVLine(records[0]);
+    sendLog(`📋 Found ${header.length} columns`);
+
+    const emailIdx = header.indexOf("Email");
+    const firstNameIdx = header.indexOf("First Name");
+    const lastNameIdx = header.indexOf("Last Name");
+    const fullNameIdx = header.indexOf("Full Name");
+    const titleIdx = header.indexOf("Title");
+    const companyIdx = header.indexOf("Company Name");
+    const websiteIdx = header.indexOf("Company Website");
+    const linkedinIdx = header.indexOf("LinkedIn");
+    const companyLinkedinIdx = header.indexOf("Company Linkedin");
+    const employeesIdx = header.indexOf("Employees Count");
+    const cityIdx = header.indexOf("City");
+    const countryIdx = header.indexOf("Country");
+
+    // Find CPV columns
+    const cpvIndices = [];
+    for (let i = 0; i < header.length; i++) {
+      if (
+        header[i] === "CPV1" ||
+        header[i] === "CPV2" ||
+        header[i] === "CPV3" ||
+        header[i] === "CPV4" ||
+        header[i] === "CPV5"
+      ) {
+        cpvIndices.push(i);
+      }
+    }
+
+    if (cpvIndices.length === 0) {
+      sendLog("⚠️  No CPV columns found, will look at last 5 columns");
+    } else {
+      sendLog(`✅ Found CPV columns at indices: ${cpvIndices.join(", ")}`);
+    }
+
+    sendMessage({
+      type: "progress",
+      progress: 30,
+      message: "Clearing old data...",
+    });
+
+    await client.query("DELETE FROM prospects");
+    sendLog("🧹 Cleared old prospects");
+
+    sendMessage({
+      type: "progress",
+      progress: 40,
+      message: "Importing prospects...",
+    });
+
+    let imported = 0;
+    let skipped = 0;
+
+    // Import records
+    for (let i = 1; i < records.length; i++) {
+      const fields = splitCSVLine(records[i]);
+
+      // Progress updates
+      if (i % 500 === 0) {
+        const progress = 40 + (i / records.length) * 50;
+        sendMessage({
+          type: "progress",
+          progress,
+          message: `Processing: ${i}/${records.length}`,
         });
       }
-    }
 
-    res.json({
-      company: {
-        id: company.id,
-        name: company.name,
-        first_name: company.first_name,
-        last_name: company.last_name,
-        email: company.email,
-        cpv_codes: companyCpvCodes,
-      },
-      tenders: matchingTenders,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  } finally {
-    await client.end();
-  }
-});
-
-// Get industry tender counts
-app.get("/api/industries/counts", async (req, res) => {
-  const client = await getDbClient();
-
-  try {
-    // No status filter needed
-    const tendersResult = await client.query("SELECT * FROM tenders");
-
-    const counts = {};
-
-    // Initialize counts for all industries
-    for (const industryKey of Object.keys(industries)) {
-      counts[industryKey] = 0;
-    }
-
-    for (const tender of tendersResult.rows) {
-      let tenderCpvCodes = [];
-      if (typeof tender.cpv_codes === "string") {
-        try {
-          tenderCpvCodes = JSON.parse(tender.cpv_codes);
-        } catch (e) {
-          continue;
-        }
-      } else if (Array.isArray(tender.cpv_codes)) {
-        tenderCpvCodes = tender.cpv_codes;
-      } else if (
-        typeof tender.cpv_codes === "object" &&
-        tender.cpv_codes !== null
-      ) {
-        tenderCpvCodes = Object.values(tender.cpv_codes);
+      // Get email
+      const email = fields[emailIdx]?.trim();
+      if (!email || !email.includes("@")) {
+        skipped++;
+        continue;
       }
 
-      for (const [industryKey, industry] of Object.entries(industries)) {
-        let hasMatch = false;
-        for (const industryCpv of industry.cpvCodes) {
-          for (const tenderCpv of tenderCpvCodes) {
-            if (cpvCodesMatch(industryCpv, tenderCpv)) {
-              hasMatch = true;
-              break;
+      // Get CPV codes
+      const cpvCodes = [];
+
+      if (cpvIndices.length > 0) {
+        // Use found CPV columns
+        for (const idx of cpvIndices) {
+          const cpv = fields[idx]?.trim();
+          if (cpv && /^\d{8}$/.test(cpv)) {
+            cpvCodes.push(cpv);
+          }
+        }
+      } else {
+        // Fallback: look at last 5 columns
+        for (let j = 0; j < 5; j++) {
+          const cpvIdx = fields.length - 5 + j;
+          if (cpvIdx >= 0) {
+            const cpv = fields[cpvIdx]?.trim();
+            if (cpv && /^\d{8}$/.test(cpv)) {
+              cpvCodes.push(cpv);
             }
           }
-          if (hasMatch) break;
-        }
-        if (hasMatch) {
-          counts[industryKey]++;
         }
       }
-    }
 
-    res.json(counts);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  } finally {
-    await client.end();
-  }
-});
-
-// Get tenders for an industry
-app.get("/api/industries/:industry/tenders", async (req, res) => {
-  const industryKey = req.params.industry;
-  const client = await getDbClient();
-
-  try {
-    if (!industries[industryKey]) {
-      res.status(404).json({ error: "Industry not found" });
-      return;
-    }
-
-    const industry = industries[industryKey];
-    const industryCpvCodes = industry.cpvCodes;
-
-    // No status filter needed
-    const tendersResult = await client.query(
-      "SELECT * FROM tenders ORDER BY publication_date DESC",
-    );
-
-    const matchingTenders = [];
-
-    for (const tender of tendersResult.rows) {
-      let tenderCpvCodes = [];
-      if (typeof tender.cpv_codes === "string") {
-        try {
-          tenderCpvCodes = JSON.parse(tender.cpv_codes);
-        } catch (e) {
-          continue;
-        }
-      } else if (Array.isArray(tender.cpv_codes)) {
-        tenderCpvCodes = tender.cpv_codes;
-      } else if (
-        typeof tender.cpv_codes === "object" &&
-        tender.cpv_codes !== null
-      ) {
-        tenderCpvCodes = Object.values(tender.cpv_codes);
-      }
-
-      if (!Array.isArray(tenderCpvCodes) || tenderCpvCodes.length === 0)
+      if (cpvCodes.length === 0) {
+        skipped++;
         continue;
-
-      let hasMatch = false;
-
-      for (const industryCpv of industryCpvCodes) {
-        for (const tenderCpv of tenderCpvCodes) {
-          if (!tenderCpv) continue;
-          if (cpvCodesMatch(industryCpv, tenderCpv)) {
-            hasMatch = true;
-            break;
-          }
-        }
-        if (hasMatch) break;
       }
 
-      if (hasMatch) {
-        const matchingCompanies = await findMatchingCompanies(
-          tenderCpvCodes,
-          client,
+      try {
+        await client.query(
+          `INSERT INTO prospects (
+            first_name, last_name, full_name, email, title,
+            company_name, company_website, linkedin_url, company_linkedin,
+            employees_count, city, country, cpv_codes
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          ON CONFLICT (email) DO NOTHING`,
+          [
+            fields[firstNameIdx] || null,
+            fields[lastNameIdx] || null,
+            fields[fullNameIdx] || null,
+            email,
+            fields[titleIdx] || null,
+            fields[companyIdx] || null,
+            fields[websiteIdx] || null,
+            fields[linkedinIdx] || null,
+            fields[companyLinkedinIdx] || null,
+            parseInt(fields[employeesIdx]) || null,
+            fields[cityIdx] || null,
+            fields[countryIdx] || null,
+            JSON.stringify(cpvCodes),
+          ],
         );
 
-        matchingTenders.push({
-          id: tender.id,
-          title: tender.title,
-          description: tender.description,
-          buyer_name: tender.buyer_name,
-          status: tender.status,
-          publication_date: tender.publication_date,
-          deadline_date: tender.deadline_date,
-          cpv_codes: tenderCpvCodes,
-          tender_url: tender.tender_url,
-          matching_companies: matchingCompanies,
-        });
+        imported++;
+
+        if (imported % 500 === 0) {
+          sendLog(`✅ Imported ${imported} prospects...`);
+        }
+      } catch (err) {
+        // Skip on error
       }
     }
 
-    res.json({
-      industry: {
-        key: industryKey,
-        name: industry.name,
-        cpv_codes: industryCpvCodes,
-      },
-      tenders: matchingTenders,
+    sendMessage({
+      type: "progress",
+      progress: 95,
+      message: "Finalizing...",
     });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  } finally {
-    await client.end();
-  }
-});
 
-// Add a new company
-app.post("/api/companies", async (req, res) => {
-  const { name, cpv_codes, first_name, last_name, email } = req.body;
+    // Get final stats
+    const totalResult = await client.query("SELECT COUNT(*) FROM prospects");
+    const total = parseInt(totalResult.rows[0].count);
 
-  if (!name || !cpv_codes || !Array.isArray(cpv_codes)) {
-    res.status(400).json({ error: "Name and CPV codes (array) required" });
-    return;
-  }
+    sendLog(`\n✅ Import complete!`);
+    sendLog(`   Imported: ${imported}`);
+    sendLog(`   Skipped: ${skipped}`);
+    sendLog(`   Total in database: ${total}`);
 
-  const client = await getDbClient();
-
-  try {
-    const result = await client.query(
-      "INSERT INTO companies (name, cpv_codes, first_name, last_name, email) VALUES ($1, $2::jsonb, $3, $4, $5) RETURNING *",
-      [
-        name,
-        JSON.stringify(cpv_codes),
-        first_name || null,
-        last_name || null,
-        email || null,
-      ],
-    );
-
-    res.json({ success: true, company: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  } finally {
-    await client.end();
-  }
-});
-
-// Delete a company
-app.delete("/api/companies/:id", async (req, res) => {
-  const companyId = parseInt(req.params.id);
-
-  if (!companyId || isNaN(companyId)) {
-    res.status(400).json({ error: "Valid company ID required" });
-    return;
-  }
-
-  const client = await getDbClient();
-
-  try {
-    const result = await client.query(
-      "DELETE FROM companies WHERE id = $1 RETURNING name",
-      [companyId],
-    );
-
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: "Company not found" });
-      return;
-    }
-
-    res.json({
-      success: true,
-      message: `Company "${result.rows[0].name}" deleted successfully`,
+    sendMessage({
+      type: "stats",
+      stats: { imported, skipped, total },
     });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  } finally {
+
+    sendMessage({
+      type: "complete",
+      stats: { imported, skipped, total },
+    });
+
     await client.end();
+
+    // Clean up uploaded file
+    fs.unlinkSync(req.file.path);
+
+    res.end();
+  } catch (error) {
+    sendMessage({
+      type: "error",
+      message: error.message,
+    });
+    sendLog(`❌ Error: ${error.message}`, "error");
+    res.end();
   }
 });
 
 // ============================================================================
-// LINKEDIN POSTS GENERATOR - NEW FEATURE
+// API ROUTES - TENDER MATCHING
 // ============================================================================
 
-// Team members for rotation
-const TEAM_MEMBERS = [
-  "Matt Burton",
-  "James Wignall",
-  "Stacey Crawford",
-  "Mike Baron",
-];
+// Get construction tenders
+app.get("/api/tenders/construction", async (req, res) => {
+  const client = getDbClient();
 
-// Helper function to extract value
-function formatValue(tender) {
-  if (tender.value_amount != null) {
-    const amount = parseFloat(tender.value_amount);
+  try {
+    await client.connect();
 
-    if (amount >= 1000000) {
-      return `£${(amount / 1000000).toFixed(1)} million`;
-    } else if (amount >= 1000) {
-      return `£${(amount / 1000).toFixed(0)}k`;
-    } else if (amount > 0) {
-      return `£${amount.toLocaleString()}`;
-    }
-  }
-  return "Value TBC";
-}
-
-// Helper function to extract location
-function formatLocation(tender) {
-  const description = tender.description || "";
-  const buyerName = tender.buyer_name || "";
-
-  const locationPatterns = [
-    /in ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:,\s*[A-Z][a-z]+)?)/,
-    /Location:\s*([A-Za-z\s,&]+)/i,
-    /\(([A-Z][a-z]+(?:\s*[&/]\s*[A-Z][a-z]+)*)\)/,
-  ];
-
-  for (const pattern of locationPatterns) {
-    const match = description.match(pattern);
-    if (match) return match[1].trim();
-  }
-
-  if (buyerName) {
-    const namePatterns = [
-      /([A-Z][a-z]+)\s+(?:Council|Borough|City|County|District)/i,
-      /(?:Council|Borough|City|County|District)\s+of\s+([A-Z][a-z]+)/i,
+    // Get all tenders with construction-related CPV codes
+    const constructionPrefixes = [
+      "45", // Construction
+      "71", // Architecture/Engineering
+      "44", // Construction materials
+      "77", // Landscaping
+      "90", // Waste/Cleaning
+      "70", // Real estate
+      "09", // Utilities
+      "66", // Insurance
+      "79", // Business services
     ];
 
-    for (const pattern of namePatterns) {
-      const match = buyerName.match(pattern);
-      if (match) return match[1].trim();
-    }
-
-    if (buyerName.length < 50) {
-      return buyerName;
-    }
-  }
-
-  return "UK";
-}
-
-// Helper function to format date
-function formatDeadline(dateString) {
-  if (!dateString) return null;
-
-  const date = new Date(dateString);
-  const day = date.getDate();
-  const month = date.toLocaleString("en-GB", { month: "long" });
-  const year = date.getFullYear();
-
-  const suffix = ["th", "st", "nd", "rd"][
-    day % 10 > 3 || [11, 12, 13].includes(day % 100) ? 0 : day % 10
-  ];
-
-  return `${day}${suffix} ${month} ${year}`;
-}
-
-// Helper function to create summary
-function createSummary(description) {
-  if (!description) return "";
-
-  let summary = description.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
-
-  const sentences = summary.match(/[^.!?]+[.!?]+/g) || [summary];
-  const firstSentences = sentences.slice(0, 3).join(" ");
-
-  if (firstSentences.length > 250) {
-    return firstSentences.substring(0, 247) + "...";
-  }
-
-  return firstSentences;
-}
-
-// Serve LinkedIn posts page
-app.get("/linkedinPosts", (req, res) => {
-  res.sendFile(__dirname + "/linkedinPosts.html");
-});
-
-// API endpoint to get LinkedIn posts for a sector
-app.get("/api/linkedin-posts/:industry", async (req, res) => {
-  const industryKey = req.params.industry;
-  const client = await getDbClient();
-
-  try {
-    if (!industries[industryKey]) {
-      res.status(404).json({ error: "Industry not found" });
-      return;
-    }
-
-    const industry = industries[industryKey];
-    const industryCpvCodes = industry.cpvCodes;
-
-    // Get tenders for this industry
-    const tendersResult = await client.query(
-      "SELECT * FROM tenders ORDER BY publication_date DESC LIMIT 100",
+    const result = await client.query(
+      `
+      SELECT 
+        id, title, description, cpv_codes, 
+        publication_date, deadline_date, status,
+        buyer_name, tender_url, value_amount, value_currency
+      FROM tenders
+      WHERE 
+        status IN ('active', 'planning', 'planned')
+        AND (
+          ${constructionPrefixes
+            .map(
+              (prefix, idx) =>
+                `cpv_codes::text LIKE '%"${prefix}%' ${idx < constructionPrefixes.length - 1 ? "OR" : ""}`,
+            )
+            .join("\n          ")}
+        )
+      ORDER BY publication_date DESC
+      LIMIT 100
+    `,
     );
 
-    const matchingTenders = [];
-
-    for (const tender of tendersResult.rows) {
-      let tenderCpvCodes = [];
-
-      if (typeof tender.cpv_codes === "string") {
-        try {
-          tenderCpvCodes = JSON.parse(tender.cpv_codes);
-        } catch (e) {
-          continue;
-        }
-      } else if (Array.isArray(tender.cpv_codes)) {
-        tenderCpvCodes = tender.cpv_codes;
-      } else if (
-        typeof tender.cpv_codes === "object" &&
-        tender.cpv_codes !== null
-      ) {
-        tenderCpvCodes = Object.values(tender.cpv_codes);
-      }
-
-      if (!Array.isArray(tenderCpvCodes) || tenderCpvCodes.length === 0)
-        continue;
-
-      let hasMatch = false;
-
-      for (const industryCpv of industryCpvCodes) {
-        for (const tenderCpv of tenderCpvCodes) {
-          if (!tenderCpv) continue;
-          if (cpvCodesMatch(industryCpv, tenderCpv)) {
-            hasMatch = true;
-            break;
-          }
-        }
-        if (hasMatch) break;
-      }
-
-      if (hasMatch) {
-        matchingTenders.push(tender);
-        if (matchingTenders.length >= 10) break; // Limit to 10 posts
-      }
-    }
-
-    // Format as LinkedIn posts
-    const posts = matchingTenders.map((tender, index) => {
-      const teamMember = TEAM_MEMBERS[index % TEAM_MEMBERS.length];
-      const value = formatValue(tender);
-      const location = formatLocation(tender);
-      const deadline = formatDeadline(tender.deadline_date);
-      const summary = createSummary(tender.description);
-
-      let postText = `🚨 NEW TENDER ALERT – ${tender.title} 🚨\n\n`;
-      postText += `${summary}\n\n`;
-      postText += `Value: ${value}\n`;
-      postText += `Location: ${location}\n`;
-
-      if (deadline) {
-        postText += `Submission Deadline: ${deadline}\n`;
-      }
-
-      postText += `\n${tender.tender_url}\n\n`;
-      postText += `To discuss how Bid Writing Service can help your company win tenders just like this, contact ${teamMember}.\n\n`;
-      postText += `#Tenders #${industry.name.replace(/\s+/g, "")} #BidWriting #Procurement`;
-
-      return {
-        text: postText,
-        team_member: teamMember,
-        tender_url: tender.tender_url,
-        title: tender.title,
-      };
-    });
-
-    res.json({
-      sector: industry.name,
-      posts: posts,
-      total: posts.length,
-    });
+    res.json(result.rows);
   } catch (error) {
+    console.error("Error fetching construction tenders:", error);
     res.status(500).json({ error: error.message });
   } finally {
     await client.end();
   }
 });
 
-// Start server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`\n🚀 Tender Scanner running on port ${PORT}`);
-  console.log(`📊 Server ready and listening for connections\n`);
-  console.log(`✅ Showing ONLY ACTIVE tenders (live tenders only)\n`);
-  console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
-  console.log(`📧 Email contact fields enabled\n`);
-  console.log(`🏭 ${Object.keys(industries).length} industries configured\n`);
-  console.log(`🔄 MANUAL REFRESH: POST /api/refresh-tenders\n`);
-  console.log(`💚 HEALTH CHECK: GET /health\n`);
-  console.log(`🎯 ADMIN PAGE: /admin.html\n`);
-  console.log(`📱 LINKEDIN POSTS: /linkedinPosts\n`);
+// Match prospects to a tender
+app.get("/api/match/:tenderId", async (req, res) => {
+  const { tenderId } = req.params;
+  const client = getDbClient();
+
+  try {
+    await client.connect();
+
+    // Get the tender
+    const tenderResult = await client.query(
+      "SELECT * FROM tenders WHERE id = $1",
+      [tenderId],
+    );
+
+    if (tenderResult.rows.length === 0) {
+      return res.status(404).json({ error: "Tender not found" });
+    }
+
+    const tender = tenderResult.rows[0];
+    const tenderCpvCodes = JSON.parse(tender.cpv_codes);
+
+    if (tenderCpvCodes.length === 0) {
+      return res.json([]);
+    }
+
+    // Find prospects with matching CPV codes
+    const matchResult = await client.query(
+      `
+      SELECT 
+        p.*,
+        (
+          SELECT json_agg(cpv)
+          FROM jsonb_array_elements_text(p.cpv_codes) AS cpv
+          WHERE cpv = ANY($1::text[])
+        ) as matched_cpv_codes
+      FROM prospects p
+      WHERE p.cpv_codes ?| $1::text[]
+      ORDER BY 
+        (
+          SELECT COUNT(*)
+          FROM jsonb_array_elements_text(p.cpv_codes) AS cpv
+          WHERE cpv = ANY($1::text[])
+        ) DESC,
+        p.company_name
+    `,
+      [tenderCpvCodes],
+    );
+
+    // Format the results
+    const matches = matchResult.rows.map((row) => ({
+      ...row,
+      cpv_codes: JSON.parse(row.cpv_codes),
+      matched_cpv_codes: row.matched_cpv_codes || [],
+    }));
+
+    res.json(matches);
+  } catch (error) {
+    console.error("Error matching prospects:", error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// Get match statistics
+app.get("/api/stats/matches", async (req, res) => {
+  const client = getDbClient();
+
+  try {
+    await client.connect();
+
+    const constructionPrefixes = [
+      "45",
+      "71",
+      "44",
+      "77",
+      "90",
+      "70",
+      "09",
+      "66",
+      "79",
+    ];
+
+    const tendersResult = await client.query(
+      `
+      SELECT COUNT(*) as total
+      FROM tenders
+      WHERE 
+        status IN ('active', 'planning', 'planned')
+        AND (
+          ${constructionPrefixes
+            .map(
+              (prefix, idx) =>
+                `cpv_codes::text LIKE '%"${prefix}%' ${idx < constructionPrefixes.length - 1 ? "OR" : ""}`,
+            )
+            .join("\n          ")}
+        )
+    `,
+    );
+
+    const prospectsResult = await client.query(
+      "SELECT COUNT(*) as total FROM prospects",
+    );
+
+    const cpvStats = await client.query(`
+      SELECT 
+        jsonb_array_length(cpv_codes) as cpv_count,
+        COUNT(*) as prospects
+      FROM prospects
+      GROUP BY cpv_count
+      ORDER BY cpv_count
+    `);
+
+    res.json({
+      total_construction_tenders: parseInt(tendersResult.rows[0].total),
+      total_prospects: parseInt(prospectsResult.rows[0].total),
+      cpv_distribution: cpvStats.rows,
+    });
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// ============================================================================
+// START SERVER
+// ============================================================================
+
+app.listen(PORT, () => {
+  console.log("\n" + "=".repeat(70));
+  console.log("🚀 TENDER MATCHER SERVER");
+  console.log("=".repeat(70));
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`📤 Upload prospects: http://localhost:${PORT}/upload`);
+  console.log(`🔍 Match tenders: http://localhost:${PORT}/matcher`);
+  console.log("=".repeat(70) + "\n");
 });
