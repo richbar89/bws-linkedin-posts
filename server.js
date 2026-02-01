@@ -781,14 +781,16 @@ app.get("/api/linkedin-posts/:industry", async (req, res) => {
 
 // Start server
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`\n🚀 Tender Scanner running on port ${PORT}`);
-  console.log(`📊 Server ready and listening for connections\n`);
-  console.log(`✅ Showing ONLY ACTIVE tenders (live tenders only)\n`);
-  console.log(`🔍 Using 5-digit CPV matching with normalization\n`);
-  console.log(`📧 Email contact fields enabled\n`);
-  console.log(`🏭 ${Object.keys(industries).length} industries configured\n`);
-  console.log(`🔄 MANUAL REFRESH: POST /api/refresh-tenders\n`);
-  console.log(`💚 HEALTH CHECK: GET /health\n`);
-  console.log(`🎯 ADMIN PAGE: /admin.html\n`);
-  console.log(`📱 LINKEDIN POSTS: /linkedinPosts\n`);
+  console.log("\n🚀 Tender Scanner running on port " + PORT);
+  console.log("📊 Server ready and listening for connections\n");
+  console.log("✅ Showing ONLY ACTIVE tenders (live tenders only)\n");
+  console.log("🔍 Using 5-digit CPV matching with normalization\n");
+  console.log("📧 Email contact fields enabled\n");
+  console.log(
+    "🏭 " + Object.keys(industries).length + " industries configured\n",
+  );
+  console.log("🔄 MANUAL REFRESH: POST /api/refresh-tenders\n");
+  console.log("💚 HEALTH CHECK: GET /health\n");
+  console.log("🎯 ADMIN PAGE: /admin.html\n");
+  console.log("📱 LINKEDIN POSTS: /linkedinPosts\n");
 });
