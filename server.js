@@ -265,6 +265,19 @@ async function findMatchingCompanies(tenderCpvCodes, client) {
   return matchingCompanies;
 }
 
+// Helper: format a date into "6th February 2026" style
+function formatDeadline(dateString) {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleString("en-GB", { month: "long" });
+  const year = date.getFullYear();
+  const suffix = ["th", "st", "nd", "rd"][
+    day % 10 > 3 || [11, 12, 13].includes(day % 100) ? 0 : day % 10
+  ];
+  return `${day}${suffix} ${month} ${year}`;
+}
+
 // API Routes
 
 // Manual refresh endpoint - triggers tender fetch
@@ -299,7 +312,6 @@ app.get("/api/stats", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    // No need to filter by status - all tenders are "active"
     const tenderCount = await client.query("SELECT COUNT(*) FROM tenders");
     const companyCount = await client.query("SELECT COUNT(*) FROM companies");
 
@@ -388,7 +400,6 @@ app.get("/api/companies/:id/tenders", async (req, res) => {
       companyCpvCodes = Object.values(company.cpv_codes);
     }
 
-    // No status filter needed - all tenders are "active"
     const tendersResult = await client.query(
       "SELECT * FROM tenders ORDER BY publication_date DESC",
     );
@@ -466,12 +477,10 @@ app.get("/api/industries/counts", async (req, res) => {
   const client = await getDbClient();
 
   try {
-    // No status filter needed
     const tendersResult = await client.query("SELECT * FROM tenders");
 
     const counts = {};
 
-    // Initialize counts for all industries
     for (const industryKey of Object.keys(industries)) {
       counts[industryKey] = 0;
     }
@@ -532,7 +541,6 @@ app.get("/api/industries/:industry/tenders", async (req, res) => {
     const industry = industries[industryKey];
     const industryCpvCodes = industry.cpvCodes;
 
-    // No status filter needed
     const tendersResult = await client.query(
       "SELECT * FROM tenders ORDER BY publication_date DESC",
     );
@@ -673,99 +681,11 @@ app.delete("/api/companies/:id", async (req, res) => {
 });
 
 // ============================================================================
-// LINKEDIN POSTS GENERATOR - NEW FEATURE
+// LINKEDIN POSTS GENERATOR
+// Returns RAW tender data — the frontend (linkedinPosts.html) handles all
+// post formatting, value filtering, NEW vs INCOMING detection, hook lines,
+// and rotating CTAs.
 // ============================================================================
-
-// Team members for rotation
-const TEAM_MEMBERS = [
-  "Matt Burton",
-  "James Wignall",
-  "Stacey Crawford",
-  "Mike Baron",
-];
-
-// Helper function to extract value
-function formatValue(tender) {
-  if (tender.value_amount != null) {
-    const amount = parseFloat(tender.value_amount);
-
-    if (amount >= 1000000) {
-      return `£${(amount / 1000000).toFixed(1)} million`;
-    } else if (amount >= 1000) {
-      return `£${(amount / 1000).toFixed(0)}k`;
-    } else if (amount > 0) {
-      return `£${amount.toLocaleString()}`;
-    }
-  }
-  return "Value TBC";
-}
-
-// Helper function to extract location
-function formatLocation(tender) {
-  const description = tender.description || "";
-  const buyerName = tender.buyer_name || "";
-
-  const locationPatterns = [
-    /in ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:,\s*[A-Z][a-z]+)?)/,
-    /Location:\s*([A-Za-z\s,&]+)/i,
-    /\(([A-Z][a-z]+(?:\s*[&/]\s*[A-Z][a-z]+)*)\)/,
-  ];
-
-  for (const pattern of locationPatterns) {
-    const match = description.match(pattern);
-    if (match) return match[1].trim();
-  }
-
-  if (buyerName) {
-    const namePatterns = [
-      /([A-Z][a-z]+)\s+(?:Council|Borough|City|County|District)/i,
-      /(?:Council|Borough|City|County|District)\s+of\s+([A-Z][a-z]+)/i,
-    ];
-
-    for (const pattern of namePatterns) {
-      const match = buyerName.match(pattern);
-      if (match) return match[1].trim();
-    }
-
-    if (buyerName.length < 50) {
-      return buyerName;
-    }
-  }
-
-  return "UK";
-}
-
-// Helper function to format date
-function formatDeadline(dateString) {
-  if (!dateString) return null;
-
-  const date = new Date(dateString);
-  const day = date.getDate();
-  const month = date.toLocaleString("en-GB", { month: "long" });
-  const year = date.getFullYear();
-
-  const suffix = ["th", "st", "nd", "rd"][
-    day % 10 > 3 || [11, 12, 13].includes(day % 100) ? 0 : day % 10
-  ];
-
-  return `${day}${suffix} ${month} ${year}`;
-}
-
-// Helper function to create summary
-function createSummary(description) {
-  if (!description) return "";
-
-  let summary = description.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
-
-  const sentences = summary.match(/[^.!?]+[.!?]+/g) || [summary];
-  const firstSentences = sentences.slice(0, 3).join(" ");
-
-  if (firstSentences.length > 250) {
-    return firstSentences.substring(0, 247) + "...";
-  }
-
-  return firstSentences;
-}
 
 // Serve LinkedIn posts page
 app.get("/linkedinPosts", (req, res) => {
@@ -786,7 +706,6 @@ app.get("/api/linkedin-posts/:industry", async (req, res) => {
     const industry = industries[industryKey];
     const industryCpvCodes = industry.cpvCodes;
 
-    // Get tenders for this industry
     const tendersResult = await client.query(
       "SELECT * FROM tenders ORDER BY publication_date DESC LIMIT 100",
     );
@@ -828,44 +747,30 @@ app.get("/api/linkedin-posts/:industry", async (req, res) => {
       }
 
       if (hasMatch) {
-        matchingTenders.push(tender);
-        if (matchingTenders.length >= 10) break; // Limit to 10 posts
+        // Return raw tender fields — frontend does all the formatting
+        matchingTenders.push({
+          id: tender.id,
+          title: tender.title,
+          description: tender.description,
+          status: tender.status,
+          value: tender.value_amount != null ? String(tender.value_amount) : "",
+          location: tender.location || "",
+          buyer_name: tender.buyer_name || "",
+          submission_deadline: tender.deadline_date
+            ? formatDeadline(tender.deadline_date)
+            : "",
+          url: tender.tender_url,
+          sector: industry.name,
+        });
+
+        if (matchingTenders.length >= 20) break;
       }
     }
 
-    // Format as LinkedIn posts
-    const posts = matchingTenders.map((tender, index) => {
-      const teamMember = TEAM_MEMBERS[index % TEAM_MEMBERS.length];
-      const value = formatValue(tender);
-      const location = formatLocation(tender);
-      const deadline = formatDeadline(tender.deadline_date);
-      const summary = createSummary(tender.description);
-
-      let postText = `🚨 NEW TENDER ALERT – ${tender.title} 🚨\n\n`;
-      postText += `${summary}\n\n`;
-      postText += `Value: ${value}\n`;
-      postText += `Location: ${location}\n`;
-
-      if (deadline) {
-        postText += `Submission Deadline: ${deadline}\n`;
-      }
-
-      postText += `\n${tender.tender_url}\n\n`;
-      postText += `To discuss how Bid Writing Service can help your company win tenders just like this, contact ${teamMember}.\n\n`;
-      postText += `#Tenders #${industry.name.replace(/\s+/g, "")} #BidWriting #Procurement`;
-
-      return {
-        text: postText,
-        team_member: teamMember,
-        tender_url: tender.tender_url,
-        title: tender.title,
-      };
-    });
-
     res.json({
       sector: industry.name,
-      posts: posts,
-      total: posts.length,
+      posts: matchingTenders,
+      total: matchingTenders.length,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
