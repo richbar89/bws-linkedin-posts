@@ -104,7 +104,6 @@
                 margin-top: 5px;
             }
 
-            /* --- LOADING & EMPTY STATES --- */
             .loading,
             .empty-state {
                 background: white;
@@ -142,7 +141,6 @@
                 font-size: 16px;
             }
 
-            /* --- POST CARDS --- */
             .posts-container {
                 display: none;
             }
@@ -165,7 +163,6 @@
                 box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
             }
 
-            /* Card header bar */
             .post-header {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
@@ -204,7 +201,6 @@
                 opacity: 0.8;
             }
 
-            /* The actual post text — styled to look like a LinkedIn post */
             .post-body {
                 padding: 25px;
             }
@@ -221,7 +217,6 @@
                 margin-bottom: 18px;
             }
 
-            /* Buttons */
             .post-actions {
                 display: flex;
                 gap: 12px;
@@ -259,7 +254,6 @@
                 background: #e5e7eb;
             }
 
-            /* Team member info pill */
             .team-pill {
                 margin-top: 14px;
                 padding: 10px 14px;
@@ -269,7 +263,6 @@
                 color: #0369a1;
             }
 
-            /* Back link */
             .back-link {
                 display: inline-block;
                 background: white;
@@ -382,19 +375,35 @@
 
         <script>
             // ---------------------------------------------------------------------------
-            // POST FORMATTING ENGINE (client-side mirror of generate-manual-posts.js)
-            // This runs in the browser so we can format posts exactly how we want them
-            // displayed AND copied. The server just provides raw tender data.
+            // LIVE API RETURNS EXACTLY THIS SHAPE (confirmed):
+            // {
+            //   "sector": "Security",
+            //   "posts": [
+            //     {
+            //       "id": "008560-2026",
+            //       "title": "Security Services to the Museums Security Consortium",
+            //       "description": "Security tender invites for the Natural History Museum...",
+            //       "status": "planned",
+            //       "value": "85829691.00",
+            //       "location": "",
+            //       "buyer_name": "Victoria and Albert Museum",
+            //       "submission_deadline": "",
+            //       "url": "https://www.find-tender.service.gov.uk/Notice/008560-2026",
+            //       "sector": "Security"
+            //     }
+            //   ],
+            //   "total": 1
+            // }
             // ---------------------------------------------------------------------------
 
-            const TEAM_MEMBERS = [
+            var TEAM_MEMBERS = [
                 "James Wignall",
                 "Stacey Crawford",
                 "Mike Baron",
                 "Matt Burton",
             ];
 
-            const HOOK_LINES = [
+            var HOOK_LINES = [
                 "This is a big one – worth keeping an eye on.",
                 "One to watch – get in early if this is in your wheelhouse.",
                 "This could be a great opportunity – time to get preparing!",
@@ -405,33 +414,117 @@
                 "This one's just been posted – worth a closer look.",
             ];
 
-            const CTA_VARIATIONS = [
-                (m) =>
-                    `Contact ${m[0]}, ${m[1]} or ${m[2]} to discuss how Bid Writing Service can support (or take the lead!) in preparing for this tender opportunity.`,
-                (m) =>
-                    `If this one's on your radar, reach out to ${m[0]} or ${m[1]} – the team at Bid Writing Service would love to help you put together a winning bid.`,
-                (m) =>
-                    `Thinking about going for this? ${m[0]}, ${m[1]} and ${m[2]} are on hand at Bid Writing Service to help you get ahead of the competition.`,
-                (m) =>
-                    `Don't sleep on this one. Contact ${m[0]} or ${m[1]} at Bid Writing Service to talk through how we can help you win.`,
-                (m) =>
-                    `Want to make sure you're in the running? Get in touch with ${m[0]}, ${m[1]} or ${m[2]} – Bid Writing Service can help you put together a standout submission.`,
+            var CTA_VARIATIONS = [
+                function (m) {
+                    return (
+                        "Contact " +
+                        m[0] +
+                        ", " +
+                        m[1] +
+                        " or " +
+                        m[2] +
+                        " to discuss how Bid Writing Service can support (or take the lead!) in preparing for this tender opportunity."
+                    );
+                },
+                function (m) {
+                    return (
+                        "If this one's on your radar, reach out to " +
+                        m[0] +
+                        " or " +
+                        m[1] +
+                        " – the team at Bid Writing Service would love to help you put together a winning bid."
+                    );
+                },
+                function (m) {
+                    return (
+                        "Thinking about going for this? " +
+                        m[0] +
+                        ", " +
+                        m[1] +
+                        " and " +
+                        m[2] +
+                        " are on hand at Bid Writing Service to help you get ahead of the competition."
+                    );
+                },
+                function (m) {
+                    return (
+                        "Don't sleep on this one. Contact " +
+                        m[0] +
+                        " or " +
+                        m[1] +
+                        " at Bid Writing Service to talk through how we can help you win."
+                    );
+                },
+                function (m) {
+                    return (
+                        "Want to make sure you're in the running? Get in touch with " +
+                        m[0] +
+                        ", " +
+                        m[1] +
+                        " or " +
+                        m[2] +
+                        " – Bid Writing Service can help you put together a standout submission."
+                    );
+                },
             ];
 
             function pickRandom(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
             }
 
-            function pickRandomMembers(n = 3) {
-                return [...TEAM_MEMBERS]
-                    .sort(() => 0.5 - Math.random())
-                    .slice(0, n);
+            function pickRandomMembers(count) {
+                var shuffled = TEAM_MEMBERS.slice().sort(function () {
+                    return 0.5 - Math.random();
+                });
+                return shuffled.slice(0, count || 3);
             }
 
+            // ---------------------------------------------------------------------------
+            // VALUE: tender.value is "85829691.00" or ""
+            // ---------------------------------------------------------------------------
+            function hasValue(tender) {
+                var raw = String(tender.value || "").trim();
+                if (raw === "" || raw === "0" || raw === "0.00") return false;
+                var num = parseFloat(raw);
+                return !isNaN(num) && num > 0;
+            }
+
+            function formatValue(tender) {
+                var num = parseFloat(String(tender.value || "0").trim());
+                if (isNaN(num) || num === 0) return "";
+                if (num >= 1000000)
+                    return (
+                        "£" + (num / 1000000).toFixed(1) + " million (inc. VAT)"
+                    );
+                if (num >= 1000)
+                    return "£" + (num / 1000).toFixed(0) + "k (inc. VAT)";
+                return "£" + num.toLocaleString() + " (inc. VAT)";
+            }
+
+            // ---------------------------------------------------------------------------
+            // LOCATION: tender.location is often "". Fall back to tender.buyer_name then "UK"
+            // ---------------------------------------------------------------------------
+            function getLocation(tender) {
+                if (tender.location && tender.location.trim() !== "")
+                    return tender.location.trim();
+                if (tender.buyer_name && tender.buyer_name.trim() !== "")
+                    return tender.buyer_name.trim();
+                return "UK";
+            }
+
+            // ---------------------------------------------------------------------------
+            // ALERT TYPE: checks tender.status + tender.description for planned keywords
+            // ---------------------------------------------------------------------------
             function getAlertType(tender) {
-                const combined =
-                    `${tender.status || ""} ${tender.title || ""} ${tender.description || ""}`.toLowerCase();
-                const plannedKw = [
+                var combined = (
+                    (tender.status || "") +
+                    " " +
+                    (tender.title || "") +
+                    " " +
+                    (tender.description || "")
+                ).toLowerCase();
+
+                var keywords = [
                     "planned",
                     "planning",
                     "prior information",
@@ -440,124 +533,92 @@
                     "pre market",
                     "preliminary",
                     "market engagement",
-                    "pmen",
                     "advance notice",
                     "upcoming",
                     "future",
                     "anticipated",
+                    "not a call for competition",
                 ];
-                for (const kw of plannedKw) {
-                    if (combined.includes(kw)) return "INCOMING";
+
+                for (var i = 0; i < keywords.length; i++) {
+                    if (combined.indexOf(keywords[i]) !== -1) return "INCOMING";
                 }
                 return "NEW";
             }
 
-            function hasValue(tender) {
-                const val = (tender.value || tender.contract_value || "")
-                    .toString()
-                    .trim()
-                    .toLowerCase();
-                if (
-                    !val ||
-                    val === "tbc" ||
-                    val === "value tbc" ||
-                    val === "0" ||
-                    val === "£0"
-                )
-                    return false;
-                return true;
-            }
-
-            function formatValue(tender) {
-                let val = (tender.value || tender.contract_value || "")
-                    .toString()
+            // ---------------------------------------------------------------------------
+            // SUMMARY: trim tender.description to ~250 chars at a sentence boundary
+            // ---------------------------------------------------------------------------
+            function getSummary(tender) {
+                var desc = (tender.description || "")
+                    .replace(/\n+/g, " ")
+                    .replace(/\s+/g, " ")
                     .trim();
-                if (!val.startsWith("£")) val = "£" + val;
-                return val;
+                if (desc.length <= 250) return desc;
+                var cut = desc.substring(0, 250);
+                var lastDot = cut.lastIndexOf(".");
+                if (lastDot > 150) return cut.substring(0, lastDot + 1) + "...";
+                return cut + "...";
             }
 
-            function formatPost(tender, sectorName) {
-                const alertType = getAlertType(tender);
-                const hook = pickRandom(HOOK_LINES);
-                const members = pickRandomMembers(3);
-                const cta = pickRandom(CTA_VARIATIONS)(members);
+            // ---------------------------------------------------------------------------
+            // BUILD POST
+            // ---------------------------------------------------------------------------
+            function buildPost(tender) {
+                var alertType = getAlertType(tender);
+                var hook = pickRandom(HOOK_LINES);
+                var members = pickRandomMembers(3);
+                var cta = pickRandom(CTA_VARIATIONS)(members);
+                var value = formatValue(tender);
+                var location = getLocation(tender);
+                var summary = getSummary(tender);
+                var sectorTag = (tender.sector || "").replace(
+                    /[^a-zA-Z0-9]/g,
+                    "",
+                );
 
-                let title = (tender.title || "Untitled Tender").trim();
-                if (title.length > 120) title = title.substring(0, 117) + "...";
+                // tender.submission_deadline is "" or a formatted date string
+                var deadline = (tender.submission_deadline || "").trim();
+                var deadlineLabel =
+                    alertType === "INCOMING"
+                        ? "Tender Notice Expected"
+                        : "Submission Deadline";
 
-                const body = (tender.description || "").trim();
-                const location = (tender.location || "").trim();
-                const value = formatValue(tender);
-                const url = (tender.url || tender.tender_url || "").trim();
-                const sector = (tender.sector || sectorName || "").trim();
-                const sectorTag = sector.replace(/[^a-zA-Z0-9]/g, "");
-
-                // Figure out deadline label
-                let deadlineLabel = "",
-                    deadlineValue = "";
-                if (alertType === "INCOMING") {
-                    const exp =
-                        tender.tender_notice_expected ||
-                        tender.expected_date ||
-                        "";
-                    if (exp) {
-                        deadlineLabel = "Tender Notice Expected";
-                        deadlineValue = exp;
-                    }
-                } else {
-                    const dl =
-                        tender.submission_deadline || tender.deadline || "";
-                    if (dl) {
-                        deadlineLabel = "Submission Deadline";
-                        deadlineValue = dl;
-                    }
+                var post = "";
+                post +=
+                    "🚨 " +
+                    alertType +
+                    " TENDER ALERT – " +
+                    tender.title +
+                    " 🚨\n\n";
+                post += hook + "\n\n";
+                post += summary + "\n\n";
+                post += "Value: " + value + "\n";
+                post += "Location: " + location + "\n";
+                if (deadline !== "") {
+                    post += deadlineLabel + ": " + deadline + "\n";
                 }
+                post += "\n" + tender.url + "\n\n";
+                post += cta + "\n\n";
+                post += "#Tenders #" + sectorTag + " #BidWriting #Procurement";
 
-                // Build the plain-text post (this is what gets copied to clipboard)
-                let post = `🚨 ${alertType} TENDER ALERT – ${title} 🚨\n\n`;
-                post += `${hook}\n\n`;
-                if (body) post += `${body}\n\n`;
-
-                post += `Value: ${value}\n`;
-                if (location) post += `Location: ${location}\n`;
-                if (deadlineLabel && deadlineValue)
-                    post += `${deadlineLabel}: ${deadlineValue}\n`;
-                post += `\n`;
-                if (url) post += `${url}\n\n`;
-                post += `${cta}\n\n`;
-                post += `#Tenders #${sectorTag} #BidWriting #Procurement`;
-
-                return {
-                    post,
-                    alertType,
-                    title,
-                    hook,
-                    body,
-                    value,
-                    location,
-                    deadlineLabel,
-                    deadlineValue,
-                    url,
-                    cta,
-                    sectorTag,
-                    members,
-                };
+                return { text: post, alertType: alertType, members: members };
             }
 
             // ---------------------------------------------------------------------------
-            // UI LAYER
+            // UI
             // ---------------------------------------------------------------------------
-            const sectorSelect = document.getElementById("sectorSelect");
-            const loading = document.getElementById("loading");
-            const emptyState = document.getElementById("emptyState");
-            const postsContainer = document.getElementById("postsContainer");
-            const totalPostsEl = document.getElementById("totalPosts");
-            const filteredOutEl = document.getElementById("filteredOut");
+            var sectorSelect = document.getElementById("sectorSelect");
+            var loading = document.getElementById("loading");
+            var emptyState = document.getElementById("emptyState");
+            var postsContainer = document.getElementById("postsContainer");
+            var totalPostsEl = document.getElementById("totalPosts");
+            var filteredOutEl = document.getElementById("filteredOut");
 
             emptyState.classList.add("show");
 
-            sectorSelect.addEventListener("change", async (e) => {
-                const sector = e.target.value;
+            sectorSelect.addEventListener("change", function () {
+                var sector = sectorSelect.value;
                 if (!sector) {
                     postsContainer.classList.remove("show");
                     emptyState.classList.add("show");
@@ -569,102 +630,132 @@
                 postsContainer.classList.remove("show");
                 emptyState.classList.remove("show");
 
-                try {
-                    const response = await fetch(
-                        `/api/linkedin-posts/${sector}`,
-                    );
-                    const data = await response.json();
-                    loading.classList.remove("show");
+                fetch("/api/linkedin-posts/" + sector)
+                    .then(function (res) {
+                        return res.json();
+                    })
+                    .then(function (data) {
+                        loading.classList.remove("show");
 
-                    if (!data.posts || data.posts.length === 0) {
-                        emptyState.querySelector("h3").textContent =
-                            `No posts found for ${data.sector || sector}`;
-                        emptyState.querySelector("p").textContent =
-                            "There are currently no active tenders in this sector.";
-                        emptyState.classList.add("show");
-                        return;
-                    }
+                        if (!data.posts || data.posts.length === 0) {
+                            showEmpty(
+                                "No tenders found for " +
+                                    (data.sector || sector),
+                                "There are currently no tenders in this sector.",
+                            );
+                            return;
+                        }
 
-                    // Separate posts: those with value (keep) vs without (filter out)
-                    const withValue = data.posts.filter(hasValue);
-                    const withoutValue = data.posts.filter((p) => !hasValue(p));
+                        // Filter: only keep tenders with a real numeric value
+                        var withValue = [];
+                        var withoutValue = [];
+                        for (var i = 0; i < data.posts.length; i++) {
+                            if (hasValue(data.posts[i])) {
+                                withValue.push(data.posts[i]);
+                            } else {
+                                withoutValue.push(data.posts[i]);
+                            }
+                        }
 
-                    totalPostsEl.textContent = withValue.length;
-                    filteredOutEl.textContent = withoutValue.length;
+                        totalPostsEl.textContent = withValue.length;
+                        filteredOutEl.textContent = withoutValue.length;
 
-                    if (withValue.length === 0) {
-                        emptyState.querySelector("h3").textContent =
-                            `No posts with contract value for ${data.sector || sector}`;
-                        emptyState.querySelector("p").textContent =
-                            "All tenders in this sector currently have no confirmed value. They've been filtered out.";
-                        emptyState.classList.add("show");
-                        return;
-                    }
+                        if (withValue.length === 0) {
+                            showEmpty(
+                                "No posts with a contract value for " +
+                                    (data.sector || sector),
+                                "All tenders in this sector currently have no confirmed value so they've been filtered out.",
+                            );
+                            return;
+                        }
 
-                    renderPosts(withValue, data.sector || sector);
-                    postsContainer.classList.add("show");
-                } catch (error) {
-                    console.error("Error:", error);
-                    loading.classList.remove("show");
-                    emptyState.querySelector("h3").textContent =
-                        "Error loading posts";
-                    emptyState.querySelector("p").textContent =
-                        "Please try again or check the console.";
-                    emptyState.classList.add("show");
-                }
+                        renderPosts(withValue, data.sector || sector);
+                        postsContainer.classList.add("show");
+                    })
+                    .catch(function (err) {
+                        loading.classList.remove("show");
+                        showEmpty("Error loading posts", err.message);
+                    });
             });
+
+            function showEmpty(title, msg) {
+                emptyState.querySelector("h3").textContent = title;
+                emptyState.querySelector("p").textContent = msg;
+                emptyState.classList.add("show");
+                postsContainer.classList.remove("show");
+            }
 
             function renderPosts(tenders, sectorName) {
                 postsContainer.innerHTML = "";
 
-                tenders.forEach((tender, i) => {
-                    const formatted = formatPost(tender, sectorName);
-                    const card = document.createElement("div");
+                for (var i = 0; i < tenders.length; i++) {
+                    var built = buildPost(tenders[i]);
+                    var card = document.createElement("div");
                     card.className = "post-card";
 
-                    card.innerHTML = `
-            <div class="post-header">
-                <div class="post-header-left">
-                    <span class="alert-badge ${formatted.alertType.toLowerCase()}">${formatted.alertType}</span>
-                    <span class="post-sector">${sectorName}</span>
-                </div>
-                <span class="post-number">Post ${i + 1} of ${tenders.length}</span>
-            </div>
-            <div class="post-body">
-                <div class="post-text" id="posttext-${i}">${escapeHtml(formatted.post)}</div>
-                <div class="post-actions">
-                    <button class="btn btn-copy" data-index="${i}" onclick="copyPost(${i})">📋 Copy to Clipboard</button>
-                    ${formatted.url ? `<button class="btn btn-link" onclick="window.open('${formatted.url}', '_blank')">🔗 View Tender</button>` : ""}
-                </div>
-                <div class="team-pill">💡 <strong>Team:</strong> ${formatted.members.join(", ")}</div>
-            </div>
-        `;
+                    card.innerHTML =
+                        '<div class="post-header">' +
+                        '<div class="post-header-left">' +
+                        '<span class="alert-badge ' +
+                        built.alertType.toLowerCase() +
+                        '">' +
+                        built.alertType +
+                        "</span>" +
+                        '<span class="post-sector">' +
+                        sectorName +
+                        "</span>" +
+                        "</div>" +
+                        '<span class="post-number">Post ' +
+                        (i + 1) +
+                        " of " +
+                        tenders.length +
+                        "</span>" +
+                        "</div>" +
+                        '<div class="post-body">' +
+                        '<div class="post-text" id="posttext-' +
+                        i +
+                        '">' +
+                        escapeHtml(built.text) +
+                        "</div>" +
+                        '<div class="post-actions">' +
+                        '<button class="btn btn-copy" data-index="' +
+                        i +
+                        '" onclick="copyPost(' +
+                        i +
+                        ')">📋 Copy to Clipboard</button>' +
+                        '<button class="btn btn-link" onclick="window.open(\'' +
+                        tenders[i].url +
+                        "', '_blank')\">🔗 View Tender</button>" +
+                        "</div>" +
+                        '<div class="team-pill">💡 <strong>Team:</strong> ' +
+                        built.members.join(", ") +
+                        "</div>" +
+                        "</div>";
 
                     postsContainer.appendChild(card);
-                });
+                }
             }
 
             function copyPost(index) {
-                const el = document.getElementById(`posttext-${index}`);
-                const text = el.textContent;
+                var el = document.getElementById("posttext-" + index);
+                var btn = document.querySelector(
+                    'button[data-index="' + index + '"]',
+                );
 
-                navigator.clipboard.writeText(text).then(() => {
-                    const btn = document.querySelector(
-                        `button[data-index="${index}"]`,
-                    );
+                navigator.clipboard.writeText(el.textContent).then(function () {
                     btn.innerHTML = "✅ Copied!";
                     btn.classList.add("copied");
-                    setTimeout(() => {
+                    setTimeout(function () {
                         btn.innerHTML = "📋 Copy to Clipboard";
                         btn.classList.remove("copied");
                     }, 2000);
                 });
             }
 
-            function escapeHtml(text) {
-                const div = document.createElement("div");
-                div.textContent = text;
-                return div.innerHTML;
+            function escapeHtml(str) {
+                var d = document.createElement("div");
+                d.textContent = str;
+                return d.innerHTML;
             }
         </script>
     </body>
