@@ -3112,6 +3112,7 @@
         document.getElementById('formatterView').classList.remove('visible');
         document.getElementById('trackerView').classList.remove('visible');
         document.getElementById('instantlyView').classList.remove('visible');
+        document.getElementById('queueView').classList.remove('visible');
         document.getElementById('scannerView').classList.add('visible');
         document.getElementById('tenderView').style.display = 'none';
         document.getElementById('selectionBar').style.display = 'none';
@@ -3217,6 +3218,151 @@
           btn.disabled = false;
           btn.textContent = '📋 Push to Sheets';
         }
+      }
+
+      // =====================================================================
+      // BUFFER QUEUE
+      // =====================================================================
+
+      function showQueue() {
+        currentView = 'queue';
+        document.getElementById('formatterView').classList.remove('visible');
+        document.getElementById('trackerView').classList.remove('visible');
+        document.getElementById('instantlyView').classList.remove('visible');
+        document.getElementById('scannerView').classList.remove('visible');
+        document.getElementById('queueView').classList.add('visible');
+        document.getElementById('tenderView').style.display = 'none';
+        document.getElementById('selectionBar').style.display = 'none';
+        document.getElementById('topTitle').textContent = 'Buffer Queue';
+        document.getElementById('topCount').textContent = '';
+        document.getElementById('formatterNav').classList.remove('active');
+        document.getElementById('trackerNav').classList.remove('active');
+        document.getElementById('instantlyNav').classList.remove('active');
+        document.getElementById('scannerNav').classList.remove('active');
+        document.getElementById('queueNav').classList.add('active');
+        document.querySelectorAll('.cat-item').forEach(function(el) { el.classList.remove('active'); });
+        loadQueue();
+      }
+
+      async function loadQueue() {
+        var cols = document.getElementById('queueColumns');
+        cols.innerHTML = '<div style="grid-column:1/-1;padding:48px;text-align:center;color:var(--text-muted);">Loading queue...</div>';
+        try {
+          var res = await fetch('/api/buffer/queue');
+          var data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Failed to load queue');
+          cols.innerHTML = '';
+          data.channels.forEach(function(ch) {
+            cols.appendChild(renderQueueCol(ch));
+          });
+        } catch (e) {
+          cols.innerHTML = '<div style="grid-column:1/-1;padding:48px;text-align:center;color:var(--coral);">⚠️ ' + e.message + '</div>';
+        }
+      }
+
+      function renderQueueCol(ch) {
+        var col = document.createElement('div');
+        col.className = 'queue-col';
+
+        var head = document.createElement('div');
+        head.className = 'queue-col-head';
+        head.innerHTML =
+          '<span class="queue-col-badge ' + ch.key + '">' + ch.name + '</span>' +
+          '<span class="queue-col-count">' + (ch.posts ? ch.posts.length : 0) + ' scheduled</span>';
+        col.appendChild(head);
+
+        var body = document.createElement('div');
+        body.className = 'queue-col-body';
+
+        if (ch.error) {
+          body.innerHTML = '<div class="queue-empty">⚠️ ' + escHtml(ch.error) + '</div>';
+        } else if (!ch.posts || ch.posts.length === 0) {
+          body.innerHTML = '<div class="queue-empty">No scheduled posts</div>';
+        } else {
+          ch.posts.forEach(function(post) {
+            body.appendChild(renderQueueCard(post, ch.key));
+          });
+        }
+
+        col.appendChild(body);
+        return col;
+      }
+
+      function renderQueueCard(post, channelKey) {
+        var card = document.createElement('div');
+        card.className = 'queue-card';
+
+        var scheduledAt = post.scheduledAt ? new Date(post.scheduledAt) : null;
+        var timeStr = scheduledAt ? formatQueueTime(scheduledAt) : 'Unscheduled';
+        var isPast = scheduledAt && scheduledAt < new Date();
+
+        var text = (post.content && post.content.text) ? post.content.text : '';
+        var firstLine = text.split('\n').find(function(l) { return l.trim(); }) || 'Untitled post';
+        if (firstLine.length > 72) firstLine = firstLine.substring(0, 69) + '...';
+
+        var previewId = 'qpv_' + post.id.replace(/[^a-z0-9]/gi, '_');
+
+        card.innerHTML =
+          '<div class="queue-card-time' + (isPast ? ' past' : '') + '">' + escHtml(timeStr) + '</div>' +
+          '<div class="queue-card-title">' + escHtml(firstLine) + '</div>' +
+          '<div class="queue-card-actions">' +
+            '<button class="btn-queue-view" onclick="toggleQueuePreview(\'' + previewId + '\', this)">▾ View</button>' +
+            '<button class="btn-queue-del" onclick="deleteQueuePost(\'' + escHtml(post.id) + '\', this)">✕ Delete</button>' +
+          '</div>' +
+          '<div class="queue-card-preview" id="' + previewId + '">' + escHtml(text) + '</div>';
+
+        return card;
+      }
+
+      function toggleQueuePreview(id, btn) {
+        var el = document.getElementById(id);
+        if (el.classList.toggle('open')) {
+          btn.textContent = '▴ Hide';
+        } else {
+          btn.textContent = '▾ View';
+        }
+      }
+
+      async function deleteQueuePost(postId, btn) {
+        if (!confirm('Delete this scheduled post?')) return;
+        btn.disabled = true;
+        btn.textContent = '...';
+        try {
+          var res = await fetch('/api/buffer/post/' + encodeURIComponent(postId), { method: 'DELETE' });
+          var data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Delete failed');
+          var card = btn.closest('.queue-card');
+          card.style.opacity = '0';
+          card.style.transition = 'opacity 0.2s';
+          setTimeout(function() {
+            var body = card.parentElement;
+            card.remove();
+            var col = body.closest('.queue-col');
+            var remaining = body.querySelectorAll('.queue-card').length;
+            col.querySelector('.queue-col-count').textContent = remaining + ' scheduled';
+            if (remaining === 0) body.innerHTML = '<div class="queue-empty">No scheduled posts</div>';
+          }, 220);
+          showToast('Post deleted', 'success');
+        } catch (e) {
+          btn.disabled = false;
+          btn.textContent = '✕ Delete';
+          showToast('Delete failed: ' + e.message, 'error');
+        }
+      }
+
+      function formatQueueTime(date) {
+        var now = new Date();
+        var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        var tomorrow = new Date(today.getTime() + 86400000);
+        var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        var timeStr = date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
+        if (d.getTime() === today.getTime()) return 'Today, ' + timeStr;
+        if (d.getTime() === tomorrow.getTime()) return 'Tomorrow, ' + timeStr;
+        return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + timeStr;
+      }
+
+      function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
       }
 
       var toastT;

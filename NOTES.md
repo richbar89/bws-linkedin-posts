@@ -45,6 +45,11 @@ Pull latest, then click **Deploy** in Replit UI.
 
 ---
 
+## Deployment Notes
+- Replit `[env]` section in `.replit` is **dev only** — deployment uses **Secrets** exclusively
+- Root cause of past deployment failures: Replit's local `package.json` was an older version missing `@anthropic-ai/sdk` and `node-cron`. Fixed by Replit agent running `npm install`. Always pull from git before deploying to avoid this.
+- **Always run `git stash -u && git pull origin main` before deploying**
+
 ## Recent Changes
 | Date | Change |
 |------|--------|
@@ -55,3 +60,4 @@ Pull latest, then click **Deploy** in Replit UI.
 | 31 Mar 2026 | Fixed deployment: removed duplicate port 3000, switched run command to `npm start` |
 | 31 Mar 2026 | Committed missing files that were crashing deployment (agents/, generate-posts.js, etc.) |
 | 31 Mar 2026 | Added Buffer Queue dashboard (server endpoints + UI shell — JS in progress) |
+| 31 Mar 2026 | Deployment fixed — Replit local package.json was stale/missing deps; now synced via git |

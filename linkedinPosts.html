@@ -1,525 +1,1276 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>LinkedIn Posts Generator - Bid Writing Service</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LinkedIn Post Generator — Bid Writing Service</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
 
-            body {
-                font-family:
-                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                    Oxygen, Ubuntu, Cantarell, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-                padding: 20px;
-            }
+      :root {
+        --cream: #faf9f6;
+        --warm-white: #fffef9;
+        --sand: #f4e9d8;
+        --peach: #ffe4d6;
+        --coral: #ff9b85;
+        --terracotta: #e07856;
+        --clay: #c86a4d;
+        --brown: #8b5a3c;
+        --deep-brown: #5c4033;
+        --sage: #9caf88;
+        --olive: #718f68;
+        --sky: #b8d4e8;
+        --ocean: #6b9bc3;
+        --purple: #a685c7;
+        --lavender: #d4c5e8;
+        --gold: #d4a574;
 
-            .container {
-                max-width: 1200px;
-                margin: 0 auto;
-            }
+        --text-primary: #2d2416;
+        --text-secondary: #5c4a3c;
+        --text-muted: #8b7b6d;
 
-            .header {
-                background: white;
-                padding: 30px;
-                border-radius: 15px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                margin-bottom: 30px;
-                text-align: center;
-            }
+        --radius: 16px;
+        --radius-lg: 24px;
+        --shadow-sm: 0 2px 8px rgba(45, 36, 22, 0.06);
+        --shadow: 0 4px 16px rgba(45, 36, 22, 0.08);
+        --shadow-lg: 0 8px 32px rgba(45, 36, 22, 0.12);
+      }
 
-            .header h1 {
-                color: #333;
-                font-size: 32px;
-                margin-bottom: 10px;
-            }
+      html {
+        font-size: 16px;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: linear-gradient(135deg, var(--cream) 0%, var(--sand) 100%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        display: flex;
+        overflow: hidden;
+        line-height: 1.6;
+      }
 
-            .header p {
-                color: #666;
-                font-size: 16px;
-            }
+      /* SIDEBAR */
+      .sidebar {
+        width: 280px;
+        min-width: 280px;
+        background: var(--warm-white);
+        border-right: 2px solid var(--sand);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+      }
 
-            .controls {
-                background: white;
-                padding: 25px;
-                border-radius: 15px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                margin-bottom: 30px;
-            }
+      .sidebar-header {
+        padding: 32px 24px 24px;
+        border-bottom: 2px solid var(--peach);
+        background: linear-gradient(
+          180deg,
+          var(--warm-white) 0%,
+          var(--cream) 100%
+        );
+      }
 
-            .control-group {
-                display: flex;
-                gap: 20px;
-                align-items: center;
-                flex-wrap: wrap;
-            }
+      .sidebar-header .logo {
+        font-family: "Fraunces", serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--terracotta);
+        letter-spacing: -0.5px;
+      }
 
-            .control-group label {
-                font-weight: 600;
-                color: #333;
-                font-size: 16px;
-            }
+      .sidebar-header .logo span {
+        color: var(--ocean);
+      }
 
-            .control-group select {
-                flex: 1;
-                min-width: 250px;
-                padding: 12px 20px;
-                border: 2px solid #e0e0e0;
-                border-radius: 8px;
-                font-size: 16px;
-                background: white;
-                cursor: pointer;
-                transition: border-color 0.3s;
-            }
+      .sidebar-header .subtitle {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 6px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-weight: 500;
+      }
 
-            .control-group select:hover {
-                border-color: #667eea;
-            }
+      .sidebar-section-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 20px 24px 8px;
+      }
 
-            .control-group select:focus {
-                outline: none;
-                border-color: #667eea;
-            }
+      .cat-list {
+        padding: 0 12px;
+        overflow-y: auto;
+        flex: 1;
+      }
 
-            .stats {
-                display: flex;
-                gap: 20px;
-                margin-top: 15px;
-                flex-wrap: wrap;
-            }
+      .cat-list::-webkit-scrollbar {
+        width: 6px;
+      }
+      .cat-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .cat-list::-webkit-scrollbar-thumb {
+        background: var(--sand);
+        border-radius: 3px;
+      }
 
-            .stat {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 15px 25px;
-                border-radius: 10px;
-                text-align: center;
-                flex: 1;
-                min-width: 150px;
-            }
+      .cat-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+        margin-bottom: 4px;
+      }
 
-            .stat-number {
-                font-size: 32px;
-                font-weight: bold;
-                display: block;
-            }
+      .cat-item:hover {
+        background: var(--peach);
+        transform: translateX(4px);
+      }
 
-            .stat-label {
-                font-size: 14px;
-                opacity: 0.9;
-                margin-top: 5px;
-            }
+      .cat-item.active {
+        background: linear-gradient(
+          135deg,
+          var(--coral) 0%,
+          var(--terracotta) 100%
+        );
+        border-color: var(--clay);
+        box-shadow: var(--shadow-sm);
+      }
 
-            .loading {
-                background: white;
-                padding: 60px;
-                border-radius: 15px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                text-align: center;
-                display: none;
-            }
+      .cat-item.active .cat-name {
+        color: white;
+        font-weight: 600;
+      }
 
-            .loading.show {
-                display: block;
-            }
+      .cat-item.active .cat-count {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+      }
 
-            .spinner {
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid #667eea;
-                border-radius: 50%;
-                width: 50px;
-                height: 50px;
-                animation: spin 1s linear infinite;
-                margin: 0 auto 20px;
-            }
+      .cat-icon {
+        font-size: 20px;
+        width: 24px;
+        text-align: center;
+      }
 
-            @keyframes spin {
-                0% {
-                    transform: rotate(0deg);
-                }
-                100% {
-                    transform: rotate(360deg);
-                }
-            }
+      .cat-name {
+        font-size: 14px;
+        color: var(--text-secondary);
+        flex: 1;
+        font-weight: 500;
+      }
 
-            .posts-container {
-                display: none;
-            }
+      .cat-count {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        background: var(--sand);
+        padding: 4px 10px;
+        border-radius: 20px;
+      }
 
-            .posts-container.show {
-                display: block;
-            }
+      .sidebar-footer {
+        padding: 16px;
+        border-top: 2px solid var(--peach);
+        background: var(--cream);
+      }
 
-            .post-card {
-                background: white;
-                border-radius: 15px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                margin-bottom: 25px;
-                overflow: hidden;
-                transition:
-                    transform 0.3s,
-                    box-shadow 0.3s;
-            }
+      .btn-refresh {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, var(--sage) 0%, var(--olive) 100%);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: "Poppins", sans-serif;
+        box-shadow: var(--shadow-sm);
+      }
 
-            .post-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-            }
+      .btn-refresh:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
 
-            .post-header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 20px 25px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
+      /* MAIN */
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
 
-            .post-number {
-                font-size: 14px;
-                opacity: 0.9;
-            }
+      /* Top bar */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 32px;
+        background: var(--warm-white);
+        border-bottom: 2px solid var(--peach);
+        box-shadow: var(--shadow-sm);
+      }
 
-            .post-sector {
-                font-size: 18px;
-                font-weight: 600;
-            }
+      .topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
 
-            .post-meta {
-                font-size: 13px;
-                opacity: 0.8;
-            }
+      .topbar-left h1 {
+        font-family: "Fraunces", serif;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--terracotta);
+      }
 
-            .post-content {
-                padding: 25px;
-            }
+      .topbar-count {
+        font-size: 12px;
+        color: var(--text-muted);
+        background: var(--peach);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 600;
+      }
 
-            .post-text {
-                font-family: "Segoe UI", Arial, sans-serif;
-                line-height: 1.8;
-                white-space: pre-wrap;
-                background: #f8f9fa;
-                padding: 20px;
-                border-radius: 8px;
-                border-left: 4px solid #667eea;
-                color: #333;
-                font-size: 15px;
-                margin-bottom: 20px;
-            }
+      /* Selection bar */
+      .selection-bar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 32px;
+        background: linear-gradient(
+          135deg,
+          var(--lavender) 0%,
+          var(--sky) 100%
+        );
+        border-bottom: 2px solid var(--purple);
+      }
 
-            .post-actions {
-                display: flex;
-                gap: 15px;
-            }
+      .selection-bar.visible {
+        display: flex;
+      }
 
-            .btn {
-                padding: 12px 24px;
-                border: none;
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
+      .selection-bar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
 
-            .btn-copy {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                flex: 1;
-            }
+      .selection-bar-left span {
+        font-size: 15px;
+        color: var(--deep-brown);
+        font-weight: 700;
+      }
 
-            .btn-copy:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-            }
+      .btn-clear {
+        font-size: 13px;
+        color: var(--text-secondary);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        padding: 4px 8px;
+        text-decoration: underline;
+      }
 
-            .btn-copy.copied {
-                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            }
+      .btn-clear:hover {
+        color: var(--text-primary);
+      }
 
-            .btn-link {
-                background: #f3f4f6;
-                color: #667eea;
-            }
+      .btn-generate {
+        padding: 12px 28px;
+        background: linear-gradient(
+          135deg,
+          var(--coral) 0%,
+          var(--terracotta) 100%
+        );
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: var(--shadow);
+      }
 
-            .btn-link:hover {
-                background: #e5e7eb;
-            }
+      .btn-generate:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
 
-            .empty-state {
-                background: white;
-                padding: 60px;
-                border-radius: 15px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-                text-align: center;
-                display: none;
-            }
+      .btn-generate:active {
+        transform: scale(0.98);
+      }
 
-            .empty-state.show {
-                display: block;
-            }
+      .btn-generate:disabled {
+        background: var(--sand);
+        color: var(--text-muted);
+        cursor: not-allowed;
+        box-shadow: none;
+      }
 
-            .empty-state h3 {
-                color: #333;
-                font-size: 24px;
-                margin-bottom: 10px;
-            }
+      .btn-generate .spinner {
+        display: none;
+      }
+      .btn-generate.loading .spinner {
+        display: inline-block;
+      }
+      .btn-generate.loading .btn-label {
+        display: none;
+      }
 
-            .empty-state p {
-                color: #666;
-                font-size: 16px;
-            }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-            .back-link {
-                display: inline-block;
-                background: white;
-                color: #667eea;
-                padding: 12px 24px;
-                border-radius: 8px;
-                text-decoration: none;
-                font-weight: 600;
-                margin-bottom: 20px;
-                transition: all 0.3s;
-            }
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
 
-            .back-link:hover {
-                background: #f3f4f6;
-                transform: translateY(-2px);
-            }
+      /* TABLE */
+      .table-wrap {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--cream);
+      }
 
-            @media (max-width: 768px) {
-                .header h1 {
-                    font-size: 24px;
-                }
+      .table-wrap::-webkit-scrollbar {
+        width: 8px;
+      }
+      .table-wrap::-webkit-scrollbar-track {
+        background: var(--sand);
+      }
+      .table-wrap::-webkit-scrollbar-thumb {
+        background: var(--terracotta);
+        border-radius: 4px;
+      }
 
-                .control-group {
-                    flex-direction: column;
-                    align-items: stretch;
-                }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
 
-                .control-group select {
-                    min-width: 100%;
-                }
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--warm-white);
+        box-shadow: var(--shadow-sm);
+      }
 
-                .stats {
-                    flex-direction: column;
-                }
+      thead th {
+        text-align: left;
+        padding: 16px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        font-weight: 700;
+        white-space: nowrap;
+        border-bottom: 2px solid var(--peach);
+      }
 
-                .post-header {
-                    flex-direction: column;
-                    gap: 10px;
-                    align-items: flex-start;
-                }
+      .col-check {
+        width: 50px;
+        text-align: center !important;
+        padding: 0 !important;
+      }
+      .col-cat {
+        width: 140px;
+      }
+      .col-title {
+        width: 24%;
+      }
+      .col-loc {
+        width: 110px;
+      }
+      .col-sum {
+        width: auto;
+      }
+      .col-val {
+        width: 90px;
+      }
+      .col-dead {
+        width: 140px;
+      }
+      .col-act {
+        width: 100px;
+        text-align: right !important;
+      }
 
-                .post-actions {
-                    flex-direction: column;
-                }
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <a href="/" class="back-link">← Back to Tender Scanner</a>
+      tbody tr {
+        border-bottom: 2px solid var(--peach);
+        transition: all 0.2s ease;
+        background: var(--warm-white);
+      }
 
-            <div class="header">
-                <h1>📱 LinkedIn Posts Generator</h1>
-                <p>
-                    Select a sector to view formatted tender posts ready to copy
-                    and paste
-                </p>
-            </div>
+      tbody tr:hover {
+        background: var(--sand);
+        transform: scale(1.002);
+      }
 
-            <div class="controls">
-                <div class="control-group">
-                    <label for="sectorSelect">Select Sector:</label>
-                    <select id="sectorSelect">
-                        <option value="">-- Choose a sector --</option>
-                        <option value="healthcare">🏥 Healthcare</option>
-                        <option value="recruitment">👥 Recruitment</option>
-                        <option value="construction">
-                            🏗️ Construction Work
-                        </option>
-                        <option value="waste">♻️ Waste Management</option>
-                        <option value="gas">🔥 Gas Servicing</option>
-                        <option value="fire">🚒 Fire Safety</option>
-                        <option value="it">💻 IT</option>
-                        <option value="grounds">🌳 Grounds Maintenance</option>
-                        <option value="electrical">
-                            ⚡ Electrical Services
-                        </option>
-                        <option value="education">📚 Education</option>
-                        <option value="me">🔧 M&E</option>
-                        <option value="cleaning">🧹 Cleaning</option>
-                        <option value="architect">📐 Architect</option>
-                        <option value="civileng">🏗️ Civil Engineering</option>
-                        <option value="catering">🍽️ Catering</option>
-                        <option value="security">🔒 Security</option>
-                        <option value="facilities">
-                            🏢 Facilities Management
-                        </option>
-                        <option value="pest">🐛 Pest Control</option>
-                    </select>
-                </div>
+      tbody tr.selected {
+        background: var(--sky);
+      }
 
-                <div class="stats">
-                    <div class="stat">
-                        <span class="stat-number" id="totalPosts">0</span>
-                        <span class="stat-label">Posts Ready</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number" id="withValue">0</span>
-                        <span class="stat-label">With Contract Value</span>
-                    </div>
-                </div>
-            </div>
+      tbody tr.has-post td:first-child {
+        border-left: 4px solid var(--sage);
+      }
 
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Loading posts...</p>
-            </div>
+      tbody td {
+        padding: 16px;
+        vertical-align: top;
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
 
-            <div class="empty-state" id="emptyState">
-                <h3>Select a sector to get started</h3>
-                <p>
-                    Choose a sector from the dropdown above to view
-                    LinkedIn-ready tender posts
-                </p>
-            </div>
+      tbody td.col-check {
+        vertical-align: middle;
+        padding: 0;
+      }
 
-            <div class="posts-container" id="postsContainer">
-                <!-- Posts will be inserted here -->
-            </div>
+      /* Checkbox */
+      .cb {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--coral);
+        border-radius: 6px;
+        background: var(--warm-white);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+      }
+
+      .cb:hover {
+        border-color: var(--terracotta);
+        transform: scale(1.1);
+      }
+
+      .cb:checked {
+        background: linear-gradient(
+          135deg,
+          var(--coral) 0%,
+          var(--terracotta) 100%
+        );
+        border-color: var(--clay);
+      }
+
+      .cb:checked::after {
+        content: "";
+        position: absolute;
+        left: 5px;
+        top: 2px;
+        width: 6px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 3px 3px 0;
+        transform: rotate(45deg);
+      }
+
+      .tender-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .tender-buyer {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .cat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, var(--peach) 0%, var(--sand) 100%);
+        color: var(--terracotta);
+        white-space: nowrap;
+        border: 1px solid var(--coral);
+      }
+
+      .summary-text {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      .val-text,
+      .dead-text {
+        font-size: 13px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .na {
+        color: var(--text-muted);
+        opacity: 0.7;
+      }
+
+      .action-cell {
+        text-align: right;
+      }
+
+      .btn-view {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 2px solid var(--sage);
+        background: var(--warm-white);
+        color: var(--olive);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .btn-view:hover {
+        border-color: var(--olive);
+        background: var(--sage);
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      .btn-view .arrow {
+        transition: transform 0.2s;
+        display: inline-block;
+      }
+
+      .btn-view.open .arrow {
+        transform: rotate(180deg);
+      }
+
+      /* POST PANEL */
+      .post-panel-row {
+        background: var(--peach);
+      }
+
+      .post-panel {
+        display: none;
+      }
+
+      .post-panel.open {
+        display: block;
+      }
+
+      .post-panel-inner {
+        padding: 24px 24px 24px 64px;
+        display: flex;
+        gap: 20px;
+      }
+
+      .post-panel-inner textarea {
+        flex: 1;
+        background: var(--warm-white);
+        border: 2px solid var(--sand);
+        border-radius: var(--radius);
+        color: var(--text-primary);
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        line-height: 1.8;
+        padding: 20px;
+        resize: vertical;
+        min-height: 200px;
+        outline: none;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .post-panel-inner textarea:focus {
+        border-color: var(--coral);
+        box-shadow: var(--shadow);
+      }
+
+      .post-panel-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex-shrink: 0;
+        width: 100px;
+      }
+
+      .btn-action {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 2px solid var(--sand);
+        background: var(--warm-white);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s ease;
+        text-align: center;
+      }
+
+      .btn-action:hover {
+        border-color: var(--coral);
+        color: var(--terracotta);
+        transform: translateY(-2px);
+      }
+
+      .btn-action.copy:hover {
+        border-color: var(--ocean);
+        color: var(--ocean);
+        background: var(--sky);
+      }
+
+      .btn-action.regen:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+        background: var(--sand);
+      }
+
+      .btn-action.del:hover {
+        border-color: var(--coral);
+        color: white;
+        background: var(--coral);
+      }
+
+      .post-panel-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 0 24px 16px 64px;
+        font-weight: 500;
+      }
+
+      /* EMPTY */
+      .empty-row td {
+        text-align: center;
+        padding: 100px 20px;
+        color: var(--text-muted);
+      }
+
+      .empty-row .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .empty-row p {
+        font-size: 15px;
+        max-width: 400px;
+        margin: 0 auto;
+        line-height: 1.7;
+      }
+
+      /* TOAST */
+      .toast {
+        position: fixed;
+        bottom: 32px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--deep-brown);
+        color: white;
+        padding: 16px 28px;
+        border-radius: var(--radius);
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: var(--shadow-lg);
+        transition:
+          transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+          opacity 0.3s;
+        opacity: 0;
+        z-index: 999;
+        pointer-events: none;
+      }
+
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+
+      .toast.success {
+        background: linear-gradient(135deg, var(--sage) 0%, var(--olive) 100%);
+      }
+
+      .toast.error {
+        background: linear-gradient(
+          135deg,
+          var(--coral) 0%,
+          var(--terracotta) 100%
+        );
+      }
+
+      .tender-link {
+        color: var(--ocean);
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .tender-link:hover {
+        text-decoration: underline;
+        color: var(--terracotta);
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">Post<span>Gen</span></div>
+        <div class="subtitle">Bid Writing Service</div>
+      </div>
+      <div class="sidebar-section-label">Filter by Sector</div>
+      <div class="cat-list" id="catList"></div>
+      <div class="sidebar-footer">
+        <button class="btn-refresh" onclick="refreshTenders()">
+          🔄 Refresh Tenders
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <h1 id="topTitle">All Sectors</h1>
+          <span class="topbar-count" id="topCount">—</span>
         </div>
+      </div>
 
-        <script>
-            const sectorSelect = document.getElementById("sectorSelect");
-            const loading = document.getElementById("loading");
-            const emptyState = document.getElementById("emptyState");
-            const postsContainer = document.getElementById("postsContainer");
-            const totalPostsEl = document.getElementById("totalPosts");
-            const withValueEl = document.getElementById("withValue");
+      <div class="selection-bar" id="selectionBar">
+        <div class="selection-bar-left">
+          <span id="selCount">0 selected</span>
+          <button class="btn-clear" onclick="clearSelection()">Clear</button>
+        </div>
+        <button
+          class="btn-generate"
+          id="btnGenerate"
+          onclick="generateSelected()"
+        >
+          <span class="spinner"></span>
+          <span class="btn-label">⚡ Generate Posts</span>
+        </button>
+      </div>
 
-            // Show empty state initially
-            emptyState.classList.add("show");
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-check">
+                <input
+                  type="checkbox"
+                  class="cb"
+                  id="cbAll"
+                  onchange="toggleAll(this)"
+                />
+              </th>
+              <th class="col-cat">Sector</th>
+              <th class="col-title">Title</th>
+              <th class="col-loc">Location</th>
+              <th class="col-sum">Summary</th>
+              <th class="col-val">Value</th>
+              <th class="col-dead">Deadline</th>
+              <th class="col-act">Post</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </main>
 
-            sectorSelect.addEventListener("change", async (e) => {
-                const sector = e.target.value;
+    <div class="toast" id="toast"></div>
 
-                if (!sector) {
-                    postsContainer.classList.remove("show");
-                    emptyState.classList.add("show");
-                    loading.classList.remove("show");
-                    return;
-                }
+    <script>
+      let categories = [];
+      let tenders = [];
+      let selectedCategory = null;
+      let selectedIds = new Set();
+      let postCache = {};
+      let generatedSet = new Set();
 
-                // Show loading
-                loading.classList.add("show");
-                postsContainer.classList.remove("show");
-                emptyState.classList.remove("show");
+      window.addEventListener("DOMContentLoaded", async () => {
+        await loadCategories();
+        await loadTenders();
+      });
 
-                try {
-                    const response = await fetch(
-                        `/api/linkedin-posts/${sector}`,
-                    );
-                    const data = await response.json();
+      async function loadCategories() {
+        try {
+          const res = await fetch("/api/categories");
+          categories = await res.json();
+          renderCategories();
+        } catch (e) {
+          showToast("Failed to load categories", "error");
+        }
+      }
 
-                    // Hide loading
-                    loading.classList.remove("show");
+      function renderCategories() {
+        const el = document.getElementById("catList");
+        el.innerHTML =
+          '<div class="cat-item ' +
+          (selectedCategory === null ? "active" : "") +
+          '" onclick="selectCategory(null)">' +
+          '<span class="cat-icon">📄</span>' +
+          '<span class="cat-name">All Sectors</span>' +
+          '<span class="cat-count">' +
+          categories.reduce((s, c) => s + c.tender_count, 0) +
+          "</span>" +
+          "</div>" +
+          categories
+            .map(function (cat) {
+              return (
+                '<div class="cat-item ' +
+                (selectedCategory === cat.key ? "active" : "") +
+                '" onclick="selectCategory(\'' +
+                cat.key +
+                "')\">" +
+                '<span class="cat-icon">' +
+                cat.icon +
+                "</span>" +
+                '<span class="cat-name">' +
+                cat.name +
+                "</span>" +
+                '<span class="cat-count">' +
+                cat.tender_count +
+                "</span>" +
+                "</div>"
+              );
+            })
+            .join("");
+      }
 
-                    if (data.posts && data.posts.length > 0) {
-                        displayPosts(data.posts, data.sector);
-                        updateStats(data.posts);
-                        postsContainer.classList.add("show");
-                    } else {
-                        emptyState.querySelector("h3").textContent =
-                            `No posts found for ${data.sector}`;
-                        emptyState.querySelector("p").textContent =
-                            "There are currently no active tenders in this sector.";
-                        emptyState.classList.add("show");
-                    }
-                } catch (error) {
-                    console.error("Error:", error);
-                    loading.classList.remove("show");
-                    emptyState.querySelector("h3").textContent =
-                        "Error loading posts";
-                    emptyState.querySelector("p").textContent =
-                        "Please try again or contact support.";
-                    emptyState.classList.add("show");
-                }
-            });
+      async function selectCategory(key) {
+        selectedCategory = key;
+        clearSelection();
+        renderCategories();
+        await loadTenders();
+      }
 
-            function displayPosts(posts, sectorName) {
-                postsContainer.innerHTML = "";
+      async function loadTenders() {
+        const url =
+          "/api/tenders" +
+          (selectedCategory ? "?category=" + selectedCategory : "");
+        try {
+          const res = await fetch(url);
+          tenders = await res.json();
+          document.getElementById("topTitle").textContent = selectedCategory
+            ? (
+                categories.find(function (c) {
+                  return c.key === selectedCategory;
+                }) || {}
+              ).name || selectedCategory
+            : "All Sectors";
+          document.getElementById("topCount").textContent =
+            tenders.length + " tenders";
+          renderTable();
+        } catch (e) {
+          showToast("Failed to load tenders", "error");
+        }
+      }
 
-                posts.forEach((post, index) => {
-                    const postCard = document.createElement("div");
-                    postCard.className = "post-card";
-                    postCard.innerHTML = `
-                    <div class="post-header">
-                        <div>
-                            <div class="post-sector">${sectorName}</div>
-                            <div class="post-meta">Bid Writing Service | ${sectorName}</div>
-                        </div>
-                        <div class="post-number">Post ${index + 1} of ${posts.length}</div>
-                    </div>
-                    <div class="post-content">
-                        <div class="post-text" id="post-${index}">${escapeHtml(post.text)}</div>
-                        <div class="post-actions">
-                            <button class="btn btn-copy" onclick="copyPost(${index})">
-                                📋 Copy to Clipboard
-                            </button>
-                            <button class="btn btn-link" onclick="window.open('${post.tender_url}', '_blank')">
-                                🔗 View Tender
-                            </button>
-                        </div>
-                        <div style="margin-top: 15px; padding: 10px; background: #f0f9ff; border-radius: 6px; font-size: 13px; color: #0369a1;">
-                            💡 <strong>Team Member:</strong> ${post.team_member}
-                        </div>
-                    </div>
-                `;
-                    postsContainer.appendChild(postCard);
-                });
+      function renderTable() {
+        const tbody = document.getElementById("tableBody");
+        if (tenders.length === 0) {
+          tbody.innerHTML =
+            '<tr class="empty-row"><td colspan="8"><div class="empty-icon">📋</div><p>No tenders found from the last 24 hours. Try refreshing or check back later!</p></td></tr>';
+          return;
+        }
+        tbody.innerHTML = tenders
+          .map(function (t) {
+            var hasPost = generatedSet.has(String(t.id));
+            return (
+              '<tr data-tender="' +
+              esc(String(t.id)) +
+              '" class="' +
+              (hasPost ? "has-post" : "") +
+              '">' +
+              '<td class="col-check"><input type="checkbox" class="cb row-cb" data-id="' +
+              esc(String(t.id)) +
+              '" onchange="toggleRow(this)" /></td>' +
+              '<td class="col-cat"><span class="cat-badge">' +
+              t.category_icon +
+              " " +
+              esc(t.category_name) +
+              "</span></td>" +
+              '<td class="col-title">' +
+              '<div class="tender-title">' +
+              esc(t.title) +
+              "</div>" +
+              '<div class="tender-buyer">' +
+              esc(t.buyer_name || "") +
+              "</div>" +
+              '<a href="' +
+              esc(t.tender_url) +
+              '" target="_blank" class="tender-link">View on Find-a-Tender ↗</a>' +
+              "</td>" +
+              '<td class="col-loc">' +
+              esc(t.location) +
+              "</td>" +
+              '<td class="col-sum"><span class="summary-text">' +
+              esc(t.summary) +
+              "</span></td>" +
+              '<td class="col-val"><span class="val-text ' +
+              (t.value === "N/A" ? "na" : "") +
+              '">' +
+              esc(t.value) +
+              "</span></td>" +
+              '<td class="col-dead"><span class="dead-text ' +
+              (t.deadline === "N/A" ? "na" : "") +
+              '">' +
+              esc(t.deadline) +
+              "</span></td>" +
+              '<td class="col-act action-cell">' +
+              '<button class="btn-view' +
+              (hasPost ? "" : " no-post") +
+              '" onclick="togglePanel(\'' +
+              esc(String(t.id)) +
+              "', this)\">" +
+              (hasPost ? "📝 View" : "—") +
+              ' <span class="arrow">▼</span>' +
+              "</button>" +
+              "</td>" +
+              "</tr>" +
+              '<tr class="post-panel-row" style="display:none;" data-panel="' +
+              esc(String(t.id)) +
+              '">' +
+              '<td colspan="8" style="padding:0;">' +
+              '<div class="post-panel" id="panel-' +
+              esc(String(t.id)) +
+              '">' +
+              '<div class="post-panel-inner">' +
+              '<textarea id="ta-' +
+              esc(String(t.id)) +
+              '" onblur="savePostText(\'' +
+              esc(String(t.id)) +
+              "')\">Loading...</textarea>" +
+              '<div class="post-panel-actions">' +
+              '<button class="btn-action copy" onclick="copyPost(\'' +
+              esc(String(t.id)) +
+              "')\">📋 Copy</button>" +
+              '<button class="btn-action regen" onclick="regenPost(\'' +
+              esc(String(t.id)) +
+              "')\">🔄 Regen</button>" +
+              '<button class="btn-action del" onclick="deletePost(\'' +
+              esc(String(t.id)) +
+              "')\">🗑️ Delete</button>" +
+              "</div>" +
+              "</div>" +
+              '<div class="post-panel-meta" id="meta-' +
+              esc(String(t.id)) +
+              '"></div>' +
+              "</div>" +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+      }
+
+      function toggleRow(cb) {
+        var id = cb.dataset.id;
+        if (cb.checked) {
+          selectedIds.add(id);
+        } else {
+          selectedIds.delete(id);
+        }
+        cb.closest("tr").classList.toggle("selected", cb.checked);
+        updateSelectionUI();
+      }
+
+      function toggleAll(cb) {
+        tenders.forEach(function (t) {
+          if (cb.checked) {
+            selectedIds.add(String(t.id));
+          } else {
+            selectedIds.delete(String(t.id));
+          }
+        });
+        document.querySelectorAll(".row-cb").forEach(function (c) {
+          c.checked = cb.checked;
+        });
+        document
+          .querySelectorAll("tbody tr[data-tender]")
+          .forEach(function (r) {
+            r.classList.toggle("selected", cb.checked);
+          });
+        updateSelectionUI();
+      }
+
+      function clearSelection() {
+        selectedIds.clear();
+        document.getElementById("cbAll").checked = false;
+        document.querySelectorAll(".row-cb").forEach(function (c) {
+          c.checked = false;
+        });
+        document
+          .querySelectorAll("tbody tr[data-tender]")
+          .forEach(function (r) {
+            r.classList.remove("selected");
+          });
+        updateSelectionUI();
+      }
+
+      function updateSelectionUI() {
+        var bar = document.getElementById("selectionBar");
+        var count = selectedIds.size;
+        if (count > 0) {
+          bar.classList.add("visible");
+          document.getElementById("selCount").textContent = count + " selected";
+        } else {
+          bar.classList.remove("visible");
+        }
+      }
+
+      async function generateSelected() {
+        if (selectedIds.size === 0) return;
+        var btn = document.getElementById("btnGenerate");
+        btn.classList.add("loading");
+        btn.disabled = true;
+        try {
+          var ids = Array.from(selectedIds);
+          var res = await fetch("/api/generate-posts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tender_ids: ids }),
+          });
+          if (!res.ok) {
+            var err = await res.json();
+            showToast(err.error || "Generation failed", "error");
+            return;
+          }
+          var data = await res.json();
+          showToast(
+            "Generated " +
+              data.generated_count +
+              " post" +
+              (data.generated_count === 1 ? "" : "s"),
+            "success",
+          );
+
+          data.posts.forEach(function (post) {
+            generatedSet.add(String(post.tender_id));
+            postCache[String(post.tender_id)] = post;
+            var btn = document.querySelector(
+              '[data-tender="' + post.tender_id + '"] .btn-view',
+            );
+            if (btn) {
+              btn.classList.remove("no-post");
+              btn.innerHTML = '📝 View <span class="arrow">▼</span>';
             }
+            var row = document.querySelector(
+              '[data-tender="' + post.tender_id + '"]',
+            );
+            if (row) row.classList.add("has-post");
+          });
+        } catch (e) {
+          showToast("Network error", "error");
+        } finally {
+          btn.classList.remove("loading");
+          btn.disabled = false;
+        }
+      }
 
-            function updateStats(posts) {
-                totalPostsEl.textContent = posts.length;
-                const withValueCount = posts.filter(
-                    (p) => !p.text.includes("Value TBC"),
-                ).length;
-                withValueEl.textContent = withValueCount;
+      async function togglePanel(tenderId, btn) {
+        var panelRow = document.querySelector(
+          '[data-panel="' + tenderId + '"]',
+        );
+        var panel = document.getElementById("panel-" + tenderId);
+        var isOpen = panel.classList.contains("open");
+
+        if (isOpen) {
+          panel.classList.remove("open");
+          panelRow.style.display = "none";
+          btn.classList.remove("open");
+          return;
+        }
+
+        panel.classList.add("open");
+        panelRow.style.display = "table-row";
+        btn.classList.add("open");
+
+        var ta = document.getElementById("ta-" + tenderId);
+        var meta = document.getElementById("meta-" + tenderId);
+
+        if (postCache[tenderId] && postCache[tenderId].post_text) {
+          ta.value = postCache[tenderId].post_text;
+          meta.textContent =
+            "👤 " +
+            (postCache[tenderId].team_member || "—") +
+            "  ·  Generated " +
+            fmtDate(postCache[tenderId].generated_at);
+          return;
+        }
+
+        try {
+          var res = await fetch("/api/posts/by-tender/" + tenderId);
+          if (res.ok) {
+            var post = await res.json();
+            postCache[tenderId] = post;
+            ta.value = post.post_text;
+            meta.textContent =
+              "👤 " +
+              (post.team_member || "—") +
+              "  ·  Generated " +
+              fmtDate(post.generated_at);
+          } else {
+            ta.value = "No post yet. Select this tender and hit Generate.";
+            ta.disabled = true;
+          }
+        } catch (e) {
+          ta.value = "Error loading post.";
+        }
+      }
+
+      async function savePostText(tenderId) {
+        var post = postCache[tenderId];
+        if (!post || !post.id) return;
+        var text = document.getElementById("ta-" + tenderId).value;
+        await fetch("/api/posts/" + post.id, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ post_text: text }),
+        });
+      }
+
+      async function copyPost(tenderId) {
+        var ta = document.getElementById("ta-" + tenderId);
+        navigator.clipboard.writeText(ta.value).then(function () {
+          showToast("Copied to clipboard", "success");
+        });
+      }
+
+      async function regenPost(tenderId) {
+        showToast("Regenerating...", "success");
+        try {
+          var res = await fetch("/api/generate-posts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tender_ids: [tenderId] }),
+          });
+          if (res.ok) {
+            var data = await res.json();
+            if (data.posts.length > 0) {
+              postCache[tenderId] = data.posts[0];
+              document.getElementById("ta-" + tenderId).value =
+                data.posts[0].post_text;
+              showToast("Post regenerated", "success");
             }
+          } else {
+            var err = await res.json();
+            showToast(err.error || "Regen failed", "error");
+          }
+        } catch (e) {
+          showToast("Network error", "error");
+        }
+      }
 
-            function copyPost(index) {
-                const postText = document.getElementById(
-                    `post-${index}`,
-                ).textContent;
-                navigator.clipboard.writeText(postText).then(() => {
-                    const btn = event.target;
-                    const originalText = btn.innerHTML;
-                    btn.innerHTML = "✅ Copied!";
-                    btn.classList.add("copied");
+      async function deletePost(tenderId) {
+        var post = postCache[tenderId];
+        if (!post || !post.id) return;
+        if (!confirm("Delete this post?")) return;
+        await fetch("/api/posts/" + post.id, { method: "DELETE" });
+        delete postCache[tenderId];
+        generatedSet.delete(tenderId);
+        var panelRow = document.querySelector(
+          '[data-panel="' + tenderId + '"]',
+        );
+        var panel = document.getElementById("panel-" + tenderId);
+        if (panel) panel.classList.remove("open");
+        if (panelRow) panelRow.style.display = "none";
+        var btn = document.querySelector(
+          '[data-tender="' + tenderId + '"] .btn-view',
+        );
+        if (btn) {
+          btn.classList.add("no-post");
+          btn.classList.remove("open");
+          btn.innerHTML = '— <span class="arrow">▼</span>';
+        }
+        var row = document.querySelector('[data-tender="' + tenderId + '"]');
+        if (row) row.classList.remove("has-post");
+        showToast("Post deleted", "success");
+      }
 
-                    setTimeout(() => {
-                        btn.innerHTML = originalText;
-                        btn.classList.remove("copied");
-                    }, 2000);
-                });
-            }
+      async function refreshTenders() {
+        showToast("Refreshing...", "success");
+        try {
+          var res = await fetch("/api/refresh-tenders", { method: "POST" });
+          if (res.ok) {
+            showToast("Tenders refreshed", "success");
+            await loadCategories();
+            await loadTenders();
+          } else {
+            showToast("Refresh failed", "error");
+          }
+        } catch (e) {
+          showToast("Network error", "error");
+        }
+      }
 
-            function escapeHtml(text) {
-                const div = document.createElement("div");
-                div.textContent = text;
-                return div.innerHTML;
-            }
-        </script>
-    </body>
+      function esc(s) {
+        var d = document.createElement("div");
+        d.appendChild(document.createTextNode(String(s || "")));
+        return d.innerHTML;
+      }
+
+      function fmtDate(iso) {
+        if (!iso) return "—";
+        return new Date(iso).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      var toastT;
+      function showToast(msg, type) {
+        var el = document.getElementById("toast");
+        el.textContent = msg;
+        el.className = "toast " + (type || "success") + " show";
+        clearTimeout(toastT);
+        toastT = setTimeout(function () {
+          el.classList.remove("show");
+        }, 2600);
+      }
+    </script>
+  </body>
 </html>

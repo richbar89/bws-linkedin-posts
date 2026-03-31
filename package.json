@@ -1,7 +1,7 @@
 {
-  "name": "tender-scanner",
-  "version": "1.0.0",
-  "description": "Tender scanning application with manual refresh",
+  "name": "linkedin-post-generator",
+  "version": "2.0.0",
+  "description": "Automated LinkedIn post generator from Find-a-Tender API",
   "main": "server.js",
   "scripts": {
     "build": "echo 'No build step required'",
@@ -9,10 +9,15 @@
     "start-all": "node server.js",
     "dev": "node server.js",
     "setup": "node setup-database.js",
-    "fetch": "node fetch-and-save-tenders.js"
+    "fetch": "node fetch-last-24-hours.js",
+    "fetch-24h": "node fetch-last-24-hours.js",
+    "diagnose": "node quick-diagnostic.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.72.1",
     "express": "^5.1.0",
+    "node-cron": "^3.0.3",
+"openai": "^4.0.0",
     "pg": "^8.16.3"
   },
   "engines": {

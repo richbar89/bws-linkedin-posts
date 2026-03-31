@@ -1,0 +1,8 @@
+node_modules/
+.config/
+.local/
+.cache/
+dist/
+*.log
+.env
+package-lock.json
