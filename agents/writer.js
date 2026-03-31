@@ -3,8 +3,6 @@
 // and generates a formatted LinkedIn post via Claude
 
 const Anthropic = require("@anthropic-ai/sdk");
-const https = require("https");
-const http = require("http");
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -84,24 +82,19 @@ function buildSignoff() {
   return signoff + "\n\n" + verb + " " + nameStr + " today!";
 }
 
-function fetchUrl(url) {
-  return new Promise((resolve, reject) => {
-    const mod = url.startsWith("https") ? https : http;
-    mod
-      .get(url, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
-        if (res.statusCode < 200 || res.statusCode >= 300) {
-          res.resume();
-          return reject(new Error(`HTTP ${res.statusCode}`));
-        }
-        let data = "";
-        res.on("data", (chunk) => {
-          data += chunk;
-        });
-        res.on("end", () => resolve(data));
-        res.on("error", reject);
-      })
-      .on("error", reject);
+async function fetchUrl(url) {
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-GB,en;q=0.9",
+    },
+    signal: AbortSignal.timeout(15000),
   });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.text();
 }
 
 function stripHtml(html) {

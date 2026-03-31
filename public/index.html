@@ -1790,8 +1790,8 @@
           </button>
         </div>
         <div>
-          <div class="scanner-result-label" style="margin-bottom:6px;">Page Content <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);">— go to the tender page, select all (Ctrl+A), copy, paste here</span></div>
-          <textarea id="scannerPageContent" class="scanner-post-ta" style="min-height:140px;background:white;" placeholder="Paste the tender page text here..."></textarea>
+          <div class="scanner-result-label" style="margin-bottom:6px;">Page Content <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);">— optional. If the auto-scan misses details, paste the tender page text here (Ctrl+A, copy, paste)</span></div>
+          <textarea id="scannerPageContent" class="scanner-post-ta" style="min-height:100px;background:white;" placeholder="Optional — leave blank to let the scanner fetch automatically"></textarea>
         </div>
         <div class="scanner-result" id="scannerResult">
           <span class="scanner-result-label">Generated Post</span>
@@ -3132,7 +3132,6 @@
         var pageContent = document.getElementById('scannerPageContent').value.trim();
         if (!url) { showToast('Please enter a URL', 'error'); return; }
         if (!/^https?:\/\//i.test(url)) { showToast('URL must start with http:// or https://', 'error'); return; }
-        if (!pageContent) { showToast('Please paste the page content', 'error'); return; }
 
         var btn = document.getElementById('btnScan');
         var label = document.getElementById('btnScanLabel');
