@@ -4,8 +4,9 @@
 
 ### Replit: Pull latest from GitHub
 ```
-git stash -u && git pull origin main
+git fetch origin && git reset --hard origin/main
 ```
+(More reliable than `git stash -u && git pull` — avoids diverged branch errors)
 
 ### Replit: Deploy
 Pull latest, then click **Deploy** in Replit UI.
