@@ -1,2117 +1,3066 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>BWS Tender Scanner</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-
-            body {
-                font-family:
-                    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-                    "Helvetica", "Arial", sans-serif;
-                background: linear-gradient(
-                    135deg,
-                    #ffe5e5 0%,
-                    #ffffff 50%,
-                    #ffd5d5 100%
-                );
-                background-attachment: fixed;
-                color: #1c2541;
-                line-height: 1.6;
-                min-height: 100vh;
-            }
-
-            .container {
-                max-width: 1400px;
-                margin: 0 auto;
-                padding: 40px 60px;
-            }
-
-            /* Header */
-            header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                margin-bottom: 50px;
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-            }
-
-            .header-left h1 {
-                font-size: 48px;
-                font-weight: 700;
-                color: #1c2541;
-                margin-bottom: 10px;
-            }
-
-            .manage-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 14px 20px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                color: #991b1b;
-                cursor: pointer;
-                transition: all 0.2s;
-                text-decoration: none;
-                white-space: nowrap;
-            }
-
-            .manage-btn:hover {
-                background: #fee2e2;
-                border-color: #fca5a5;
-                transform: translateY(-1px);
-            }
-
-            .logo {
-                width: 300px;
-                height: auto;
-            }
-
-            /* Selection Row - Two Cards Side by Side */
-            .selection-row {
-                display: grid;
-                grid-template-columns: 1fr 400px;
-                gap: 24px;
-                margin-bottom: 40px;
-            }
-
-            /* Company Selection */
-            .selection-section {
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-            }
-
-            .selection-content {
-                display: flex;
-                align-items: flex-end;
-                gap: 20px;
-            }
-
-            .selection-group {
-                flex: 1;
-            }
-
-            .selection-label {
-                font-size: 14px;
-                font-weight: 600;
-                color: #1c2541;
-                margin-bottom: 12px;
-                display: block;
-            }
-
-            .company-select-wrapper {
-                position: relative;
-            }
-
-            /* Industry Filter Card */
-            .industry-filter-card {
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                text-align: center;
-            }
-
-            .industry-filter-label {
-                font-size: 14px;
-                font-weight: 600;
-                color: #1c2541;
-                margin-bottom: 16px;
-            }
-
-            .filter-industry-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 14px 24px;
-                background: #dc2626;
-                border: none;
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: 600;
-                color: white;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .filter-industry-btn:hover {
-                background: #b91c1c;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-            }
-
-            /* Industry Categories Section */
-            .industry-categories {
-                display: none;
-                margin-bottom: 40px;
-                margin-top: 60px;
-            }
-
-            .industry-categories.show {
-                display: block;
-            }
-
-            .industries-grid {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 24px;
-            }
-
-            .industry-card {
-                background: white;
-                padding: 40px 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-                cursor: pointer;
-                transition: all 0.3s;
-                text-align: center;
-                border: 3px solid transparent;
-            }
-
-            .industry-card:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
-                border-color: #dc2626;
-            }
-
-            .industry-card.active {
-                border-color: #dc2626;
-                background: #fef2f2;
-            }
-
-            .industry-icon {
-                font-size: 48px;
-                margin-bottom: 16px;
-            }
-
-            .industry-name {
-                font-size: 18px;
-                font-weight: 600;
-                color: #1c2541;
-                margin-bottom: 8px;
-            }
-
-            .industry-count {
-                font-size: 14px;
-                color: #6c757d;
-            }
-
-            .company-select {
-                width: 100%;
-                padding: 14px 16px;
-                font-size: 16px;
-                border: 2px solid #dc2626;
-                border-radius: 8px;
-                background: white;
-                color: #1c2541;
-                cursor: pointer;
-                appearance: none;
-                transition: all 0.2s;
-            }
-
-            .company-select:hover {
-                border-color: #b91c1c;
-            }
-
-            .company-select:focus {
-                outline: none;
-                border-color: #b91c1c;
-                box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-            }
-
-            /* Dashboard Stats Section - Always Visible */
-            .dashboard-section {
-                display: block;
-                margin-bottom: 80px;
-            }
-
-            .stats-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 24px;
-                margin-bottom: 30px;
-            }
-
-            .stat-card {
-                background: white;
-                padding: 40px 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-                transition: all 0.3s;
-                text-align: center;
-            }
-
-            .stat-card:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
-            }
-
-            .stat-value {
-                font-size: 72px;
-                font-weight: 700;
-                color: #dc2626;
-                margin-bottom: 16px;
-                line-height: 1;
-            }
-
-            .stat-label {
-                font-size: 16px;
-                color: #6c757d;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                font-weight: 600;
-            }
-
-            .stat-change {
-                font-size: 13px;
-                color: #059669;
-                margin-top: 12px;
-            }
-
-            .stat-change.negative {
-                color: #dc2626;
-            }
-
-            /* Results Section */
-            .results-section {
-                display: none;
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                margin-bottom: 30px;
-                margin-top: 60px;
-                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
-            }
-
-            .results-section.show {
-                display: block;
-            }
-
-            .results-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-            }
-
-            .reset-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                padding: 8px 16px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
-                border-radius: 6px;
-                font-size: 13px;
-                font-weight: 600;
-                color: #991b1b;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .reset-btn:hover {
-                background: #fee2e2;
-                border-color: #fca5a5;
-                transform: translateY(-1px);
-            }
-
-            .results-count {
-                font-size: 16px;
-                color: #1c2541;
-            }
-
-            .results-meta {
-                font-size: 13px;
-                color: #6c757d;
-            }
-
-            .cpv-info {
-                font-size: 13px;
-                color: #6c757d;
-                margin-bottom: 8px;
-            }
-
-            .filter-info {
-                font-size: 12px;
-                color: #95a5a6;
-            }
-
-            /* Table */
-            .tender-table {
-                width: 100%;
-                background: #fafafa;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            }
-
-            .tender-table table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-
-            .tender-table thead {
-                background: #fef2f2;
-                border-bottom: 2px solid #fecaca;
-            }
-
-            .tender-table th {
-                padding: 12px 16px;
-                text-align: left;
-                font-size: 11px;
-                font-weight: 600;
-                color: #991b1b;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .tender-table td {
-                padding: 14px 16px;
-                border-bottom: 1px solid #f0f0f0;
-                vertical-align: middle;
-                background: white;
-            }
-
-            .tender-table tbody tr {
-                transition: background 0.2s;
-            }
-
-            .tender-table tbody tr:hover {
-                background: #fef2f2 !important;
-            }
-
-            .tender-table tbody tr:hover td {
-                background: transparent;
-            }
-
-            .tender-table tbody tr:last-child td {
-                border-bottom: none;
-            }
-
-            /* Status Badge */
-            .status-badge {
-                display: inline-block;
-                padding: 4px 10px;
-                border-radius: 12px;
-                font-size: 10px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-
-            .status-active {
-                background: #d4edda;
-                color: #155724;
-            }
-
-            .status-planning {
-                background: #fff3cd;
-                color: #856404;
-            }
-
-            .status-planned {
-                background: #cfe2ff;
-                color: #084298;
-            }
-
-            /* Date Display */
-            .date-display {
-                display: inline-block;
-                font-size: 12px;
-                color: #495057;
-                margin-right: 12px;
-            }
-
-            .deadline-display {
-                color: #dc2626;
-                font-weight: 600;
-            }
-
-            /* Title Link */
-            .tender-title {
-                font-size: 14px;
-                font-weight: 500;
-                color: #1c2541;
-                margin-bottom: 2px;
-                display: inline;
-            }
-
-            .tender-buyer {
-                font-size: 12px;
-                color: #6c757d;
-                display: inline;
-                margin-left: 8px;
-            }
-
-            .tender-buyer::before {
-                content: "•";
-                margin-right: 8px;
-                color: #cbd5e0;
-            }
-
-            /* CPV Tags */
-            .cpv-tag {
-                display: inline-block;
-                padding: 4px 10px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
-                border-radius: 4px;
-                font-size: 11px;
-                font-family: "Courier New", monospace;
-                color: #991b1b;
-                margin: 2px;
-            }
-
-            /* View Details Button */
-            .view-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                padding: 8px 16px;
-                background: #dc2626;
-                color: white;
-                text-decoration: none;
-                border-radius: 6px;
-                font-size: 13px;
-                font-weight: 500;
-                transition: all 0.2s;
-                border: none;
-                cursor: pointer;
-                white-space: nowrap;
-            }
-
-            .view-btn:hover {
-                background: #b91c1c;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
-            }
-
-            /* Matching Clients Display */
-            .matching-clients {
-                font-size: 13px;
-                color: #1c2541;
-            }
-
-            .matching-clients-count {
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-                padding: 4px 10px;
-                background: #fef2f2;
-                border: 1px solid #fecaca;
-                border-radius: 6px;
-                font-weight: 600;
-                color: #991b1b;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .matching-clients-count:hover {
-                background: #fee2e2;
-            }
-
-            .matching-clients-list {
-                margin-top: 8px;
-                padding: 8px 0;
-                display: none;
-            }
-
-            .matching-clients-list.show {
-                display: block;
-            }
-
-            .client-match-item {
-                padding: 4px 0;
-                font-size: 12px;
-                color: #6c757d;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .client-match-item::before {
-                content: "✓";
-                color: #059669;
-                margin-right: 6px;
-                font-weight: bold;
-            }
-
-            /* Empty State */
-            .empty-state {
-                text-align: center;
-                padding: 60px 20px;
-                color: #6c757d;
-            }
-
-            .empty-state h3 {
-                font-size: 18px;
-                font-weight: 500;
-                color: #495057;
-                margin-bottom: 8px;
-            }
-
-            .empty-state p {
-                font-size: 14px;
-            }
-
-            /* Loading */
-            .loading {
-                text-align: center;
-                padding: 60px 20px;
-                color: #6c757d;
-                font-size: 14px;
-            }
-
-            /* Manage Companies Section */
-            .manage-section {
-                display: none;
-                background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
-                padding: 40px;
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(127, 29, 29, 0.4);
-                margin-bottom: 40px;
-                margin-top: 60px;
-                border: 3px solid #991b1b;
-            }
-
-            .manage-section.show {
-                display: block;
-            }
-
-            .manage-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 30px;
-                padding-bottom: 20px;
-                border-bottom: 2px solid rgba(254, 202, 202, 0.3);
-            }
-
-            .manage-title {
-                font-size: 24px;
-                font-weight: 600;
-                color: #ffffff;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            }
-
-            .close-btn {
-                padding: 10px 20px;
-                background: rgba(255, 255, 255, 0.95);
-                border: 2px solid #dc2626;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                color: #991b1b;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .close-btn:hover {
-                background: #ffffff;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            }
-
-            .company-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 20px;
-                background: rgba(255, 255, 255, 0.95);
-                border: 2px solid rgba(220, 38, 38, 0.3);
-                border-radius: 8px;
-                margin-bottom: 12px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-            }
-
-            .company-info {
-                flex: 1;
-            }
-
-            .company-name {
-                font-size: 16px;
-                font-weight: 600;
-                color: #1c2541;
-                margin-bottom: 6px;
-            }
-
-            .company-contact {
-                font-size: 13px;
-                color: #6c757d;
-                margin-top: 4px;
-            }
-
-            .company-cpv {
-                font-size: 13px;
-                color: #6c757d;
-                font-family: "Courier New", monospace;
-            }
-
-            .delete-btn {
-                padding: 8px 16px;
-                background: #7f1d1d;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 13px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .delete-btn:hover {
-                background: #991b1b;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            }
-
-            /* Add Company Form */
-            .add-form {
-                display: none;
-                background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
-                padding: 40px;
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(127, 29, 29, 0.4);
-                margin-bottom: 40px;
-                margin-top: 60px;
-                border: 3px solid #991b1b;
-            }
-
-            .add-form.show {
-                display: block;
-            }
-
-            .form-title {
-                font-size: 24px;
-                font-weight: 600;
-                color: #ffffff;
-                margin-bottom: 30px;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            }
-
-            .form-group {
-                margin-bottom: 24px;
-            }
-
-            .form-label {
-                display: block;
-                font-size: 14px;
-                font-weight: 600;
-                color: #ffffff;
-                margin-bottom: 8px;
-            }
-
-            .form-input {
-                width: 100%;
-                padding: 12px 16px;
-                font-size: 15px;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                border-radius: 8px;
-                transition: all 0.2s;
-                background: rgba(255, 255, 255, 0.95);
-            }
-
-            .form-input:focus {
-                outline: none;
-                border-color: #ffffff;
-                box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
-                background: #ffffff;
-            }
-
-            .form-help {
-                font-size: 13px;
-                color: rgba(255, 255, 255, 0.9);
-                margin-top: 6px;
-            }
-
-            .cpv-input-group {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 12px;
-            }
-
-            .cpv-input-group input {
-                flex: 1;
-            }
-
-            .add-cpv-btn {
-                padding: 12px 24px;
-                background: rgba(255, 255, 255, 0.95);
-                border: 2px solid #dc2626;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 600;
-                color: #991b1b;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .add-cpv-btn:hover {
-                background: #ffffff;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            }
-
-            .cpv-tags-list {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                margin-top: 12px;
-            }
-
-            .cpv-tag-removable {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 6px 12px;
-                background: rgba(255, 255, 255, 0.95);
-                border: 2px solid rgba(220, 38, 38, 0.3);
-                border-radius: 6px;
-                font-size: 13px;
-                font-family: "Courier New", monospace;
-            }
-
-            .remove-cpv {
-                background: none;
-                border: none;
-                color: #dc2626;
-                font-size: 18px;
-                font-weight: bold;
-                cursor: pointer;
-                padding: 0;
-                line-height: 1;
-            }
-
-            .form-actions {
-                display: flex;
-                gap: 12px;
-                margin-top: 32px;
-            }
-
-            .submit-btn {
-                padding: 12px 32px;
-                background: #ffffff;
-                color: #991b1b;
-                border: 2px solid #ffffff;
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .submit-btn:hover {
-                background: rgba(255, 255, 255, 0.9);
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            }
-
-            .cancel-btn {
-                padding: 12px 32px;
-                background: rgba(255, 255, 255, 0.2);
-                border: 2px solid rgba(255, 255, 255, 0.5);
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: 600;
-                color: #ffffff;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-            .cancel-btn:hover {
-                background: rgba(255, 255, 255, 0.3);
-                border-color: #ffffff;
-            }
-
-            /* Icon styles */
-            .icon {
-                font-size: 16px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <!-- Header -->
-            <header>
-                <div class="header-left">
-                    <h1>Bid Scanner</h1>
-                </div>
-                <img
-                    src="https://bidwritingservice.com/wp-content/uploads/2023/02/CY-003-BWS-Logo-CYMK-1.png"
-                    alt="BWS Bid Writing Service"
-                    class="logo"
-                />
-            </header>
-
-            <!-- Selection Row: Company Selection + Industry Filter -->
-            <div class="selection-row">
-                <!-- Company Selection Card -->
-                <div class="selection-section">
-                    <div class="selection-content">
-                        <div class="selection-group">
-                            <label class="selection-label" for="companySelect"
-                                >Select Company</label
-                            >
-                            <div class="company-select-wrapper">
-                                <select
-                                    id="companySelect"
-                                    class="company-select"
-                                >
-                                    <option value="">
-                                        -- Choose a company --
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                        <button
-                            onclick="toggleManageCompanies()"
-                            class="manage-btn"
-                        >
-                            <span class="icon">➕</span>
-                            <span>Add New Company</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Industry Filter Card -->
-                <div class="industry-filter-card">
-                    <div class="industry-filter-label">Browse by Industry</div>
-                    <button
-                        onclick="toggleIndustryCategories()"
-                        class="filter-industry-btn"
-                    >
-                        <span>🔍</span>
-                        <span>Filter by Industry</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Manage Companies Section -->
-            <div class="manage-section" id="manageSection">
-                <div class="manage-header">
-                    <h2 class="manage-title">Manage Companies</h2>
-                    <button onclick="toggleManageCompanies()" class="close-btn">
-                        Close
-                    </button>
-                </div>
-                <div style="margin-bottom: 20px">
-                    <button onclick="toggleAddForm()" class="submit-btn">
-                        + Add New Company
-                    </button>
-                </div>
-                <div id="companiesList"></div>
-            </div>
-
-            <!-- Add Company Form -->
-            <div class="add-form" id="addForm">
-                <h2 class="form-title">Add New Company</h2>
-                <form onsubmit="addCompany(event)">
-                    <div class="form-group">
-                        <label class="form-label" for="companyName"
-                            >Company Name *</label
-                        >
-                        <input
-                            type="text"
-                            id="companyName"
-                            class="form-input"
-                            placeholder="e.g., Fire Safety Ltd"
-                            required
-                        />
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="firstName"
-                            >First Name *</label
-                        >
-                        <input
-                            type="text"
-                            id="firstName"
-                            class="form-input"
-                            placeholder="e.g., John"
-                            required
-                        />
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="lastName"
-                            >Last Name *</label
-                        >
-                        <input
-                            type="text"
-                            id="lastName"
-                            class="form-input"
-                            placeholder="e.g., Smith"
-                            required
-                        />
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="email"
-                            >Email Address *</label
-                        >
-                        <input
-                            type="email"
-                            id="email"
-                            class="form-input"
-                            placeholder="e.g., john.smith@company.com"
-                            required
-                        />
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">CPV Codes *</label>
-                        <p class="form-help">
-                            Enter 8-digit CPV codes. Press Enter or click Add
-                            after each code.
-                        </p>
-                        <div class="cpv-input-group">
-                            <input
-                                type="text"
-                                id="cpvInput"
-                                class="form-input"
-                                placeholder="e.g., 45111200"
-                                pattern="[0-9]{8}"
-                                maxlength="8"
-                            />
-                            <button
-                                type="button"
-                                onclick="addCpvCode()"
-                                class="add-cpv-btn"
-                            >
-                                Add Code
-                            </button>
-                        </div>
-                        <div id="cpvTagsList" class="cpv-tags-list"></div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="submit-btn">
-                            Save Company
-                        </button>
-                        <button
-                            type="button"
-                            onclick="toggleAddForm()"
-                            class="cancel-btn"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Dashboard Stats Section -->
-            <div class="dashboard-section" id="dashboardSection">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalTenders">0</div>
-                        <div class="stat-label">Total Active Tenders</div>
-                        <div class="stat-change" id="tendersChange">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-value" id="newThisWeek">0</div>
-                        <div class="stat-label">New This Week</div>
-                        <div class="stat-change" id="newChange">Loading...</div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-value" id="closingSoon">0</div>
-                        <div class="stat-label">Closing in 7 Days</div>
-                        <div class="stat-change" id="urgentChange">
-                            Loading...
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-value" id="companiesTracked">0</div>
-                        <div class="stat-label">Companies Tracked</div>
-                        <div class="stat-change" id="companiesChange">
-                            Active monitoring
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Industry Categories Section - Now dynamically populated -->
-            <div class="industry-categories" id="industryCategories">
-                <div class="industries-grid" id="industriesGrid">
-                    <!-- Industries will be dynamically inserted here in alphabetical order -->
-                </div>
-            </div>
-
-            <!-- Results Section -->
-            <div class="results-section" id="resultsSection">
-                <div class="results-header">
-                    <div>
-                        <div class="results-count" id="resultsCount">
-                            0 matching tenders
-                        </div>
-                        <div class="cpv-info" id="cpvInfo"></div>
-                        <div class="filter-info">
-                            Showing only open tenders (Active, Planning,
-                            Planned)
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 16px">
-                        <button onclick="resetView()" class="reset-btn">
-                            ← Back to Dashboard
-                        </button>
-                        <div class="results-meta" id="resultsMeta">
-                            Refreshed today at
-                            <span id="refreshTime">--:--</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="tender-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 40%">TITLE</th>
-                                <th style="width: 20%">PUBLISHED</th>
-                                <th style="width: 25%">MATCHING CLIENTS</th>
-                                <th style="width: 15%"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="tendersTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LinkedIn Post Generator — Bid Writing Service</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --cream: #faf9f6;
+        --warm-white: #fffef9;
+        --sand: #f4e9d8;
+        --peach: #ffe4d6;
+        --coral: #ff9b85;
+        --terracotta: #e07856;
+        --clay: #c86a4d;
+        --brown: #8b5a3c;
+        --deep-brown: #5c4033;
+        --sage: #9caf88;
+        --olive: #718f68;
+        --sky: #b8d4e8;
+        --ocean: #6b9bc3;
+        --purple: #a685c7;
+        --lavender: #d4c5e8;
+        --gold: #d4a574;
+        --linkedin: #0a66c2;
+
+        --text-primary: #2d2416;
+        --text-secondary: #5c4a3c;
+        --text-muted: #8b7b6d;
+
+        --radius: 16px;
+        --radius-lg: 24px;
+        --shadow-sm: 0 2px 8px rgba(45, 36, 22, 0.06);
+        --shadow: 0 4px 16px rgba(45, 36, 22, 0.08);
+        --shadow-lg: 0 8px 32px rgba(45, 36, 22, 0.12);
+      }
+
+      html {
+        font-size: 16px;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: linear-gradient(135deg, var(--cream) 0%, var(--sand) 100%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        display: flex;
+        overflow: hidden;
+        line-height: 1.6;
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        width: 280px;
+        min-width: 280px;
+        background: var(--warm-white);
+        border-right: 2px solid var(--sand);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+      }
+
+      .sidebar-header {
+        padding: 32px 24px 24px;
+        border-bottom: 2px solid var(--peach);
+        background: linear-gradient(
+          180deg,
+          var(--warm-white) 0%,
+          var(--cream) 100%
+        );
+      }
+
+      .sidebar-header .logo {
+        font-family: "Fraunces", serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--terracotta);
+        letter-spacing: -0.5px;
+      }
+
+      .sidebar-header .logo span {
+        color: var(--ocean);
+      }
+
+      .sidebar-header .subtitle {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 6px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-weight: 500;
+      }
+
+      .sidebar-section-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 20px 24px 8px;
+      }
+
+      .cat-list {
+        padding: 0 12px;
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      .cat-list::-webkit-scrollbar {
+        width: 6px;
+      }
+      .cat-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .cat-list::-webkit-scrollbar-thumb {
+        background: var(--sand);
+        border-radius: 3px;
+      }
+
+      .cat-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+        margin-bottom: 4px;
+      }
+
+      .cat-item:hover {
+        background: var(--peach);
+        transform: translateX(4px);
+      }
+
+      .cat-item.active {
+        background: linear-gradient(
+          135deg,
+          var(--coral) 0%,
+          var(--terracotta) 100%
+        );
+        border-color: var(--clay);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .cat-item.active .cat-name {
+        color: white;
+        font-weight: 600;
+      }
+
+      .cat-item.active .cat-count {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+      }
+
+      .cat-icon {
+        font-size: 20px;
+        width: 24px;
+        text-align: center;
+      }
+
+      .cat-name {
+        font-size: 14px;
+        color: var(--text-secondary);
+        flex: 1;
+        font-weight: 500;
+      }
+
+      .cat-count {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-muted);
+        background: var(--sand);
+        padding: 4px 10px;
+        border-radius: 20px;
+      }
+
+      .sidebar-footer {
+        padding: 16px;
+        border-top: 2px solid var(--peach);
+        background: var(--cream);
+        flex-shrink: 0;
+      }
+
+      .btn-refresh {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, var(--sage) 0%, var(--olive) 100%);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: "Poppins", sans-serif;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .btn-refresh:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      /* MAIN */
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* Top bar */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 32px;
+        background: var(--warm-white);
+        border-bottom: 2px solid var(--peach);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .topbar-left h1 {
+        font-family: "Fraunces", serif;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--terracotta);
+      }
+
+      .topbar-count {
+        font-size: 12px;
+        color: var(--text-muted);
+        background: var(--peach);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 600;
+      }
+
+      /* Selection bar */
+      .selection-bar {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 32px;
+        background: linear-gradient(
+          135deg,
+          var(--lavender) 0%,
+          var(--sky) 100%
+        );
+        border-bottom: 2px solid var(--purple);
+      }
+
+      .selection-bar.visible {
+        display: flex;
+      }
+
+      .selection-bar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .selection-bar-left span {
+        font-size: 15px;
+        color: var(--deep-brown);
+        font-weight: 700;
+      }
+
+      .btn-clear {
+        font-size: 13px;
+        color: var(--text-secondary);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        padding: 4px 8px;
+        text-decoration: underline;
+      }
+
+      .btn-clear:hover {
+        color: var(--text-primary);
+      }
+
+      .btn-generate {
+        padding: 12px 28px;
+        background: linear-gradient(
+          135deg,
+          var(--coral) 0%,
+          var(--terracotta) 100%
+        );
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: var(--shadow);
+      }
+
+      .btn-generate:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .btn-generate:active {
+        transform: scale(0.98);
+      }
+
+      .btn-generate:disabled {
+        background: var(--sand);
+        color: var(--text-muted);
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      .btn-generate .spinner {
+        display: none;
+      }
+      .btn-generate.loading .spinner {
+        display: inline-block;
+      }
+      .btn-generate.loading .btn-label {
+        display: none;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+
+      /* TABLE */
+      .table-wrap {
+        flex: 1;
+        overflow-y: auto;
+        background: var(--cream);
+      }
+
+      .table-wrap::-webkit-scrollbar {
+        width: 8px;
+      }
+      .table-wrap::-webkit-scrollbar-track {
+        background: var(--sand);
+      }
+      .table-wrap::-webkit-scrollbar-thumb {
+        background: var(--terracotta);
+        border-radius: 4px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--warm-white);
+        box-shadow: var(--shadow-sm);
+      }
+
+      thead th {
+        text-align: left;
+        padding: 16px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        font-weight: 700;
+        white-space: nowrap;
+        border-bottom: 2px solid var(--peach);
+      }
+
+      .col-check {
+        width: 50px;
+        text-align: center !important;
+        padding: 0 !important;
+      }
+      .col-cat {
+        width: 140px;
+      }
+      .col-title {
+        width: auto;
+      }
+      .col-loc {
+        width: 110px;
+      }
+      .col-val {
+        width: 90px;
+      }
+      .col-dead {
+        width: 140px;
+      }
+      .col-act {
+        width: 100px;
+        text-align: right !important;
+      }
+
+      tbody tr {
+        border-bottom: 2px solid var(--peach);
+        transition: all 0.2s ease;
+        background: var(--warm-white);
+      }
+
+      tbody tr:hover {
+        background: var(--sand);
+        transform: scale(1.002);
+      }
+
+      tbody tr.selected {
+        background: var(--sky);
+      }
+
+      tbody tr.has-post td:first-child {
+        border-left: 4px solid var(--sage);
+      }
+
+      tbody td {
+        padding: 16px;
+        vertical-align: top;
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+
+      tbody td.col-check {
+        vertical-align: middle;
+        padding: 0;
+      }
+
+      /* Checkbox */
+      .cb {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--coral);
+        border-radius: 6px;
+        background: var(--warm-white);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+      }
+
+      .cb:hover {
+        border-color: var(--terracotta);
+        transform: scale(1.1);
+      }
+
+      .cb:checked {
+        background: linear-gradient(
+          135deg,
+          var(--coral) 0%,
+          var(--terracotta) 100%
+        );
+        border-color: var(--clay);
+      }
+
+      .cb:checked::after {
+        content: "";
+        position: absolute;
+        left: 5px;
+        top: 2px;
+        width: 6px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 3px 3px 0;
+        transform: rotate(45deg);
+      }
+
+      .tender-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .tender-buyer {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .cat-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, var(--peach) 0%, var(--sand) 100%);
+        color: var(--terracotta);
+        white-space: nowrap;
+        border: 1px solid var(--coral);
+      }
+
+      .summary-text {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      .val-text,
+      .dead-text {
+        font-size: 13px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .na {
+        color: var(--text-muted);
+        opacity: 0.7;
+      }
+
+      .action-cell {
+        text-align: right;
+      }
+
+      .btn-view {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 2px solid var(--sage);
+        background: var(--warm-white);
+        color: var(--olive);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .btn-view:hover {
+        border-color: var(--olive);
+        background: var(--sage);
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      .btn-view .arrow {
+        transition: transform 0.2s;
+        display: inline-block;
+      }
+
+      .btn-view.open .arrow {
+        transform: rotate(180deg);
+      }
+
+      /* POST PANEL */
+      .post-panel-row {
+        background: var(--peach);
+      }
+
+      .post-panel {
+        display: none;
+      }
+
+      .post-panel.open {
+        display: block;
+      }
+
+      .post-panel-inner {
+        padding: 24px 24px 24px 64px;
+        display: flex;
+        gap: 20px;
+      }
+
+      .post-panel-inner textarea {
+        flex: 1;
+        background: var(--warm-white);
+        border: 2px solid var(--sand);
+        border-radius: var(--radius);
+        color: var(--text-primary);
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        line-height: 1.8;
+        padding: 20px;
+        resize: vertical;
+        height: 65vh;
+        overflow-y: auto;
+        outline: none;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .post-panel-inner textarea:focus {
+        border-color: var(--coral);
+        box-shadow: var(--shadow);
+      }
+
+      .post-panel-actions-old {
+        display: none;
+      }
+
+      .btn-action {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 2px solid var(--sand);
+        background: var(--warm-white);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s ease;
+        text-align: center;
+      }
+
+      .btn-action:hover {
+        border-color: var(--coral);
+        color: var(--terracotta);
+        transform: translateY(-2px);
+      }
+
+      .btn-action.copy:hover {
+        border-color: var(--ocean);
+        color: var(--ocean);
+        background: var(--sky);
+      }
+
+      .btn-action.linkedin:hover {
+        border-color: var(--linkedin);
+        color: var(--linkedin);
+        background: rgba(10, 102, 194, 0.1);
+      }
+
+      .btn-action.regen:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+        background: var(--sand);
+      }
+
+      .btn-action.del:hover {
+        border-color: var(--coral);
+        color: white;
+        background: var(--coral);
+      }
+
+      .post-panel-meta {
+        font-size: 12px;
+        color: var(--text-muted);
+        padding: 0 24px 16px 64px;
+        font-weight: 500;
+      }
+
+      /* EMPTY */
+      .empty-row td {
+        text-align: center;
+        padding: 100px 20px;
+        color: var(--text-muted);
+      }
+
+      .empty-row .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .empty-row p {
+        font-size: 15px;
+        max-width: 400px;
+        margin: 0 auto;
+        line-height: 1.7;
+      }
+
+      /* TOAST */
+      .toast {
+        position: fixed;
+        bottom: 32px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--deep-brown);
+        color: white;
+        padding: 16px 28px;
+        border-radius: var(--radius);
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: var(--shadow-lg);
+        transition:
+          transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+          opacity 0.3s;
+        opacity: 0;
+        z-index: 999;
+        pointer-events: none;
+      }
+
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+
+      .toast.success {
+        background: linear-gradient(135deg, var(--sage) 0%, var(--olive) 100%);
+      }
+
+      .toast.error {
+        background: linear-gradient(
+          135deg,
+          var(--coral) 0%,
+          var(--terracotta) 100%
+        );
+      }
+
+      .tender-link {
+        color: var(--ocean);
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .tender-link:hover {
+        text-decoration: underline;
+        color: var(--terracotta);
+      }
+
+      /* TOOLS NAV */
+      .sidebar-tools {
+        padding: 0 12px 8px;
+        border-top: 2px solid var(--peach);
+        margin-top: 4px;
+        padding-top: 4px;
+        flex-shrink: 0;
+      }
+
+      .tool-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+        margin-bottom: 2px;
+      }
+
+      .tool-item:hover {
+        background: var(--peach);
+        transform: translateX(4px);
+      }
+
+      .tool-item.active {
+        background: linear-gradient(135deg, var(--ocean) 0%, var(--linkedin) 100%);
+        border-color: var(--ocean);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .tool-item.active .tool-name {
+        color: white;
+        font-weight: 600;
+      }
+
+      .tool-icon { font-size: 17px; width: 22px; text-align: center; }
+      .tool-name { font-size: 13px; color: var(--text-secondary); flex: 1; font-weight: 500; }
+
+
+      /* TENDER SCANNER VIEW */
+      .scanner-view {
+        display: none;
+        flex: 1;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 32px;
+        gap: 20px;
+      }
+      .scanner-view.visible { display: flex; }
+      .scanner-header h2 { margin: 0 0 4px; font-size: 20px; }
+      .scanner-header p { margin: 0; font-size: 13px; color: var(--text-muted); }
+      .scanner-url-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .scanner-url-input {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        background: white;
+        color: var(--text-primary);
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .scanner-url-input:focus { border-color: var(--ocean); }
+      .btn-scan {
+        padding: 10px 22px;
+        background: var(--ocean);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+        transition: opacity 0.15s;
+      }
+      .btn-scan:disabled { opacity: 0.5; cursor: default; }
+      .scanner-result {
+        display: none;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .scanner-result.visible { display: flex; }
+      .scanner-result-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .scanner-post-ta {
+        width: 100%;
+        min-height: 340px;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 13px;
+        line-height: 1.6;
+        resize: vertical;
+        background: #fafff4;
+        box-sizing: border-box;
+        color: var(--text-primary);
+      }
+      .scanner-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .scanner-status {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-left: auto;
+      }
+      .scanner-status.success { color: #2e7d32; }
+      .scanner-status.error { color: var(--coral); }
+      /* FORMATTER VIEW */
+      .formatter-view {
+        display: none;
+        flex: 1;
+        overflow-y: auto;
+        padding: 32px;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .formatter-view.visible {
+        display: flex;
+      }
+
+      .formatter-header {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .formatter-header h2 {
+        font-family: "Fraunces", serif;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--terracotta);
+      }
+
+      .formatter-header p {
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+
+      /* TOOLBAR */
+      .fmt-toolbar {
+        background: var(--warm-white);
+        border: 2px solid var(--sand);
+        border-radius: var(--radius);
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .fmt-toolbar-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .fmt-toolbar-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: var(--text-muted);
+        min-width: 52px;
+      }
+
+      .fmt-toolbar-sep {
+        width: 1px;
+        height: 28px;
+        background: var(--sand);
+        margin: 0 4px;
+      }
+
+      .btn-fmt {
+        padding: 6px 12px;
+        border: 2px solid var(--sand);
+        border-radius: 8px;
+        background: var(--cream);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.15s;
+        color: var(--text-primary);
+        white-space: nowrap;
+      }
+
+      .btn-fmt:hover {
+        border-color: var(--coral);
+        background: var(--peach);
+        transform: translateY(-1px);
+      }
+
+      .btn-fmt:active {
+        transform: scale(0.96);
+      }
+
+      .btn-emoji {
+        padding: 4px 8px;
+        border: 2px solid var(--sand);
+        border-radius: 8px;
+        background: var(--cream);
+        font-size: 20px;
+        cursor: pointer;
+        transition: all 0.15s;
+        line-height: 1.3;
+      }
+
+      .btn-emoji:hover {
+        border-color: var(--coral);
+        background: var(--peach);
+        transform: translateY(-2px) scale(1.15);
+      }
+
+      /* EDITOR */
+      .fmt-editor-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 280px;
+      }
+
+      .fmt-editor {
+        flex: 1;
+        min-height: 280px;
+        padding: 20px;
+        border: 2px solid var(--sand);
+        border-radius: var(--radius);
+        background: var(--warm-white);
+        font-family: "Poppins", sans-serif;
+        font-size: 14px;
+        line-height: 1.8;
+        color: var(--text-primary);
+        outline: none;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        transition: border-color 0.2s;
+      }
+
+      .fmt-editor:focus {
+        border-color: var(--ocean);
+      }
+
+      .fmt-editor:empty::before {
+        content: attr(data-placeholder);
+        color: var(--text-muted);
+        pointer-events: none;
+      }
+
+      /* ACTIONS */
+      .fmt-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+      }
+
+      .btn-fmt-clear {
+        padding: 10px 20px;
+        border: 2px solid var(--sand);
+        border-radius: 10px;
+        background: var(--cream);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        color: var(--text-secondary);
+        transition: all 0.2s;
+      }
+
+      .btn-fmt-clear:hover {
+        border-color: var(--coral);
+        color: var(--terracotta);
+      }
+
+      .btn-fmt-copy {
+        padding: 10px 24px;
+        background: linear-gradient(135deg, var(--coral) 0%, var(--terracotta) 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .btn-fmt-copy:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      .btn-fmt-copy.copied {
+        background: linear-gradient(135deg, var(--sage) 0%, var(--olive) 100%);
+      }
+
+      .btn-fmt-stage {
+        padding: 10px 24px;
+        background: linear-gradient(135deg, var(--lavender) 0%, var(--purple) 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .btn-fmt-stage:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      .btn-fmt-stage.staged {
+        background: linear-gradient(135deg, var(--sage) 0%, var(--olive) 100%);
+      }
+
+      .tracker-source-badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--lavender) 0%, var(--purple) 100%);
+        color: white;
+      }
+
+      /* TRACKER VIEW */
+      .tracker-view {
+        display: none;
+        flex: 1;
+        overflow-y: auto;
+        padding: 32px;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .tracker-view.visible { display: flex; }
+
+      .tracker-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .tracker-header-left h2 {
+        font-family: "Fraunces", serif;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--terracotta);
+      }
+      .tracker-header-left p {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+      .tracker-header-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      .btn-copy-sheets {
+        padding: 10px 20px;
+        background: linear-gradient(135deg, var(--sage) 0%, var(--olive) 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s;
+        box-shadow: var(--shadow-sm);
+        white-space: nowrap;
+      }
+      .btn-copy-sheets:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+      .btn-copy-sheets.copied {
+        background: linear-gradient(135deg, var(--ocean) 0%, var(--linkedin) 100%);
+      }
+      .btn-push-sheets {
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #34a853 0%, #1e7e34 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s;
+        box-shadow: var(--shadow-sm);
+        white-space: nowrap;
+      }
+      .btn-push-sheets:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+      .btn-push-sheets:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+      .tracker-empty {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--text-muted);
+      }
+      .tracker-empty .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+      .tracker-empty p { font-size: 15px; max-width: 360px; margin: 0 auto; line-height: 1.7; }
+
+      .tracker-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--warm-white);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+      .tracker-table thead th {
+        text-align: left;
+        padding: 14px 16px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        font-weight: 700;
+        background: var(--warm-white);
+        border-bottom: 2px solid var(--peach);
+      }
+      .tracker-table tbody tr {
+        border-bottom: 1px solid var(--peach);
+        transition: background 0.15s;
+      }
+      .tracker-table tbody tr:last-child { border-bottom: none; }
+      .tracker-table tbody tr:hover { background: var(--sand); }
+      .tracker-table tbody td {
+        padding: 12px 16px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        vertical-align: middle;
+      }
+      .tracker-url-link {
+        color: var(--ocean);
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 500;
+        word-break: break-all;
+      }
+      .tracker-url-link:hover { text-decoration: underline; color: var(--terracotta); }
+
+      .tracker-title-input {
+        width: 100%;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        color: var(--text-primary);
+        background: transparent;
+        transition: all 0.15s;
+      }
+      .tracker-title-input:hover { border-color: var(--sand); background: var(--cream); }
+      .tracker-title-input:focus { outline: none; border-color: var(--ocean); background: var(--warm-white); }
+
+      .btn-tracker-del {
+        padding: 5px 10px;
+        border: 1px solid var(--sand);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 12px;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.15s;
+      }
+      .btn-tracker-del:hover { border-color: var(--coral); color: var(--coral); background: var(--peach); }
+
+      .btn-tracker-view {
+        padding: 5px 10px;
+        border: 1px solid var(--sage);
+        background: var(--warm-white);
+        color: var(--olive);
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.15s;
+        white-space: nowrap;
+        margin-right: 4px;
+      }
+      .btn-tracker-view:hover { border-color: var(--olive); background: var(--sage); color: white; }
+      .btn-tracker-view.open { background: var(--sage); color: white; border-color: var(--olive); }
+
+      .tracker-post-row { background: var(--peach); display: none; }
+      .tracker-post-row.open { display: table-row; }
+      .tracker-post-inner {
+        padding: 16px 20px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .tracker-post-inner textarea {
+        flex: 1;
+        background: var(--warm-white);
+        border: 2px solid var(--sand);
+        border-radius: var(--radius);
+        color: var(--text-primary);
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        line-height: 1.8;
+        padding: 16px;
+        resize: vertical;
+        min-height: 180px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .tracker-post-inner textarea:focus { border-color: var(--coral); }
+      /* INLINE POST PANEL TOOLBAR */
+      .post-fmt-toolbar {
+        padding: 8px 24px 0 64px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .post-fmt-toolbar .btn-fmt {
+        padding: 4px 10px;
+        font-size: 13px;
+      }
+      .post-fmt-toolbar .fmt-toolbar-sep {
+        width: 1px;
+        height: 22px;
+        background: var(--sand);
+        margin: 0 2px;
+      }
+      .btn-action.stage {
+        background: linear-gradient(135deg, var(--lavender) 0%, var(--purple) 100%);
+        color: white;
+        border-color: var(--purple);
+      }
+      .btn-action.stage:hover {
+        background: linear-gradient(135deg, var(--purple) 0%, #7a5aa0 100%);
+        border-color: #7a5aa0;
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      .tracker-post-copy {
+        padding: 8px 14px;
+        border: 2px solid var(--ocean);
+        background: var(--warm-white);
+        color: var(--ocean);
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.15s;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .tracker-post-copy:hover { background: var(--ocean); color: white; }
+
+      /* STAGING CHECKBOX UI */
+      .post-panel-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-shrink: 0;
+        width: 160px;
+      }
+
+      .stage-cb-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        font-weight: 500;
+        cursor: pointer;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--sand);
+        background: var(--cream);
+        transition: all 0.15s;
+      }
+
+      .stage-cb-label:hover {
+        border-color: var(--coral);
+        background: var(--peach);
+      }
+
+      .stage-cb-label input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        accent-color: var(--terracotta);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .btn-do-stage {
+        width: 100%;
+        padding: 10px 8px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--coral) 0%, var(--terracotta) 100%);
+        color: white;
+        border: none;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        transition: all 0.2s;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .btn-do-stage:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      /* INSTANTLY STAGER VIEW */
+      .instantly-view {
+        display: none;
+        flex: 1;
+        overflow-y: auto;
+        padding: 32px;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .instantly-view.visible { display: flex; }
+
+      .instantly-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .instantly-header-left h2 {
+        font-family: "Fraunces", serif;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--terracotta);
+      }
+
+      .instantly-header-left p {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .instantly-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
+        align-content: start;
+      }
+
+      .instantly-sector-card {
+        background: var(--warm-white);
+        border: 2px solid var(--sand);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .instantly-sector-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        background: linear-gradient(135deg, var(--cream) 0%, var(--peach) 100%);
+        border-bottom: 2px solid var(--sand);
+      }
+
+      .instantly-sector-icon { font-size: 18px; }
+
+      .instantly-sector-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-primary);
+        flex: 1;
+      }
+
+      .instantly-sector-count {
+        font-size: 10px;
+        font-weight: 700;
+        background: var(--sand);
+        color: var(--text-muted);
+        padding: 2px 7px;
+        border-radius: 10px;
+      }
+
+      .instantly-sector-count.has-items {
+        background: linear-gradient(135deg, var(--coral) 0%, var(--terracotta) 100%);
+        color: white;
+      }
+
+      .instantly-sector-posts {
+        padding: 10px;
+        min-height: 52px;
+      }
+
+      .instantly-post-item {
+        background: var(--cream);
+        border: 1px solid var(--peach);
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .instantly-post-title {
+        font-size: 11px;
+        color: var(--text-secondary);
+        flex: 1;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+
+      .instantly-post-btns {
+        display: flex;
+        gap: 3px;
+        flex-shrink: 0;
+      }
+
+      .btn-instantly-copy, .btn-instantly-del {
+        padding: 2px 6px;
+        border-radius: 5px;
+        font-size: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: "Poppins", sans-serif;
+        border: 1px solid var(--sand);
+        background: transparent;
+        transition: all 0.15s;
+      }
+
+      .btn-instantly-copy { color: var(--ocean); }
+      .btn-instantly-copy:hover { background: var(--sky); border-color: var(--ocean); }
+      .btn-instantly-del { color: var(--text-muted); }
+      .btn-instantly-del:hover { background: var(--peach); border-color: var(--coral); color: var(--coral); }
+
+      .instantly-empty-msg {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-align: center;
+        padding: 14px 0;
+        font-style: italic;
+      }
+      .buffer-queue-section { padding: 0 28px 20px; }
+      .buffer-queue-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0 0 14px; }
+      .buffer-queue-tables { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .buffer-table-wrap h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin: 0 0 8px; }
+      .buffer-table-scroll { max-height: 260px; overflow-y: auto; border: 1px solid var(--sand); border-radius: 10px; background: var(--warm-white); }
+      .buffer-table-scroll table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .buffer-table-scroll th { position: sticky; top: 0; background: var(--sand); padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+      .buffer-table-scroll td { padding: 7px 10px; border-bottom: 1px solid rgba(0,0,0,0.05); color: var(--text-primary); vertical-align: middle; }
+      .buffer-table-scroll tr:last-child td { border-bottom: none; }
+      .buffer-table-scroll tr:hover td { background: rgba(0,0,0,0.02); }
+      .buf-time { white-space: nowrap; color: var(--text-secondary); font-size: 11px; }
+      .buf-link { color: var(--ocean); text-decoration: none; font-size: 11px; }
+      .buf-link:hover { text-decoration: underline; }
+      .buf-title { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      </style>
+      </head>
+      <body>
+      <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">Post<span>Gen</span></div>
+        <div class="subtitle">Bid Writing Service</div>
+      </div>
+      <div class="sidebar-section-label">Filter by Sector</div>
+      <div class="cat-list" id="catList"></div>
+      <div class="sidebar-tools">
+        <div class="sidebar-section-label" style="padding: 6px 4px 4px;">Tools</div>
+        <div class="tool-item" id="formatterNav" onclick="showFormatter()">
+          <span class="tool-icon">✏️</span>
+          <span class="tool-name">Text Formatter</span>
+        </div>
+        <div class="tool-item" id="trackerNav" onclick="showTracker()">
+          <span class="tool-icon">💼</span>
+          <span class="tool-name">LinkedIn Stager</span>
+          <span class="cat-count" id="trackerCount" style="display:none;">0</span>
+        </div>
+        <div id="instantlyNav" style="display:none;"><span id="instantlyCount" style="display:none;"></span></div>
+        <div class="tool-item" id="scannerNav" onclick="showScanner()">
+          <span class="tool-icon">🔍</span>
+          <span class="tool-name">Tender Scanner</span>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn-refresh" onclick="refreshTenders()">
+          🔄 Refresh Tenders
+        </button>
+      </div>
+      </aside>
+
+      <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <h1 id="topTitle">All Sectors</h1>
+          <span class="topbar-count" id="topCount">—</span>
+        </div>
+      </div>
+
+      <div class="selection-bar" id="selectionBar">
+        <div class="selection-bar-left">
+          <span id="selCount">0 selected</span>
+          <button class="btn-clear" onclick="clearSelection()">Clear</button>
+        </div>
+        <button
+          class="btn-generate"
+          id="btnGenerate"
+          onclick="generateSelected()"
+        >
+          <span class="spinner"></span>
+          <span class="btn-label">⚡ Generate Posts</span>
+        </button>
+      </div>
+
+      <!-- TRACKER VIEW -->
+      <div class="tracker-view" id="trackerView">
+        <div class="tracker-header">
+          <div class="tracker-header-left">
+            <h2>💼 LinkedIn Stager</h2>
+            <p>Posts staged for LinkedIn. Edit the title, then push straight to Google Sheets.</p>
+          </div>
+          <div class="tracker-header-actions">
+            <button class="btn-fmt-clear" onclick="clearTracker()">Clear All</button>
+            <button class="btn-copy-sheets" id="btnCopySheets" onclick="copyTrackerToSheets()">📋 Copy for Sheets</button>
+            <button class="btn-push-sheets" id="btnPushSheets" onclick="pushToSheets()">⬆️ Push to Sheets</button>
+          </div>
+        </div>
+        <div id="trackerBody"></div>
+      </div>
+
+
+      <!-- INSTANTLY STAGER (hidden — preserved for JS compatibility) -->
+      <div class="instantly-view" id="instantlyView">
+        <div class="instantly-grid" id="instantlyGrid"></div>
+      </div>
+
+
+      <!-- TENDER SCANNER VIEW -->
+      <div class="scanner-view" id="scannerView">
+        <div class="scanner-header">
+          <h2>🔍 Tender Scanner</h2>
+          <p>Paste any tender URL and the AI will generate a ready-to-post LinkedIn post.</p>
+        </div>
+        <div class="scanner-url-row">
+          <input
+            type="url"
+            id="scannerUrlInput"
+            class="scanner-url-input"
+            placeholder="https://www.find-tender.service.gov.uk/Notice/..."
+            onkeydown="if(event.key==='Enter') scanUrl()"
+          />
+          <button class="btn-scan" id="btnScan" onclick="scanUrl()">
+            <span class="spinner" id="scanSpinner" style="display:none;"></span>
+            <span id="btnScanLabel">⚡ Scan</span>
+          </button>
+        </div>
+        <div class="scanner-result" id="scannerResult">
+          <span class="scanner-result-label">Generated Post</span>
+          <textarea class="scanner-post-ta" id="scannerPostTa" spellcheck="true"></textarea>
+          <div class="scanner-actions">
+            <button class="btn-push-sheets" onclick="stageScannedPost()" style="background:var(--sand);color:var(--text-primary);">📌 Stage to Tracker</button>
+            <button class="btn-push-sheets" id="btnScannerPush" onclick="pushScannedToSheets()">📋 Push to Sheets</button>
+            <span class="scanner-status" id="scannerStatus"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORMATTER VIEW -->
+      <div class="formatter-view" id="formatterView">
+        <div class="formatter-header">
+          <h2>✏️ LinkedIn Text Formatter</h2>
+          <p>Paste your post, <strong>highlight</strong> any text, then click a style — or insert emojis.</p>
         </div>
 
-        <script>
-            let companies = [];
-            let newCompanyCpvCodes = [];
-            let allTendersData = [];
+        <div class="fmt-toolbar">
+          <!-- Format row -->
+          <div class="fmt-toolbar-row">
+            <span class="fmt-toolbar-label">Format</span>
+            <button class="btn-fmt" onclick="applyFmt('bold')" title="Bold">𝗕 Bold</button>
+            <button class="btn-fmt" onclick="applyFmt('italic')" title="Italic">𝘐 Italic</button>
+            <button class="btn-fmt" onclick="applyFmt('boldItal')" title="Bold Italic">𝙄 Bold Italic</button>
+            <button class="btn-fmt" onclick="applyFmt('strike')" title="Strikethrough">S̶ Strike</button>
+            <button class="btn-fmt" onclick="applyFmt('under')" title="Underline">U̲ Underline</button>
+            <button class="btn-fmt" onclick="applyFmt('sans')" title="Sans-serif">𝖲 Sans</button>
+            <button class="btn-fmt" onclick="applyFmt('script')" title="Script">𝓢 Script</button>
+          </div>
+          <!-- Emoji row -->
+          <div class="fmt-toolbar-row">
+            <span class="fmt-toolbar-label">Emojis</span>
+            <button class="btn-emoji" onclick="insertEmoji('🚨')" title="Sirens">🚨</button>
+            <button class="btn-emoji" onclick="insertEmoji('👷')" title="Builder">👷</button>
+            <button class="btn-emoji" onclick="insertEmoji('🏗️')" title="Crane">🏗️</button>
+            <button class="btn-emoji" onclick="insertEmoji('♻️')" title="Recycling">♻️</button>
+            <button class="btn-emoji" onclick="insertEmoji('💧')" title="Water Drop">💧</button>
+            <button class="btn-emoji" onclick="insertEmoji('⚡')" title="Electric Bolt">⚡</button>
+            <button class="btn-emoji" onclick="insertEmoji('🔧')" title="Spanner">🔧</button>
+            <button class="btn-emoji" onclick="insertEmoji('💡')" title="Light Bulb">💡</button>
+            <button class="btn-emoji" onclick="insertEmoji('🌳')" title="Tree">🌳</button>
+            <button class="btn-emoji" onclick="insertEmoji('💻')" title="Laptop">💻</button>
+            <button class="btn-emoji" onclick="insertEmoji('📚')" title="Books">📚</button>
+            <button class="btn-emoji" onclick="insertEmoji('🔥')" title="Fire">🔥</button>
+          </div>
+        </div>
 
-            // Industry to CPV code mappings - EXPANDED with all 18 industries
-            const industries = {
-                healthcare: {
-                    name: "Healthcare",
-                    cpvCodes: [
-                        "33100000",
-                        "33600000",
-                        "33140000",
-                        "85100000",
-                        "85110000",
-                        "85120000",
-                        "85140000",
-                    ],
-                    icon: "🏥",
-                },
-                recruitment: {
-                    name: "Recruitment",
-                    cpvCodes: ["79600000", "79610000", "79620000", "79630000"],
-                    icon: "👥",
-                },
-                construction: {
-                    name: "Construction Work",
-                    cpvCodes: [
-                        "45210000",
-                        "45220000",
-                        "45260000",
-                        "45300000",
-                        "45400000",
-                    ],
-                    icon: "🏗️",
-                },
-                waste: {
-                    name: "Waste Management",
-                    cpvCodes: [
-                        "90500000",
-                        "90510000",
-                        "90511000",
-                        "90512000",
-                        "90513000",
-                        "90514000",
-                    ],
-                    icon: "♻️",
-                },
-                gas: {
-                    name: "Gas Servicing",
-                    cpvCodes: ["45331100", "45331210", "50720000"],
-                    icon: "🔥",
-                },
-                fire: {
-                    name: "Fire Safety",
-                    cpvCodes: ["35110000", "35111000", "50413200"],
-                    icon: "🚒",
-                },
-                it: {
-                    name: "IT",
-                    cpvCodes: [
-                        "48000000",
-                        "48100000",
-                        "48200000",
-                        "48800000",
-                        "72000000",
-                        "72200000",
-                        "72400000",
-                        "72500000",
-                    ],
-                    icon: "💻",
-                },
-                grounds: {
-                    name: "Grounds Maintenance",
-                    cpvCodes: ["77300000", "77310000", "77314100", "77340000"],
-                    icon: "🌳",
-                },
-                electrical: {
-                    name: "Electrical Services",
-                    cpvCodes: [
-                        "45310000",
-                        "45311000",
-                        "45312000",
-                        "45314000",
-                        "45315000",
-                        "50700000",
-                    ],
-                    icon: "⚡",
-                },
-                education: {
-                    name: "Education",
-                    cpvCodes: [
-                        "80100000",
-                        "80200000",
-                        "80300000",
-                        "80400000",
-                        "80500000",
-                        "80510000",
-                    ],
-                    icon: "📚",
-                },
-                me: {
-                    name: "M&E",
-                    cpvCodes: [
-                        "45300000",
-                        "45310000",
-                        "45320000",
-                        "45330000",
-                        "45331000",
-                        "45332000",
-                        "50700000",
-                    ],
-                    icon: "🔧",
-                },
-                cleaning: {
-                    name: "Cleaning",
-                    cpvCodes: ["90910000", "90911000", "90919000", "90620000"],
-                    icon: "🧹",
-                },
-                architect: {
-                    name: "Architect",
-                    cpvCodes: ["71200000", "71220000", "71221000", "71222000"],
-                    icon: "📐",
-                },
-                civileng: {
-                    name: "Civil Engineering",
-                    cpvCodes: [
-                        "45221000",
-                        "45230000",
-                        "71300000",
-                        "71320000",
-                        "71330000",
-                    ],
-                    icon: "🏗️",
-                },
-                catering: {
-                    name: "Catering",
-                    cpvCodes: [
-                        "55300000",
-                        "55320000",
-                        "55321000",
-                        "55322000",
-                        "55500000",
-                        "55520000",
-                        "55521000",
-                    ],
-                    icon: "🍽️",
-                },
-                security: {
-                    name: "Security",
-                    cpvCodes: [
-                        "79700000",
-                        "79710000",
-                        "79711000",
-                        "79713000",
-                        "79714000",
-                        "79715000",
-                        "98341000",
-                    ],
-                    icon: "🔒",
-                },
-                facilities: {
-                    name: "Facilities Management",
-                    cpvCodes: ["98300000", "50800000", "70300000"],
-                    icon: "🏢",
-                },
-                pest: {
-                    name: "Pest Control",
-                    cpvCodes: [
-                        "90920000",
-                        "90921000",
-                        "90922000",
-                        "90923000",
-                        "90924000",
-                    ],
-                    icon: "🐛",
-                },
-            };
+        <div class="fmt-editor-wrap">
+          <div
+            class="fmt-editor"
+            id="fmtEditor"
+            contenteditable="true"
+            data-placeholder="Paste or type your LinkedIn post here…"
+          ></div>
+        </div>
 
-            // Helper function to generate properly formatted email body
-            function generateEmailBody(tender, firstName, pubDate, deadline) {
-                return [
-                    "Hi " + (firstName || "there") + ",",
-                    "",
-                    "I wanted to bring this tender opportunity to your attention:",
-                    "",
-                    "Title: " + tender.title,
-                    "Buyer: " + tender.buyer_name,
-                    "Published: " + pubDate,
-                    "Deadline: " + deadline,
-                    "Status: " + tender.status.toUpperCase(),
-                    "",
-                    "View full details: " + tender.tender_url,
-                    "",
-                    "Best regards,",
-                    "BWS Tender Scanning Team",
-                ].join("\n");
+        <div class="fmt-actions">
+          <button class="btn-fmt-clear" onclick="clearFmtEditor()">Clear</button>
+          <button class="btn-fmt-stage" id="btnFmtStage" onclick="stageToTracker()">📌 Stage to Tracker</button>
+          <button class="btn-fmt-copy" id="btnFmtCopy" onclick="copyFmtEditor()">📋 Copy to clipboard</button>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="tenderView">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-check">
+                <input
+                  type="checkbox"
+                  class="cb"
+                  id="cbAll"
+                  onchange="toggleAll(this)"
+                />
+              </th>
+              <th class="col-cat">Sector</th>
+              <th class="col-title">Title</th>
+              <th class="col-loc">Location</th>
+              <th class="col-val">Value</th>
+              <th class="col-dead">Deadline</th>
+              <th class="col-act">Post</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      </div><!-- end tenderView -->
+      </main>
+
+      <div class="toast" id="toast"></div>
+
+      <script>
+      let categories = [];
+      let tenders = [];
+      let selectedCategory = "general";
+      let selectedIds = new Set();
+      let postCache = {};
+      let generatedSet = new Set();
+
+      window.addEventListener("DOMContentLoaded", async () => {
+        updateTrackerCount();
+        updateInstantlyCount();
+        renderInstantlyGrid();
+        await loadCategories();
+        await loadTenders();
+      });
+
+      async function loadCategories() {
+        try {
+          const res = await fetch("/api/categories");
+          categories = await res.json();
+          renderCategories();
+        } catch (e) {
+          showToast("Failed to load categories", "error");
+        }
+      }
+
+      function renderCategories() {
+        const el = document.getElementById("catList");
+        el.innerHTML = categories
+            .map(function (cat) {
+              return (
+                '<div class="cat-item ' +
+                (selectedCategory === cat.key ? "active" : "") +
+                '" onclick="selectCategory(\'' +
+                cat.key +
+                "')\">" +
+                '<span class="cat-icon">' +
+                cat.icon +
+                "</span>" +
+                '<span class="cat-name">' +
+                cat.name +
+                "</span>" +
+                '<span class="cat-count">' +
+                cat.tender_count +
+                "</span>" +
+                "</div>"
+              );
+            })
+            .join("");
+      }
+
+      async function selectCategory(key) {
+        if (currentView !== 'tenders') showTenders();
+        selectedCategory = key;
+        clearSelection();
+        renderCategories();
+        await loadTenders();
+      }
+
+      async function loadTenders() {
+        const url =
+          "/api/tenders" +
+          (selectedCategory ? "?category=" + selectedCategory : "");
+        try {
+          const res = await fetch(url);
+          tenders = await res.json();
+          document.getElementById("topTitle").textContent = selectedCategory
+            ? (
+                categories.find(function (c) {
+                  return c.key === selectedCategory;
+                }) || {}
+              ).name || selectedCategory
+            : "General / Other";
+          document.getElementById("topCount").textContent =
+            tenders.length + " tenders";
+          renderTable();
+        } catch (e) {
+          showToast("Failed to load tenders", "error");
+        }
+      }
+
+      function renderTable() {
+        const tbody = document.getElementById("tableBody");
+        if (tenders.length === 0) {
+          tbody.innerHTML =
+            '<tr class="empty-row"><td colspan="7"><div class="empty-icon">📋</div><p>No tenders found. Try refreshing or check a different sector.</p></td></tr>';
+          return;
+        }
+        tbody.innerHTML = tenders
+          .map(function (t) {
+            var hasPost = generatedSet.has(String(t.id));
+            return (
+              '<tr data-tender="' +
+              esc(String(t.id)) +
+              '" class="' +
+              (hasPost ? "has-post" : "") +
+              '">' +
+              '<td class="col-check"><input type="checkbox" class="cb row-cb" data-id="' +
+              esc(String(t.id)) +
+              '" onchange="toggleRow(this)" /></td>' +
+              '<td class="col-cat"><span class="cat-badge">' +
+              t.category_icon +
+              " " +
+              esc(t.category_name) +
+              "</span></td>" +
+              '<td class="col-title">' +
+              '<div class="tender-title">' +
+              esc(t.title) +
+              "</div>" +
+              '<div class="tender-buyer">' +
+              esc(t.buyer_name || "") +
+              "</div>" +
+              '<a href="' +
+              esc(t.tender_url) +
+              '" target="_blank" class="tender-link">View on Find-a-Tender ↗</a>' +
+              "</td>" +
+              '<td class="col-loc">' +
+              esc(t.location) +
+              "</td>" +
+              '<td class="col-val"><span class="val-text ' +
+              (t.value === "N/A" ? "na" : "") +
+              '">' +
+              esc(t.value) +
+              "</span></td>" +
+              '<td class="col-dead"><span class="dead-text ' +
+              (t.deadline === "N/A" ? "na" : "") +
+              '">' +
+              esc(t.deadline) +
+              "</span></td>" +
+              '<td class="col-act action-cell">' +
+              '<button class="btn-view' +
+              (hasPost ? "" : " no-post") +
+              '" onclick="togglePanel(\'' +
+              esc(String(t.id)) +
+              "', this)\">" +
+              (hasPost ? "📝 View" : "—") +
+              ' <span class="arrow">▼</span>' +
+              "</button>" +
+              "</td>" +
+              "</tr>" +
+              '<tr class="post-panel-row" style="display:none;" data-panel="' +
+              esc(String(t.id)) +
+              '">' +
+              '<td colspan="7" style="padding:0;">' +
+              '<div class="post-panel" id="panel-' +
+              esc(String(t.id)) +
+              '">' +
+              '<div class="post-fmt-toolbar">' +
+              '<button class="btn-fmt" onclick="applyFmtToTextarea(\'' + esc(String(t.id)) + '\',\'bold\')" title="Bold">𝗕 Bold</button>' +
+              '<button class="btn-fmt" onclick="applyFmtToTextarea(\'' + esc(String(t.id)) + '\',\'italic\')" title="Italic">𝘐 Italic</button>' +
+              '<button class="btn-fmt" onclick="applyFmtToTextarea(\'' + esc(String(t.id)) + '\',\'boldItal\')" title="Bold Italic">𝙄 Bold Italic</button>' +
+              '<div class="fmt-toolbar-sep"></div>' +
+              '<button class="btn-fmt" onclick="applyFmtToTextarea(\'' + esc(String(t.id)) + '\',\'strike\')" title="Strikethrough">S̶ Strike</button>' +
+              '<button class="btn-fmt" onclick="applyFmtToTextarea(\'' + esc(String(t.id)) + '\',\'under\')" title="Underline">U̲ Underline</button>' +
+              '<div class="fmt-toolbar-sep"></div>' +
+              ['🚨','👷','🏗️','♻️','💧','⚡','🔧','💡','🌳','💻','📚','🔥'].map(function(e) {
+                return '<button class="btn-emoji" style="font-size:16px;padding:2px 6px;" onclick="insertEmojiToTextarea(\'' + esc(String(t.id)) + '\',\'' + e + '\')" title="' + e + '">' + e + '</button>';
+              }).join('') +
+              '</div>' +
+              '<div class="post-panel-inner">' +
+              '<textarea id="ta-' +
+              esc(String(t.id)) +
+              '" onblur="savePostText(\'' +
+              esc(String(t.id)) +
+              "')\">Loading...</textarea>" +
+              '<div class="post-panel-actions">' +
+              '<label class="stage-cb-label"><input type="checkbox" id="cbLI-' + esc(String(t.id)) + '"> Stage LinkedIn</label>' +
+              '<button class="btn-do-stage" onclick="stagePost(\'' + esc(String(t.id)) + '\')">📌 Stage</button>' +
+              "</div>" +
+              "</div>" +
+              '<div class="post-panel-meta" id="meta-' +
+              esc(String(t.id)) +
+              '"></div>' +
+              "</div>" +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+      }
+
+      function toggleRow(cb) {
+        var id = cb.dataset.id;
+        if (cb.checked) {
+          selectedIds.add(id);
+        } else {
+          selectedIds.delete(id);
+        }
+        cb.closest("tr").classList.toggle("selected", cb.checked);
+        updateSelectionUI();
+      }
+
+      function toggleAll(cb) {
+        tenders.forEach(function (t) {
+          if (cb.checked) {
+            selectedIds.add(String(t.id));
+          } else {
+            selectedIds.delete(String(t.id));
+          }
+        });
+        document.querySelectorAll(".row-cb").forEach(function (c) {
+          c.checked = cb.checked;
+        });
+        document
+          .querySelectorAll("tbody tr[data-tender]")
+          .forEach(function (r) {
+            r.classList.toggle("selected", cb.checked);
+          });
+        updateSelectionUI();
+      }
+
+      function clearSelection() {
+        selectedIds.clear();
+        document.getElementById("cbAll").checked = false;
+        document.querySelectorAll(".row-cb").forEach(function (c) {
+          c.checked = false;
+        });
+        document
+          .querySelectorAll("tbody tr[data-tender]")
+          .forEach(function (r) {
+            r.classList.remove("selected");
+          });
+        updateSelectionUI();
+      }
+
+      function updateSelectionUI() {
+        var bar = document.getElementById("selectionBar");
+        var count = selectedIds.size;
+        if (count > 0) {
+          bar.classList.add("visible");
+          document.getElementById("selCount").textContent = count + " selected";
+        } else {
+          bar.classList.remove("visible");
+        }
+      }
+
+      async function generateSelected() {
+        if (selectedIds.size === 0) return;
+        var btn = document.getElementById("btnGenerate");
+        btn.classList.add("loading");
+        btn.disabled = true;
+        try {
+          var ids = Array.from(selectedIds);
+          var res = await fetch("/api/generate-posts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tender_ids: ids }),
+          });
+          if (!res.ok) {
+            var err = await res.json();
+            showToast(err.error || "Generation failed", "error");
+            return;
+          }
+          var data = await res.json();
+          showToast(
+            "Generated " +
+              data.generated_count +
+              " post" +
+              (data.generated_count === 1 ? "" : "s"),
+            "success",
+          );
+
+          data.posts.forEach(function (post) {
+            generatedSet.add(String(post.tender_id));
+            postCache[String(post.tender_id)] = post;
+            var btn = document.querySelector(
+              '[data-tender="' + post.tender_id + '"] .btn-view',
+            );
+            if (btn) {
+              btn.classList.remove("no-post");
+              btn.innerHTML = '📝 View <span class="arrow">▼</span>';
             }
+            var row = document.querySelector(
+              '[data-tender="' + post.tender_id + '"]',
+            );
+            if (row) row.classList.add("has-post");
+          });
+        } catch (e) {
+          showToast("Network error", "error");
+        } finally {
+          btn.classList.remove("loading");
+          btn.disabled = false;
+        }
+      }
 
-            // Function to render industries in alphabetical order
-            function renderIndustries() {
-                const grid = document.getElementById("industriesGrid");
+      async function togglePanel(tenderId, btn) {
+        var panelRow = document.querySelector(
+          '[data-panel="' + tenderId + '"]',
+        );
+        var panel = document.getElementById("panel-" + tenderId);
+        var isOpen = panel.classList.contains("open");
 
-                // Sort industries alphabetically by name
-                const sortedIndustries = Object.entries(industries).sort(
-                    (a, b) => {
-                        return a[1].name.localeCompare(b[1].name);
-                    },
-                );
+        if (isOpen) {
+          panel.classList.remove("open");
+          panelRow.style.display = "none";
+          btn.classList.remove("open");
+          return;
+        }
 
-                // Generate HTML for each industry card
-                grid.innerHTML = sortedIndustries
-                    .map(
-                        ([key, industry]) => `
-                    <div class="industry-card" onclick="filterByIndustry('${key}')">
-                        <div class="industry-icon">${industry.icon}</div>
-                        <div class="industry-name">${industry.name}</div>
-                        <div class="industry-count" id="${key}Count">Loading...</div>
-                    </div>
-                `,
-                    )
-                    .join("");
+        panel.classList.add("open");
+        panelRow.style.display = "table-row";
+        btn.classList.add("open");
+
+        var ta = document.getElementById("ta-" + tenderId);
+        var meta = document.getElementById("meta-" + tenderId);
+
+        if (postCache[tenderId] && postCache[tenderId].post_text) {
+          ta.value = postCache[tenderId].post_text;
+          meta.textContent =
+            "👤 " +
+            (postCache[tenderId].team_member || "—") +
+            "  ·  Generated " +
+            fmtDate(postCache[tenderId].generated_at);
+          return;
+        }
+
+        try {
+          var res = await fetch("/api/posts/by-tender/" + tenderId);
+          if (res.ok) {
+            var post = await res.json();
+            postCache[tenderId] = post;
+            ta.value = post.post_text;
+            meta.textContent =
+              "👤 " +
+              (post.team_member || "—") +
+              "  ·  Generated " +
+              fmtDate(post.generated_at);
+          } else {
+            ta.value = "No post yet. Select this tender and hit Generate.";
+            ta.disabled = true;
+          }
+        } catch (e) {
+          ta.value = "Error loading post.";
+        }
+      }
+
+      async function savePostText(tenderId) {
+        var post = postCache[tenderId];
+        if (!post || !post.id) return;
+        var text = document.getElementById("ta-" + tenderId).value;
+        await fetch("/api/posts/" + post.id, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ post_text: text }),
+        });
+      }
+
+      async function copyPost(tenderId) {
+        var ta = document.getElementById("ta-" + tenderId);
+        navigator.clipboard.writeText(ta.value).then(function () {
+          showToast("Copied to clipboard", "success");
+        });
+      }
+
+      async function postToLinkedIn(tenderId) {
+        var post = postCache[tenderId];
+        if (!post || !post.post_text) {
+          showToast("No post to publish", "error");
+          return;
+        }
+
+        try {
+          var statusRes = await fetch("/api/linkedin/status");
+          var status = await statusRes.json();
+
+          if (!status.authenticated) {
+            if (
+              confirm(
+                "You need to authenticate with LinkedIn first. Open authentication page?",
+              )
+            ) {
+              window.open("/auth/linkedin", "_blank");
+              showToast(
+                "Complete authentication, then try posting again",
+                "success",
+              );
             }
+            return;
+          }
 
-            // Toggle industry categories visibility
-            function toggleIndustryCategories() {
-                const section = document.getElementById("industryCategories");
-                const isVisible = section.classList.contains("show");
+          showToast("Publishing to LinkedIn...", "success");
+          var res = await fetch("/api/linkedin/post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ post_text: post.post_text }),
+          });
 
-                if (isVisible) {
-                    section.classList.remove("show");
-                } else {
-                    document
-                        .getElementById("resultsSection")
-                        .classList.remove("show");
-                    document
-                        .getElementById("manageSection")
-                        .classList.remove("show");
-                    document.getElementById("addForm").classList.remove("show");
+          if (res.ok) {
+            showToast("✅ Posted to LinkedIn!", "success");
+          } else {
+            var err = await res.json();
+            showToast("LinkedIn error: " + err.error, "error");
+          }
+        } catch (e) {
+          showToast("Network error", "error");
+        }
+      }
 
-                    document.getElementById("companySelect").value = "";
-
-                    section.classList.add("show");
-
-                    setTimeout(() => {
-                        section.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                        });
-                    }, 200);
-
-                    updateIndustryCounts();
-                }
+      async function regenPost(tenderId) {
+        showToast("Regenerating...", "success");
+        try {
+          var res = await fetch("/api/generate-posts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tender_ids: [tenderId] }),
+          });
+          if (res.ok) {
+            var data = await res.json();
+            if (data.posts.length > 0) {
+              postCache[tenderId] = data.posts[0];
+              document.getElementById("ta-" + tenderId).value =
+                data.posts[0].post_text;
+              showToast("Post regenerated", "success");
             }
+          } else {
+            var err = await res.json();
+            showToast(err.error || "Regen failed", "error");
+          }
+        } catch (e) {
+          showToast("Network error", "error");
+        }
+      }
 
-            // Load companies
-            async function loadCompanies() {
-                try {
-                    const response = await fetch("/api/companies");
-                    companies = await response.json();
+      async function deletePost(tenderId) {
+        var post = postCache[tenderId];
+        if (!post || !post.id) return;
+        if (!confirm("Delete this post?")) return;
+        await fetch("/api/posts/" + post.id, { method: "DELETE" });
+        delete postCache[tenderId];
+        generatedSet.delete(tenderId);
+        var panelRow = document.querySelector(
+          '[data-panel="' + tenderId + '"]',
+        );
+        var panel = document.getElementById("panel-" + tenderId);
+        if (panel) panel.classList.remove("open");
+        if (panelRow) panelRow.style.display = "none";
+        var btn = document.querySelector(
+          '[data-tender="' + tenderId + '"] .btn-view',
+        );
+        if (btn) {
+          btn.classList.add("no-post");
+          btn.classList.remove("open");
+          btn.innerHTML = '— <span class="arrow">▼</span>';
+        }
+        var row = document.querySelector('[data-tender="' + tenderId + '"]');
+        if (row) row.classList.remove("has-post");
+        showToast("Post deleted", "success");
+      }
 
-                    const select = document.getElementById("companySelect");
-                    select.innerHTML =
-                        '<option value="">-- Choose a company --</option>';
+      function applyFmtToTextarea(tenderId, styleId) {
+        var ta = document.getElementById('ta-' + tenderId);
+        if (!ta) return;
+        var start = ta.selectionStart;
+        var end = ta.selectionEnd;
+        if (start === end) { showToast('Highlight some text first', 'error'); return; }
+        var selected = ta.value.substring(start, end);
+        var transformed;
+        switch (styleId) {
+          case 'bold':     transformed = applyMap(selected, UNI.bold); break;
+          case 'italic':   transformed = applyMap(selected, UNI.italic); break;
+          case 'boldItal': transformed = applyMap(selected, UNI.boldItal); break;
+          case 'strike':   transformed = applyStrike(selected); break;
+          case 'under':    transformed = applyUnderline(selected); break;
+          default:         transformed = selected;
+        }
+        ta.value = ta.value.substring(0, start) + transformed + ta.value.substring(end);
+        ta.setSelectionRange(start, start + transformed.length);
+        ta.focus();
+        // Save the change
+        savePostText(tenderId);
+      }
 
-                    companies.forEach((company) => {
-                        const option = document.createElement("option");
-                        option.value = company.id;
-                        option.textContent = company.name;
-                        select.appendChild(option);
-                    });
+      function insertEmojiToTextarea(tenderId, emoji) {
+        var ta = document.getElementById('ta-' + tenderId);
+        if (!ta) return;
+        var start = ta.selectionStart;
+        var end = ta.selectionEnd;
+        ta.value = ta.value.substring(0, start) + emoji + ta.value.substring(end);
+        var pos = start + emoji.length;
+        ta.setSelectionRange(pos, pos);
+        ta.focus();
+        savePostText(tenderId);
+      }
 
-                    updateDashboardStats();
+      function stagePostFromPanel(tenderId) {
+        var ta = document.getElementById('ta-' + tenderId);
+        if (!ta || !ta.value.trim()) { showToast('No post to stage', 'error'); return; }
+        var tender = tenders.find(function(t) { return String(t.id) === String(tenderId); });
+        if (!tender) { showToast('Tender not found', 'error'); return; }
+        // Update post text from textarea before staging
+        if (postCache[tenderId]) postCache[tenderId].post_text = ta.value;
+        addToTracker(tender, tender.category_name || '', ta.value);
+        showToast('Post staged to tracker', 'success');
+      }
 
-                    if (
-                        document
-                            .getElementById("manageSection")
-                            .classList.contains("show")
-                    ) {
-                        renderCompaniesList();
-                    }
-                } catch (error) {
-                    console.error("Error loading companies:", error);
-                }
-            }
+      async function refreshTenders() {
+        showToast("Refreshing...", "success");
+        try {
+          var res = await fetch("/api/refresh-tenders", { method: "POST" });
+          if (res.ok) {
+            showToast("Tenders refreshed", "success");
+            await loadCategories();
+            await loadTenders();
+          } else {
+            showToast("Refresh failed", "error");
+          }
+        } catch (e) {
+          showToast("Network error", "error");
+        }
+      }
 
-            // Update dashboard statistics
-            async function updateDashboardStats() {
-                try {
-                    document.getElementById("companiesTracked").textContent =
-                        companies.length;
+      function esc(s) {
+        var d = document.createElement("div");
+        d.appendChild(document.createTextNode(String(s || "")));
+        return d.innerHTML;
+      }
 
-                    const allTenders = [];
-                    for (const company of companies) {
-                        try {
-                            const response = await fetch(
-                                `/api/companies/${company.id}/tenders`,
-                            );
-                            const data = await response.json();
-                            data.tenders.forEach((tender) => {
-                                tender.companyName = company.name;
-                                allTenders.push(tender);
-                            });
-                        } catch (error) {
-                            console.error(
-                                `Error fetching tenders for ${company.name}:`,
-                                error,
-                            );
-                        }
-                    }
+      function fmtDate(iso) {
+        if (!iso) return "—";
+        return new Date(iso).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
 
-                    allTendersData = allTenders;
+      // ============================================================
+      // POST TRACKER
+      // ============================================================
+      var trackerRows = JSON.parse(localStorage.getItem('bws_tracker') || '[]');
 
-                    const totalTenders = allTenders.length;
-                    const now = new Date();
-                    const weekAgo = new Date(
-                        now.getTime() - 7 * 24 * 60 * 60 * 1000,
-                    );
-                    const sevenDaysFromNow = new Date(
-                        now.getTime() + 7 * 24 * 60 * 60 * 1000,
-                    );
+      function saveTracker() {
+        localStorage.setItem('bws_tracker', JSON.stringify(trackerRows));
+        updateTrackerCount();
+      }
 
-                    const newThisWeek = allTenders.filter(
-                        (t) => new Date(t.publication_date) >= weekAgo,
-                    ).length;
+      function updateTrackerCount() {
+        var badge = document.getElementById('trackerCount');
+        if (trackerRows.length > 0) {
+          badge.textContent = trackerRows.length;
+          badge.style.display = '';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
 
-                    const closingSoon = allTenders.filter(
-                        (t) =>
-                            t.deadline_date &&
-                            new Date(t.deadline_date) <= sevenDaysFromNow &&
-                            new Date(t.deadline_date) >= now,
-                    ).length;
+      function ordinalSuffix(n) {
+        var s = ['th','st','nd','rd'];
+        var v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+      }
 
-                    document.getElementById("totalTenders").textContent =
-                        totalTenders;
-                    document.getElementById("newThisWeek").textContent =
-                        newThisWeek;
-                    document.getElementById("closingSoon").textContent =
-                        closingSoon;
+      // Extract the descriptive title from a generated post's first line
+      // e.g. "🔒 NEW TENDER ALERT – Municipal Security Guarding 🔒" → "Municipal Security Guarding"
+      function extractPostTitle(postText) {
+        if (!postText) return null;
+        var firstLine = postText.split('\n')[0].trim();
+        var dashIdx = firstLine.indexOf('–');
+        if (dashIdx === -1) return null;
+        var after = firstLine.substring(dashIdx + 1).trim();
+        // Strip trailing emoji and non-word characters
+        after = after.replace(/[^a-zA-Z0-9\s,&()'\-]+\s*$/, '').trim();
+        return after || null;
+      }
 
-                    document.getElementById("tendersChange").textContent =
-                        "Across all tracked companies";
-                    document.getElementById("newChange").textContent =
-                        `↑ ${newThisWeek} new opportunities`;
-                    document.getElementById("urgentChange").textContent =
-                        closingSoon > 0
-                            ? "⚠️ Action required"
-                            : "✓ No urgent deadlines";
-                } catch (error) {
-                    console.error("Error updating dashboard:", error);
-                }
-            }
+      function addToTracker(tender, categoryName, postText) {
+        // Avoid duplicates by URL — but update post text if already tracked
+        var existing = trackerRows.find(function(r) { return r.url === tender.tender_url; });
+        if (existing) {
+          if (postText) existing.postText = postText;
+          saveTracker();
+          return;
+        }
+        var now = new Date();
+        var dateStr = ordinalSuffix(now.getDate()) + ' ' + now.toLocaleString('en-GB', { month: 'long' }) + ' ' + now.getFullYear();
+        trackerRows.push({
+          id: Date.now() + '_' + Math.random().toString(36).slice(2),
+          url: tender.tender_url || '',
+          date: dateStr,
+          industry: categoryName || tender.category_name || '',
+          title: extractPostTitle(postText) || tender.title || '',
+          tenderId: String(tender.id),
+          postText: postText || ''
+        });
+        saveTracker();
+        if (currentView === 'tracker') renderTracker();
+      }
 
-            // Load tenders for selected company
-            async function loadTenders(companyId) {
-                if (!companyId) {
-                    resetView();
-                    return;
-                }
+      function showTracker() {
+        currentView = 'tracker';
+        document.getElementById('formatterView').classList.remove('visible');
+        document.getElementById('trackerView').classList.add('visible');
+        document.getElementById('instantlyView').classList.remove('visible');
+        document.getElementById('scannerView').classList.remove('visible');
+        document.getElementById('tenderView').style.display = 'none';
+        document.getElementById('selectionBar').style.display = 'none';
+        document.getElementById('topTitle').textContent = 'LinkedIn Stager';
+        document.getElementById('topCount').textContent = trackerRows.length + ' entr' + (trackerRows.length === 1 ? 'y' : 'ies');
+        document.getElementById('formatterNav').classList.remove('active');
+        document.getElementById('trackerNav').classList.add('active');
+        document.getElementById('instantlyNav').classList.remove('active');
+        document.getElementById('scannerNav').classList.remove('active');
 
-                document.querySelectorAll(".industry-card").forEach((card) => {
-                    card.classList.remove("active");
+        document.querySelectorAll('.cat-item').forEach(function(el) { el.classList.remove('active'); });
+
+        // Pull pipeline-scheduled posts from the server and merge into local tracker
+        fetch('/api/stager')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (!data.success || !data.rows) return;
+            var added = 0;
+            data.rows.forEach(function(row) {
+              var alreadyTracked = trackerRows.find(function(r) {
+                return r.tenderId === String(row.tender_id);
+              });
+              if (!alreadyTracked) {
+                var d = new Date(row.created_at);
+                var dateStr = ordinalSuffix(d.getDate()) + ' ' + d.toLocaleString('en-GB', { month: 'long' }) + ' ' + d.getFullYear();
+                trackerRows.push({
+                  id: 'server_' + row.id,
+                  url: row.url || '',
+                  date: dateStr,
+                  industry: row.industry || '',
+                  title: extractPostTitle(row.post_text) || row.title || '',
+                  tenderId: String(row.tender_id),
+                  postText: row.post_text || ''
                 });
-                document
-                    .getElementById("industryCategories")
-                    .classList.remove("show");
-
-                document.getElementById("dashboardSection").style.display =
-                    "block";
-
-                document.getElementById("resultsSection").classList.add("show");
-
-                setTimeout(() => {
-                    document.getElementById("resultsSection").scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                    });
-                }, 200);
-
-                const company = companies.find(
-                    (c) => c.id === parseInt(companyId),
-                );
-
-                document.getElementById("tendersTableBody").innerHTML =
-                    '<tr><td colspan="4" class="loading">Loading tenders...</td></tr>';
-
-                const now = new Date();
-                document.getElementById("refreshTime").textContent =
-                    now.toLocaleTimeString("en-GB", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    });
-
-                try {
-                    const response = await fetch(
-                        `/api/companies/${companyId}/tenders`,
-                    );
-                    const data = await response.json();
-
-                    document.getElementById("resultsCount").textContent =
-                        `Showing ${data.tenders.length} result${data.tenders.length !== 1 ? "s" : ""} for ${company.name}`;
-
-                    document.getElementById("cpvInfo").textContent =
-                        `Showing opportunities matching CPV codes: ${company.cpv_codes.join(", ")}`;
-
-                    const tbody = document.getElementById("tendersTableBody");
-
-                    if (data.tenders.length === 0) {
-                        tbody.innerHTML = `
-                            <tr>
-                                <td colspan="4">
-                                    <div class="empty-state">
-                                        <h3>No matching tenders found</h3>
-                                        <p>There are no open tenders matching this company's CPV codes in the last 14 days.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
-                    } else {
-                        tbody.innerHTML = data.tenders
-                            .map((tender) => {
-                                const pubDate = new Date(
-                                    tender.publication_date,
-                                ).toLocaleDateString("en-GB");
-                                const deadline = tender.deadline_date
-                                    ? new Date(
-                                          tender.deadline_date,
-                                      ).toLocaleDateString("en-GB")
-                                    : "Not specified";
-
-                                const daysAgo = Math.floor(
-                                    (Date.now() -
-                                        new Date(tender.publication_date)) /
-                                        (1000 * 60 * 60 * 24),
-                                );
-                                const publishedText =
-                                    daysAgo === 0
-                                        ? "today"
-                                        : daysAgo === 1
-                                          ? "1 day ago"
-                                          : `${daysAgo} days ago`;
-
-                                // Generate mailto link
-                                const emailBody = generateEmailBody(
-                                    tender,
-                                    company.first_name,
-                                    pubDate,
-                                    deadline,
-                                );
-                                const mailtoLink = company.email
-                                    ? "mailto:" +
-                                      encodeURIComponent(company.email) +
-                                      "?subject=" +
-                                      encodeURIComponent(
-                                          "New Tender: " + tender.title,
-                                      ) +
-                                      "&body=" +
-                                      encodeURIComponent(emailBody)
-                                    : "";
-
-                                return `
-                                <tr>
-                                    <td>
-                                        <div>
-                                            <span class="tender-title">${tender.title}</span>
-                                            <span class="tender-buyer">${tender.buyer_name}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <span class="status-badge status-${tender.status}">${tender.status.toUpperCase()}</span>
-                                            <div style="margin-top: 6px; font-size: 12px; color: #495057;">
-                                                <div class="date-display">📅 Published: ${pubDate}</div>
-                                                <div class="date-display deadline-display">⏰ Deadline: ${deadline}</div>
-                                            </div>
-                                            <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">${publishedText}</div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style="display: flex; align-items: center; gap: 8px;">
-                                            <span class="cpv-tag">${company.name}</span>
-                                            ${company.email ? `<a href="${mailtoLink}" class="view-btn" style="padding: 6px 12px; font-size: 12px;">📧 Send</a>` : ""}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <a href="${tender.tender_url}" target="_blank" class="view-btn">
-                                            View Details →
-                                        </a>
-                                    </td>
-                                </tr>
-                            `;
-                            })
-                            .join("");
-                    }
-                } catch (error) {
-                    document.getElementById("tendersTableBody").innerHTML = `
-                        <tr>
-                            <td colspan="4">
-                                <div class="empty-state">
-                                    <h3>Error loading tenders</h3>
-                                    <p>${error.message}</p>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }
-            }
-
-            // Company dropdown change
-            document
-                .getElementById("companySelect")
-                .addEventListener("change", (e) => {
-                    loadTenders(e.target.value);
-                });
-
-            // Toggle manage companies
-            function toggleManageCompanies() {
-                const section = document.getElementById("manageSection");
-                const isVisible = section.classList.contains("show");
-
-                if (isVisible) {
-                    section.classList.remove("show");
-                } else {
-                    document
-                        .getElementById("resultsSection")
-                        .classList.remove("show");
-                    document
-                        .getElementById("industryCategories")
-                        .classList.remove("show");
-
-                    document.getElementById("companySelect").value = "";
-                    document
-                        .querySelectorAll(".industry-card")
-                        .forEach((card) => {
-                            card.classList.remove("active");
-                        });
-
-                    section.classList.add("show");
-
-                    setTimeout(() => {
-                        section.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                        });
-                    }, 200);
-
-                    renderCompaniesList();
-                }
-            }
-
-            // Render companies list
-            function renderCompaniesList() {
-                const list = document.getElementById("companiesList");
-
-                if (companies.length === 0) {
-                    list.innerHTML =
-                        '<div class="empty-state"><h3>No companies added yet</h3><p>Add your first company to get started!</p></div>';
-                    return;
-                }
-
-                list.innerHTML = companies
-                    .map(
-                        (company) => `
-                    <div class="company-item">
-                        <div class="company-info">
-                            <div class="company-name">${company.name}</div>
-                            ${company.first_name || company.last_name ? `<div class="company-contact">Contact: ${company.first_name || ""} ${company.last_name || ""}</div>` : ""}
-                            ${company.email ? `<div class="company-contact">Email: ${company.email}</div>` : ""}
-                            <div class="company-cpv">CPV: ${company.cpv_codes.join(", ")}</div>
-                        </div>
-                        <button onclick="deleteCompany(${company.id}, '${company.name.replace(/'/g, "\\'")}');" class="delete-btn">
-                            🗑️ Delete
-                        </button>
-                    </div>
-                `,
-                    )
-                    .join("");
-            }
-
-            // Delete company
-            async function deleteCompany(id, name) {
-                if (
-                    !confirm(
-                        `Are you sure you want to delete "${name}"?\\n\\nThis action cannot be undone.`,
-                    )
-                ) {
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/api/companies/${id}`, {
-                        method: "DELETE",
-                    });
-
-                    if (!response.ok) {
-                        const data = await response.json();
-                        throw new Error(
-                            data.error || `Server error: ${response.status}`,
-                        );
-                    }
-
-                    alert(`✅ "${name}" has been deleted successfully!`);
-                    await loadCompanies();
-
-                    const select = document.getElementById("companySelect");
-                    if (parseInt(select.value) === id) {
-                        resetView();
-                    }
-                } catch (error) {
-                    alert(`❌ Error deleting company:\\n\\n${error.message}`);
-                }
-            }
-
-            // Toggle add form
-            function toggleAddForm() {
-                const form = document.getElementById("addForm");
-                const isVisible = form.classList.contains("show");
-
-                if (isVisible) {
-                    form.classList.remove("show");
-                    document.getElementById("companyName").value = "";
-                    document.getElementById("firstName").value = "";
-                    document.getElementById("lastName").value = "";
-                    document.getElementById("email").value = "";
-                    document.getElementById("cpvInput").value = "";
-                    newCompanyCpvCodes = [];
-                    renderCpvTags();
-                } else {
-                    document
-                        .getElementById("resultsSection")
-                        .classList.remove("show");
-                    document
-                        .getElementById("industryCategories")
-                        .classList.remove("show");
-
-                    document.getElementById("companySelect").value = "";
-                    document
-                        .querySelectorAll(".industry-card")
-                        .forEach((card) => {
-                            card.classList.remove("active");
-                        });
-
-                    form.classList.add("show");
-
-                    setTimeout(() => {
-                        form.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                        });
-                    }, 200);
-                }
-            }
-
-            // Add CPV code
-            function addCpvCode() {
-                const input = document.getElementById("cpvInput");
-                const code = input.value.trim();
-
-                console.log("Adding CPV code:", code);
-                console.log("Code length:", code.length);
-                console.log("Is 8 digits:", /^[0-9]{8}$/.test(code));
-
-                if (code.length !== 8 || !/^[0-9]{8}$/.test(code)) {
-                    alert("CPV code must be exactly 8 digits");
-                    return;
-                }
-
-                if (newCompanyCpvCodes.includes(code)) {
-                    alert("This CPV code is already added");
-                    return;
-                }
-
-                newCompanyCpvCodes.push(code);
-                console.log("CPV codes array:", newCompanyCpvCodes);
-                input.value = "";
-                renderCpvTags();
-            }
-
-            // Render CPV tags
-            function renderCpvTags() {
-                const container = document.getElementById("cpvTagsList");
-
-                if (newCompanyCpvCodes.length === 0) {
-                    container.innerHTML =
-                        '<p style="color: #95a5a6; font-size: 14px; margin-top: 12px;">No CPV codes added yet</p>';
-                    return;
-                }
-
-                container.innerHTML = newCompanyCpvCodes
-                    .map(
-                        (code) => `
-                    <span class="cpv-tag-removable">
-                        ${code}
-                        <button type="button" onclick="removeCpvCode('${code}')" class="remove-cpv">×</button>
-                    </span>
-                `,
-                    )
-                    .join("");
-            }
-
-            // Remove CPV code
-            function removeCpvCode(code) {
-                newCompanyCpvCodes = newCompanyCpvCodes.filter(
-                    (c) => c !== code,
-                );
-                renderCpvTags();
-            }
-
-            // Add company
-            async function addCompany(event) {
-                event.preventDefault();
-
-                const name = document
-                    .getElementById("companyName")
-                    .value.trim();
-                const firstName = document
-                    .getElementById("firstName")
-                    .value.trim();
-                const lastName = document
-                    .getElementById("lastName")
-                    .value.trim();
-                const email = document.getElementById("email").value.trim();
-
-                if (!name) {
-                    alert("Please enter a company name");
-                    return;
-                }
-
-                if (!firstName || !lastName) {
-                    alert("Please enter first and last name");
-                    return;
-                }
-
-                if (!email) {
-                    alert("Please enter an email address");
-                    return;
-                }
-
-                if (newCompanyCpvCodes.length === 0) {
-                    alert("Please add at least one CPV code");
-                    return;
-                }
-
-                const payload = {
-                    name: name,
-                    cpv_codes: newCompanyCpvCodes,
-                    first_name: firstName,
-                    last_name: lastName,
-                    email: email,
-                };
-
-                console.log("Sending payload:", payload);
-
-                try {
-                    const response = await fetch("/api/companies", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(payload),
-                    });
-
-                    console.log("Response status:", response.status);
-
-                    const data = await response.json();
-                    console.log("Response data:", data);
-
-                    if (!response.ok) {
-                        throw new Error(data.error || "Failed to add company");
-                    }
-
-                    alert(`✅ ${name} added successfully!`);
-                    toggleAddForm();
-                    await loadCompanies();
-                } catch (error) {
-                    console.error("Error details:", error);
-                    alert(`Error adding company: ${error.message}`);
-                }
-            }
-
-            // Enter key for CPV input
-            document.addEventListener("DOMContentLoaded", () => {
-                const cpvInput = document.getElementById("cpvInput");
-                if (cpvInput) {
-                    cpvInput.addEventListener("keypress", (e) => {
-                        if (e.key === "Enter") {
-                            e.preventDefault();
-                            addCpvCode();
-                        }
-                    });
-                }
+                added++;
+              }
             });
-
-            // Update industry counts
-            async function updateIndustryCounts() {
-                try {
-                    const response = await fetch("/api/industries/counts");
-                    const counts = await response.json();
-
-                    // Update each industry count dynamically
-                    Object.keys(industries).forEach((key) => {
-                        const countElement = document.getElementById(
-                            `${key}Count`,
-                        );
-                        if (countElement) {
-                            countElement.textContent = `${counts[key] || 0} opportunities`;
-                        }
-                    });
-                } catch (error) {
-                    console.error("Error updating industry counts:", error);
-                }
+            if (added > 0) {
+              saveTracker();
+              renderTracker();
+              document.getElementById('topCount').textContent = trackerRows.length + ' entr' + (trackerRows.length === 1 ? 'y' : 'ies');
             }
+          })
+          .catch(function() {});
 
-            // Filter tenders by industry
-            async function filterByIndustry(industryKey) {
-                document.getElementById("dashboardSection").style.display =
-                    "block";
+        renderTracker();
+      }
 
-                document.getElementById("companySelect").value = "";
+      function renderTracker() {
+        var container = document.getElementById('trackerBody');
+        if (trackerRows.length === 0) {
+          container.innerHTML = '<div class="tracker-empty"><div class="empty-icon">📊</div><p>No posts staged yet. Generate a post, then click the 📌 Stage button to add it here.</p></div>';
+          return;
+        }
+        container.innerHTML =
+          '<table class="tracker-table">' +
+          '<thead><tr>' +
+          '<th style="width:30%">Post Title (editable)</th>' +
+          '<th style="width:28%">URL</th>' +
+          '<th style="width:14%">Date</th>' +
+          '<th style="width:16%">Industry</th>' +
+          '<th style="width:12%"></th>' +
+          '</tr></thead><tbody>' +
+          trackerRows.map(function(row) {
+            var hasPost = !!row.postText;
+            return '<tr data-tracker-id="' + escAttr(row.id) + '">' +
+              '<td><input class="tracker-title-input" value="' + escAttr(row.title) + '" onchange="updateTrackerTitle(\'' + row.id + '\', this.value)" /></td>' +
+              '<td>' + (row.fromFormatter ? '<span class="tracker-source-badge">✏️ Formatter</span>' : '<a href="' + escAttr(row.url) + '" target="_blank" class="tracker-url-link">' + esc(truncate(row.url, 50)) + '</a>') + '</td>' +
+              '<td>' + esc(row.date) + '</td>' +
+              '<td>' + esc(row.industry) + '</td>' +
+              '<td style="white-space:nowrap;">' +
+              (hasPost ? '<button class="btn-tracker-view" id="trackerviewbtn-' + escAttr(row.id) + '" onclick="toggleTrackerPost(\'' + row.id + '\')">📝 View ▼</button>' : '') +
+              '<button class="btn-tracker-del" onclick="removeTrackerRow(\'' + row.id + '\')">✕</button>' +
+              '</td>' +
+              '</tr>' +
+              '<tr class="tracker-post-row" id="trackerpostrow-' + escAttr(row.id) + '">' +
+              '<td colspan="5" style="padding:0;">' +
+              '<div class="tracker-post-inner">' +
+              '<textarea id="trackerpost-' + escAttr(row.id) + '">' + esc(row.postText || '') + '</textarea>' +
+              '<button class="tracker-post-copy" onclick="copyTrackerPost(\'' + row.id + '\')">📋 Copy</button>' +
+              '</div>' +
+              '</td>' +
+              '</tr>';
+          }).join('') +
+          '</tbody></table>';
+      }
 
-                document.getElementById("resultsSection").classList.add("show");
+      function toggleTrackerPost(id) {
+        var row = document.getElementById('trackerpostrow-' + id);
+        var btn = document.getElementById('trackerviewbtn-' + id);
+        if (!row) return;
+        var isOpen = row.classList.contains('open');
+        row.classList.toggle('open', !isOpen);
+        btn.classList.toggle('open', !isOpen);
+        btn.textContent = isOpen ? '📝 View ▼' : '📝 View ▲';
+      }
 
-                document.querySelectorAll(".industry-card").forEach((card) => {
-                    card.classList.remove("active");
-                });
-                event.target.closest(".industry-card").classList.add("active");
+      function copyTrackerPost(id) {
+        var ta = document.getElementById('trackerpost-' + id);
+        if (!ta || !ta.value.trim()) { showToast('No post text to copy', 'error'); return; }
+        navigator.clipboard.writeText(ta.value).then(function() {
+          showToast('Post copied to clipboard', 'success');
+        }).catch(function() { showToast('Copy failed', 'error'); });
+      }
 
-                setTimeout(() => {
-                    document.getElementById("resultsSection").scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                    });
-                }, 200);
+      function updateTrackerTitle(id, newTitle) {
+        var row = trackerRows.find(function(r) { return r.id === id; });
+        if (row) { row.title = newTitle; saveTracker(); }
+      }
 
-                document.getElementById("tendersTableBody").innerHTML =
-                    '<tr><td colspan="4" class="loading">Loading tenders...</td></tr>';
+      function removeTrackerRow(id) {
+        trackerRows = trackerRows.filter(function(r) { return r.id !== id; });
+        saveTracker();
+        renderTracker();
+        document.getElementById('topCount').textContent = trackerRows.length + ' entr' + (trackerRows.length === 1 ? 'y' : 'ies');
+      }
 
-                const now = new Date();
-                document.getElementById("refreshTime").textContent =
-                    now.toLocaleTimeString("en-GB", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    });
+      function clearTracker() {
+        if (trackerRows.length === 0) return;
+        if (!confirm('Clear all ' + trackerRows.length + ' tracked post' + (trackerRows.length === 1 ? '' : 's') + '?')) return;
+        trackerRows = [];
+        saveTracker();
+        renderTracker();
+        document.getElementById('topCount').textContent = '0 entries';
+        // Also clear server-side rows so they don't reappear on refresh
+        fetch('/api/stager/clear', { method: 'DELETE' }).catch(function() {});
+      }
 
-                try {
-                    const response = await fetch(
-                        `/api/industries/${industryKey}/tenders`,
-                    );
-                    const data = await response.json();
+      function copyTrackerToSheets() {
+        if (trackerRows.length === 0) { showToast('No entries to copy', 'error'); return; }
+        // Tab-separated: URL | Date | Industry | Post Title (matches Google Sheets column order)
+        var text = trackerRows.map(function(row) {
+          return [row.url, row.date, row.industry, row.title].join('\t');
+        }).join('\n');
+        var btn = document.getElementById('btnCopySheets');
+        navigator.clipboard.writeText(text).then(function() {
+          btn.textContent = '✓ Copied!';
+          btn.classList.add('copied');
+          showToast('Copied ' + trackerRows.length + ' row' + (trackerRows.length === 1 ? '' : 's') + ' — paste into Google Sheets', 'success');
+          setTimeout(function() { btn.textContent = '📋 Copy for Google Sheets'; btn.classList.remove('copied'); }, 2500);
+        }).catch(function() { showToast('Copy failed', 'error'); });
+      }
 
-                    document.getElementById("resultsCount").textContent =
-                        `Showing ${data.tenders.length} result${data.tenders.length !== 1 ? "s" : ""} for ${industries[industryKey].name}`;
+      async function pushToSheets() {
+        if (trackerRows.length === 0) { showToast('No entries to push', 'error'); return; }
+        var btn = document.getElementById('btnPushSheets');
+        btn.textContent = '⏳ Pushing...';
+        btn.disabled = true;
+        try {
+          var res = await fetch('/api/push-to-sheets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: trackerRows })
+          });
+          var data = await res.json();
+          if (data.success) {
+            btn.textContent = '✓ Done!';
+            showToast('Pushed ' + trackerRows.length + ' row' + (trackerRows.length === 1 ? '' : 's') + ' to Google Sheets', 'success');
+            setTimeout(function() { btn.textContent = '⬆️ Push to Sheets'; btn.disabled = false; }, 2500);
+          } else {
+            showToast('Sheets error: ' + (data.error || 'Unknown'), 'error');
+            btn.textContent = '⬆️ Push to Sheets';
+            btn.disabled = false;
+          }
+        } catch (e) {
+          showToast('Network error', 'error');
+          btn.textContent = '⬆️ Push to Sheets';
+          btn.disabled = false;
+        }
+      }
 
-                    document.getElementById("cpvInfo").textContent =
-                        `Showing opportunities matching CPV codes: ${industries[industryKey].cpvCodes.join(", ")}`;
+      function escAttr(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      }
 
-                    const tbody = document.getElementById("tendersTableBody");
+      function truncate(s, max) {
+        s = String(s || '');
+        return s.length > max ? s.slice(0, max) + '…' : s;
+      }
 
-                    if (data.tenders.length === 0) {
-                        tbody.innerHTML = `
-                            <tr>
-                                <td colspan="4">
-                                    <div class="empty-state">
-                                        <h3>No matching tenders found</h3>
-                                        <p>There are no open ${industries[industryKey].name} tenders in the last 14 days.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
-                    } else {
-                        tbody.innerHTML = data.tenders
-                            .map((tender) => {
-                                const pubDate = new Date(
-                                    tender.publication_date,
-                                ).toLocaleDateString("en-GB");
-                                const deadline = tender.deadline_date
-                                    ? new Date(
-                                          tender.deadline_date,
-                                      ).toLocaleDateString("en-GB")
-                                    : "Not specified";
+      // ============================================================
+      // TEXT FORMATTER
+      // ============================================================
 
-                                const daysAgo = Math.floor(
-                                    (Date.now() -
-                                        new Date(tender.publication_date)) /
-                                        (1000 * 60 * 60 * 24),
-                                );
-                                const publishedText =
-                                    daysAgo === 0
-                                        ? "today"
-                                        : daysAgo === 1
-                                          ? "1 day ago"
-                                          : `${daysAgo} days ago`;
+      var currentView = "tenders"; // "tenders" | "formatter" | "tracker"
 
-                                const matchingClients =
-                                    tender.matching_companies || [];
-                                const clientsHtml =
-                                    matchingClients.length > 0
-                                        ? `<div class="matching-clients">
-                                        <div class="matching-clients-count" onclick="toggleClientsList(event, '${tender.id}')">
-                                            ${matchingClients.length} client${matchingClients.length !== 1 ? "s" : ""} ▼
-                                        </div>
-                                        <div class="matching-clients-list" id="clients-${tender.id}">
-                                            ${matchingClients
-                                                .map((c) => {
-                                                    const emailBody =
-                                                        generateEmailBody(
-                                                            tender,
-                                                            c.first_name,
-                                                            pubDate,
-                                                            deadline,
-                                                        );
-                                                    const mailtoLink = c.email
-                                                        ? "mailto:" +
-                                                          encodeURIComponent(
-                                                              c.email,
-                                                          ) +
-                                                          "?subject=" +
-                                                          encodeURIComponent(
-                                                              "New Tender: " +
-                                                                  tender.title,
-                                                          ) +
-                                                          "&body=" +
-                                                          encodeURIComponent(
-                                                              emailBody,
-                                                          )
-                                                        : "";
-                                                    return `<div class="client-match-item">
-                                                    <span>${c.name}</span>
-                                                    ${c.email ? `<a href="${mailtoLink}" class="view-btn" style="padding: 4px 8px; font-size: 11px; margin-left: 8px;">📧 Send</a>` : ""}
-                                                </div>`;
-                                                })
-                                                .join("")}
-                                        </div>
-                                    </div>`
-                                        : `<span style="color: #95a5a6; font-size: 12px;">No matches</span>`;
+      function showFormatter() {
+        currentView = "formatter";
+        document.getElementById("formatterView").classList.add("visible");
+        document.getElementById("trackerView").classList.remove("visible");
+        document.getElementById("instantlyView").classList.remove("visible");
+        document.getElementById("scannerView").classList.remove("visible");
+        document.getElementById("tenderView").style.display = "none";
+        document.getElementById("selectionBar").style.display = "none";
+        document.getElementById("topTitle").textContent = "Text Formatter";
+        document.getElementById("topCount").textContent = "";
+        document.getElementById("formatterNav").classList.add("active");
+        document.getElementById("trackerNav").classList.remove("active");
+        document.getElementById("instantlyNav").classList.remove("active");
+        document.getElementById("scannerNav").classList.remove("active");
 
-                                return `
-                                <tr>
-                                    <td>
-                                        <div>
-                                            <span class="tender-title">${tender.title}</span>
-                                            <span class="tender-buyer">${tender.buyer_name}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <span class="status-badge status-${tender.status}">${tender.status.toUpperCase()}</span>
-                                            <div style="margin-top: 6px; font-size: 12px; color: #495057;">
-                                                <div class="date-display">📅 Published: ${pubDate}</div>
-                                                <div class="date-display deadline-display">⏰ Deadline: ${deadline}</div>
-                                            </div>
-                                            <div style="font-size: 11px; color: #95a5a6; margin-top: 3px;">${publishedText}</div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        ${clientsHtml}
-                                    </td>
-                                    <td>
-                                        <a href="${tender.tender_url}" target="_blank" class="view-btn">
-                                            View Details →
-                                        </a>
-                                    </td>
-                                </tr>
-                            `;
-                            })
-                            .join("");
-                    }
-                } catch (error) {
-                    document.getElementById("tendersTableBody").innerHTML = `
-                        <tr>
-                            <td colspan="4">
-                                <div class="empty-state">
-                                    <h3>Error loading tenders</h3>
-                                    <p>${error.message}</p>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                }
-            }
+        document.querySelectorAll(".cat-item").forEach(function(el) { el.classList.remove("active"); });
+        document.getElementById("fmtEditor").focus();
+      }
 
-            // Toggle clients list visibility
-            function toggleClientsList(event, tenderId) {
-                event.stopPropagation();
-                const list = document.getElementById(`clients-${tenderId}`);
-                list.classList.toggle("show");
-            }
+      function showTenders() {
+        currentView = "tenders";
+        document.getElementById("formatterView").classList.remove("visible");
+        document.getElementById("trackerView").classList.remove("visible");
+        document.getElementById("instantlyView").classList.remove("visible");
+        document.getElementById("scannerView").classList.remove("visible");
+        document.getElementById("tenderView").style.display = "";
+        document.getElementById("selectionBar").style.display = "";
+        document.getElementById("formatterNav").classList.remove("active");
+        document.getElementById("trackerNav").classList.remove("active");
+        document.getElementById("instantlyNav").classList.remove("active");
+        document.getElementById("scannerNav").classList.remove("active");
 
-            // Reset view back to clean dashboard state
-            function resetView() {
-                document
-                    .getElementById("resultsSection")
-                    .classList.remove("show");
-                document
-                    .getElementById("industryCategories")
-                    .classList.remove("show");
-                document
-                    .getElementById("manageSection")
-                    .classList.remove("show");
-                document.getElementById("addForm").classList.remove("show");
+        renderCategories();
+        loadTenders();
+      }
 
-                document.getElementById("companySelect").value = "";
-                document.querySelectorAll(".industry-card").forEach((card) => {
-                    card.classList.remove("active");
-                });
+      // Unicode maps
+      var UNI = (function() {
+        var az = 'abcdefghijklmnopqrstuvwxyz';
+        var AZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        var n09 = '0123456789';
+        var bold_lc   = '𝗮𝗯𝗰𝗱𝗲𝗳𝗴𝗵𝗶𝗷𝗸𝗹𝗺𝗻𝗼𝗽𝗾𝗿𝘀𝘁𝘂𝘃𝘄𝘅𝘆𝘇';
+        var bold_uc   = '𝗔𝗕𝗖𝗗𝗘𝗙𝗚𝗛𝗜𝗝𝗞𝗟𝗠𝗡𝗢𝗣𝗤𝗥𝗦𝗧𝗨𝗩𝗪𝗫𝗬𝗭';
+        var bold_num  = '𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵';
+        var ital_lc   = '𝘢𝘣𝘤𝘥𝘦𝘧𝘨𝘩𝘪𝘫𝘬𝘭𝘮𝘯𝘰𝘱𝘲𝘳𝘴𝘵𝘶𝘷𝘸𝘹𝘺𝘻';
+        var ital_uc   = '𝘈𝘉𝘊𝘋𝘌𝘍𝘎𝘏𝘐𝘑𝘒𝘓𝘔𝘕𝘖𝘗𝘘𝘙𝘚𝘛𝘜𝘝𝘞𝘟𝘠𝘡';
+        var bi_lc     = '𝙖𝙗𝙘𝙙𝙚𝙛𝙜𝙝𝙞𝙟𝙠𝙡𝙢𝙣𝙤𝙥𝙦𝙧𝙨𝙩𝙪𝙫𝙬𝙭𝙮𝙯';
+        var bi_uc     = '𝘼𝘽𝘾𝘿𝙀𝙁𝙂𝙃𝙄𝙅𝙆𝙇𝙈𝙉𝙊𝙋𝙌𝙍𝙎𝙏𝙐𝙑𝙒𝙓𝙔𝙕';
+        var sans_lc   = '𝖺𝖻𝖼𝖽𝖾𝖿𝗀𝗁𝗂𝗃𝗄𝗅𝗆𝗇𝗈𝗉𝗊𝗋𝗌𝗍𝗎𝗏𝗐𝗑𝗒𝗓';
+        var sans_uc   = '𝖠𝖡𝖢𝖣𝖤𝖥𝖦𝖧𝖨𝖩𝖪𝖫𝖬𝖭𝖮𝖯𝖰𝖱𝖲𝖳𝖴𝖵𝖶𝖷𝖸𝖹';
+        var sans_num  = '𝟢𝟣𝟤𝟥𝟦𝟧𝟨𝟩𝟪𝟫';
+        var scr_lc    = '𝒶𝒷𝒸𝒹𝑒𝒻𝑔𝒽𝒾𝒿𝓀𝓁𝓂𝓃𝑜𝓅𝓆𝓇𝓈𝓉𝓊𝓋𝓌𝓍𝓎𝓏';
+        var scr_uc    = '𝒜𝐵𝒞𝒟𝐸𝐹𝒢𝐻𝐼𝒥𝒦𝐿𝑀𝒩𝒪𝒫𝒬𝑅𝒮𝒯𝒰𝒱𝒲𝒳𝒴𝒵';
+        function makeMap(to_lc, to_uc, to_num) {
+          var map = {};
+          for (var i = 0; i < az.length; i++) map[az[i]] = [...to_lc][i];
+          for (var i = 0; i < AZ.length; i++) map[AZ[i]] = [...to_uc][i];
+          if (to_num) for (var i = 0; i < n09.length; i++) map[n09[i]] = [...to_num][i];
+          return map;
+        }
+        return {
+          bold:     makeMap(bold_lc, bold_uc, bold_num),
+          italic:   makeMap(ital_lc, ital_uc, null),
+          boldItal: makeMap(bi_lc, bi_uc, null),
+          sans:     makeMap(sans_lc, sans_uc, sans_num),
+          script:   makeMap(scr_lc, scr_uc, null),
+        };
+      })();
 
-                window.scrollTo({ top: 0, behavior: "smooth" });
-            }
+      function applyMap(text, map) {
+        return text.split('').map(function(c) { return map[c] || c; }).join('');
+      }
 
-            // Initialize - render industries on page load
-            renderIndustries();
-            loadCompanies();
-        </script>
-    </body>
-</html>
+      function applyStrike(text) {
+        return text.split('').map(function(c) { return c === '\n' ? c : c + '\u0336'; }).join('');
+      }
+
+      function applyUnderline(text) {
+        return text.split('').map(function(c) { return c === '\n' ? c : c + '\u0332'; }).join('');
+      }
+
+      // Apply formatting to the selected text inside the editor
+      function applyFmt(styleId) {
+        var editor = document.getElementById('fmtEditor');
+        var selection = window.getSelection();
+        if (!selection || selection.isCollapsed || !selection.rangeCount) {
+          showToast('Highlight some text first', 'error');
+          return;
+        }
+        var range = selection.getRangeAt(0);
+        if (!editor.contains(range.commonAncestorContainer)) {
+          showToast('Click inside the editor first', 'error');
+          return;
+        }
+        var selectedText = range.toString();
+        if (!selectedText) { showToast('Highlight some text first', 'error'); return; }
+        var transformed;
+        switch (styleId) {
+          case 'bold':     transformed = applyMap(selectedText, UNI.bold); break;
+          case 'italic':   transformed = applyMap(selectedText, UNI.italic); break;
+          case 'boldItal': transformed = applyMap(selectedText, UNI.boldItal); break;
+          case 'strike':   transformed = applyStrike(selectedText); break;
+          case 'under':    transformed = applyUnderline(selectedText); break;
+          case 'sans':     transformed = applyMap(selectedText, UNI.sans); break;
+          case 'script':   transformed = applyMap(selectedText, UNI.script); break;
+          default:         transformed = selectedText;
+        }
+        range.deleteContents();
+        var textNode = document.createTextNode(transformed);
+        range.insertNode(textNode);
+        // Reselect the transformed text
+        var newRange = document.createRange();
+        newRange.setStartBefore(textNode);
+        newRange.setEndAfter(textNode);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      }
+
+      // Insert emoji at cursor position in editor
+      function insertEmoji(emoji) {
+        var editor = document.getElementById('fmtEditor');
+        editor.focus();
+        var selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          var range = selection.getRangeAt(0);
+          if (editor.contains(range.commonAncestorContainer) || range.collapsed) {
+            range.deleteContents();
+            var textNode = document.createTextNode(emoji);
+            range.insertNode(textNode);
+            range.setStartAfter(textNode);
+            range.setEndAfter(textNode);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            return;
+          }
+        }
+        // Fallback: append to end
+        editor.textContent += emoji;
+      }
+
+      function cleanPostTitle(text) {
+        // Get first non-empty line, strip Unicode math chars to plain ASCII for reading
+        var line = text.split('\n').map(function(l) { return l.trim(); }).find(function(l) { return l.length > 0; }) || 'Formatted Post';
+        // Strip all non-ASCII (Unicode bold/italic etc) to get readable text
+        line = line.replace(/[^\x20-\x7E]/g, '').trim();
+        // Strip common prefixes
+        line = line.replace(/^new tender alert[\s:!–\-]*/i, '');
+        line = line.replace(/^tender incoming[\s:!–\-]*/i, '');
+        line = line.replace(/^[\s:!\-–—]+/, '').trim();
+        if (!line) line = 'Formatted Post';
+        return line.length > 60 ? line.slice(0, 60) + '…' : line;
+      }
+
+      function toPlainAscii(text) {
+        // Strip all non-ASCII chars (Unicode bold/italic/emoji) for comparison
+        return (text || '').replace(/[^\x20-\x7E\n]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      }
+
+      function stageToTracker() {
+        var editor = document.getElementById('fmtEditor');
+        var text = editor.innerText || editor.textContent;
+        if (!text.trim()) { showToast('Nothing to stage — add some text first', 'error'); return; }
+
+        var plainText = toPlainAscii(text);
+
+        // First: check if any existing tracker row (tender OR formatter) has matching plain text
+        // This catches the case where a tender post was already tracked, then formatted and staged
+        var existing = trackerRows.find(function(r) {
+          if (!r.postText) return false;
+          var rowPlain = toPlainAscii(r.postText);
+          // Compare first 150 chars of plain text — enough to identify the same post
+          return rowPlain.slice(0, 150) === plainText.slice(0, 150);
+        });
+
+        if (existing) {
+          // Update the existing row's post text with the newly formatted version
+          existing.postText = text;
+          saveTracker();
+          if (currentView === 'tracker') renderTracker();
+          var btn = document.getElementById('btnFmtStage');
+          btn.textContent = '✓ Updated!';
+          btn.classList.add('staged');
+          setTimeout(function() { btn.textContent = '📌 Stage to Tracker'; btn.classList.remove('staged'); }, 2000);
+          showToast('Formatted post updated in tracker', 'success');
+          return;
+        }
+
+        // No match — create a new tracker row
+        var title = cleanPostTitle(text);
+        var now = new Date();
+        var dateStr = ordinalSuffix(now.getDate()) + ' ' + now.toLocaleString('en-GB', { month: 'long' }) + ' ' + now.getFullYear();
+        trackerRows.push({
+          id: Date.now() + '_' + Math.random().toString(36).slice(2),
+          url: '',
+          date: dateStr,
+          industry: 'Formatted',
+          title: title,
+          tenderId: '',
+          postText: text,
+          fromFormatter: true
+        });
+        saveTracker();
+        if (currentView === 'tracker') renderTracker();
+        var btn = document.getElementById('btnFmtStage');
+        btn.textContent = '✓ Staged!';
+        btn.classList.add('staged');
+        setTimeout(function() { btn.textContent = '📌 Stage to Tracker'; btn.classList.remove('staged'); }, 2000);
+        showToast('Post staged to tracker', 'success');
+      }
+
+      function clearFmtEditor() {
+        document.getElementById('fmtEditor').textContent = '';
+        document.getElementById('fmtEditor').focus();
+      }
+
+      function copyFmtEditor() {
+        var editor = document.getElementById('fmtEditor');
+        var text = editor.innerText || editor.textContent;
+        var btn = document.getElementById('btnFmtCopy');
+        if (!text.trim()) { showToast('Nothing to copy', 'error'); return; }
+        navigator.clipboard.writeText(text).then(function() {
+          btn.textContent = '✓ Copied!';
+          btn.classList.add('copied');
+          setTimeout(function() {
+            btn.textContent = '📋 Copy to clipboard';
+            btn.classList.remove('copied');
+          }, 2000);
+        }).catch(function() { showToast('Copy failed', 'error'); });
+      }
+
+      // ============================================================
+      // STAGE POST (LinkedIn + Instantly)
+      // ============================================================
+
+      function stagePost(tenderId) {
+        var cbLI = document.getElementById('cbLI-' + tenderId);
+        if (!cbLI || !cbLI.checked) {
+          showToast('Tick Stage LinkedIn first', 'error');
+          return;
+        }
+        var ta = document.getElementById('ta-' + tenderId);
+        if (!ta || !ta.value.trim()) { showToast('No post to stage', 'error'); return; }
+        var tender = tenders.find(function(t) { return String(t.id) === String(tenderId); });
+        if (postCache[tenderId]) postCache[tenderId].post_text = ta.value;
+        if (tender) addToTracker(tender, tender.category_name || '', ta.value);
+        showToast('Staged to LinkedIn', 'success');
+      }
+
+      // ============================================================
+      // INSTANTLY STAGER
+      // ============================================================
+
+      var INSTANTLY_SECTORS = [
+        { key: 'security',            name: 'Security',            icon: '🔒' },
+        { key: 'fire_safety',         name: 'Fire Safety',         icon: '🔥' },
+        { key: 'construction',        name: 'Construction',        icon: '🏗️' },
+        { key: 'waste_management',    name: 'Waste Management',    icon: '♻️' },
+        { key: 'cleaning',            name: 'Cleaning',            icon: '🧹' },
+        { key: 'water_hygiene',       name: 'Water Hygiene',       icon: '💧' },
+        { key: 'grounds_maintenance', name: 'Grounds Maintenance', icon: '🌳' },
+        { key: 'civil_engineering',   name: 'Civil Engineering',   icon: '🚧' },
+        { key: 'electrical',          name: 'Electrical',          icon: '⚡' },
+        { key: 'me',                  name: 'M&E',                 icon: '🔧' },
+      ];
+
+      var instantlyData = JSON.parse(localStorage.getItem('bws_instantly') || '{}');
+      INSTANTLY_SECTORS.forEach(function(s) { if (!instantlyData[s.key]) instantlyData[s.key] = []; });
+
+      function saveInstantlyData() {
+        localStorage.setItem('bws_instantly', JSON.stringify(instantlyData));
+      }
+
+      function detectInstantlySector(tender) {
+        if (!tender) return 'security';
+        var cat = (tender.category_name || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (cat.includes('security') || cat.includes('guard')) return 'security';
+        if (cat.includes('fire')) return 'fire_safety';
+        if (cat.includes('construct') || cat.includes('build')) return 'construction';
+        if (cat.includes('waste') || cat.includes('recycl')) return 'waste_management';
+        if (cat.includes('clean')) return 'cleaning';
+        if (cat.includes('water') || cat.includes('hygiene')) return 'water_hygiene';
+        if (cat.includes('ground') || cat.includes('landscap')) return 'grounds_maintenance';
+        if (cat.includes('civil') || cat.includes('infrastructure')) return 'civil_engineering';
+        if (cat.includes('electr')) return 'electrical';
+        if (cat.includes('mechanical') || cat.includes('engineer') || cat.includes(' me ') || cat.includes('hvac')) return 'me';
+        return 'security';
+      }
+
+      function addToInstantly(tender, postText) {
+        var sectorKey = detectInstantlySector(tender);
+        if (!instantlyData[sectorKey]) instantlyData[sectorKey] = [];
+        var tenderId = tender ? String(tender.id) : '';
+        if (tenderId) {
+          var existing = instantlyData[sectorKey].find(function(i) { return i.tenderId === tenderId; });
+          if (existing) { existing.postText = postText; saveInstantlyData(); return; }
+        }
+        var now = new Date();
+        var dateStr = ordinalSuffix(now.getDate()) + ' ' + now.toLocaleString('en-GB', { month: 'long' }) + ' ' + now.getFullYear();
+        instantlyData[sectorKey].push({
+          id: Date.now() + '_' + Math.random().toString(36).slice(2),
+          tenderId: tenderId,
+          title: tender ? (tender.title || '') : '',
+          url: tender ? (tender.tender_url || '') : '',
+          postText: postText,
+          date: dateStr,
+          sector: tender ? (tender.category_name || sectorKey) : sectorKey
+        });
+        saveInstantlyData();
+        updateInstantlyCount();
+        if (currentView === 'instantly') renderInstantlyGrid();
+      }
+
+      function updateInstantlyCount() {
+        var total = INSTANTLY_SECTORS.reduce(function(sum, s) { return sum + (instantlyData[s.key] || []).length; }, 0);
+        var badge = document.getElementById('instantlyCount');
+        if (badge) {
+          if (total > 0) { badge.textContent = total; badge.style.display = ''; }
+          else { badge.style.display = 'none'; }
+        }
+      }
+
+      function renderInstantlyGrid() {
+        var grid = document.getElementById('instantlyGrid');
+        if (!grid) return;
+        grid.innerHTML = INSTANTLY_SECTORS.map(function(s) {
+          var items = instantlyData[s.key] || [];
+          var count = items.length;
+          var postsHtml = count === 0
+            ? '<div class="instantly-empty-msg">No posts yet</div>'
+            : items.map(function(item) {
+                var firstLine = (item.postText || item.title || '').split('\n').map(function(l) { return l.trim(); }).find(function(l) { return l.length > 0; }) || '';
+                var title = firstLine.replace(/[^\x20-\x7E]/g, '').trim().slice(0, 50) || 'Staged post';
+                return '<div class="instantly-post-item">' +
+                  '<span class="instantly-post-title">' + esc(title) + '</span>' +
+                  '<div class="instantly-post-btns">' +
+                  '<button class="btn-instantly-copy" onclick="copyInstantlyPost(\'' + escAttr(s.key) + '\',\'' + escAttr(item.id) + '\')" title="Copy">📋</button>' +
+                  '<button class="btn-instantly-del" onclick="deleteInstantlyPost(\'' + escAttr(s.key) + '\',\'' + escAttr(item.id) + '\')" title="Remove">✕</button>' +
+                  '</div></div>';
+              }).join('');
+          return '<div class="instantly-sector-card">' +
+            '<div class="instantly-sector-header">' +
+            '<span class="instantly-sector-icon">' + s.icon + '</span>' +
+            '<span class="instantly-sector-name">' + s.name + '</span>' +
+            '<span class="instantly-sector-count' + (count > 0 ? ' has-items' : '') + '">' + count + '</span>' +
+            '</div>' +
+            '<div class="instantly-sector-posts">' + postsHtml + '</div>' +
+            '</div>';
+        }).join('');
+      }
+
+      function copyInstantlyPost(sectorKey, itemId) {
+        var item = (instantlyData[sectorKey] || []).find(function(i) { return i.id === itemId; });
+        if (!item || !item.postText) { showToast('No post text', 'error'); return; }
+        navigator.clipboard.writeText(item.postText).then(function() {
+          showToast('Copied to clipboard', 'success');
+        }).catch(function() { showToast('Copy failed', 'error'); });
+      }
+
+      function deleteInstantlyPost(sectorKey, itemId) {
+        instantlyData[sectorKey] = (instantlyData[sectorKey] || []).filter(function(i) { return i.id !== itemId; });
+        saveInstantlyData();
+        updateInstantlyCount();
+        renderInstantlyGrid();
+        showToast('Removed from Instantly', 'success');
+      }
+
+      function clearInstantly() {
+        var total = INSTANTLY_SECTORS.reduce(function(sum, s) { return sum + (instantlyData[s.key] || []).length; }, 0);
+        if (total === 0) return;
+        if (!confirm('Clear all ' + total + ' post' + (total === 1 ? '' : 's') + ' from Instantly?')) return;
+        INSTANTLY_SECTORS.forEach(function(s) { instantlyData[s.key] = []; });
+        saveInstantlyData();
+        updateInstantlyCount();
+        renderInstantlyGrid();
+      }
+
+      async function pushInstantlyToSheets() {
+        var allRows = [];
+        INSTANTLY_SECTORS.forEach(function(s) {
+          (instantlyData[s.key] || []).forEach(function(item) {
+            allRows.push({ sector: s.name, title: item.title, url: item.url, date: item.date });
+          });
+        });
+        if (allRows.length === 0) { showToast('No posts to push', 'error'); return; }
+        var btn = document.getElementById('btnPushInstantly');
+        btn.textContent = '⏳ Pushing...';
+        btn.disabled = true;
+        try {
+          var res = await fetch('/api/push-to-sheets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: allRows })
+          });
+          var data = await res.json();
+          if (data.success) {
+            btn.textContent = '✓ Done!';
+            showToast('Pushed ' + allRows.length + ' row' + (allRows.length === 1 ? '' : 's') + ' to Google Sheets', 'success');
+            setTimeout(function() { btn.textContent = '⬆️ Push to Sheets'; btn.disabled = false; }, 2500);
+          } else {
+            showToast('Sheets error: ' + (data.error || 'Unknown'), 'error');
+            btn.textContent = '⬆️ Push to Sheets';
+            btn.disabled = false;
+          }
+        } catch (e) {
+          showToast('Network error', 'error');
+          btn.textContent = '⬆️ Push to Sheets';
+          btn.disabled = false;
+        }
+      }
+
+      function showInstantly() {
+        currentView = 'instantly';
+        document.getElementById('formatterView').classList.remove('visible');
+        document.getElementById('trackerView').classList.remove('visible');
+        document.getElementById('instantlyView').classList.add('visible');
+        document.getElementById('scannerView').classList.remove('visible');
+        document.getElementById('tenderView').style.display = 'none';
+        document.getElementById('selectionBar').style.display = 'none';
+        document.getElementById('topTitle').textContent = 'Instantly';
+        document.getElementById('topCount').textContent = INSTANTLY_SECTORS.reduce(function(sum, s) { return sum + (instantlyData[s.key] || []).length; }, 0) + ' posts staged';
+        document.getElementById('formatterNav').classList.remove('active');
+        document.getElementById('trackerNav').classList.remove('active');
+        document.getElementById('instantlyNav').classList.add('active');
+        document.getElementById('scannerNav').classList.remove('active');
+
+        document.querySelectorAll('.cat-item').forEach(function(el) { el.classList.remove('active'); });
+        renderInstantlyGrid();
+      }
+
+      // =====================================================================
+      // TENDER SCANNER
+      // =====================================================================
+
+      function showScanner() {
+        currentView = 'scanner';
+        document.getElementById('formatterView').classList.remove('visible');
+        document.getElementById('trackerView').classList.remove('visible');
+        document.getElementById('instantlyView').classList.remove('visible');
+        document.getElementById('scannerView').classList.add('visible');
+        document.getElementById('tenderView').style.display = 'none';
+        document.getElementById('selectionBar').style.display = 'none';
+        document.getElementById('topTitle').textContent = 'Tender Scanner';
+        document.getElementById('topCount').textContent = '';
+        document.getElementById('formatterNav').classList.remove('active');
+        document.getElementById('trackerNav').classList.remove('active');
+        document.getElementById('instantlyNav').classList.remove('active');
+        document.getElementById('scannerNav').classList.add('active');
+        document.querySelectorAll('.cat-item').forEach(function(el) { el.classList.remove('active'); });
+        document.getElementById('scannerUrlInput').focus();
+      }
+
+      async function scanUrl() {
+        var url = document.getElementById('scannerUrlInput').value.trim();
+        if (!url) { showToast('Please enter a URL', 'error'); return; }
+        if (!/^https?:\/\//i.test(url)) { showToast('URL must start with http:// or https://', 'error'); return; }
+
+        var btn = document.getElementById('btnScan');
+        var label = document.getElementById('btnScanLabel');
+        var spinner = document.getElementById('scanSpinner');
+        btn.disabled = true;
+        label.textContent = 'Scanning...';
+        spinner.style.display = 'inline-block';
+        document.getElementById('scannerResult').classList.remove('visible');
+        document.getElementById('scannerStatus').textContent = '';
+        document.getElementById('scannerStatus').className = 'scanner-status';
+
+        try {
+          var res = await fetch('/api/scanner/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url }),
+          });
+          var data = await res.json();
+          if (!data.success) throw new Error(data.error || 'Scan failed');
+          document.getElementById('scannerPostTa').value = data.post_text;
+          document.getElementById('scannerResult').classList.add('visible');
+          showToast('Post generated', 'success');
+        } catch (e) {
+          showToast('Error: ' + e.message, 'error');
+        } finally {
+          btn.disabled = false;
+          label.textContent = '⚡ Scan';
+          spinner.style.display = 'none';
+        }
+      }
+
+      function stageScannedPost() {
+        var url = document.getElementById('scannerUrlInput').value.trim();
+        var postText = document.getElementById('scannerPostTa').value.trim();
+        if (!postText) { showToast('No post to stage', 'error'); return; }
+        var now = new Date();
+        var dateStr = ordinalSuffix(now.getDate()) + ' ' + now.toLocaleString('en-GB', { month: 'long' }) + ' ' + now.getFullYear();
+        var existing = trackerRows.find(function(r) { return r.url === url; });
+        if (existing) {
+          existing.postText = postText;
+          existing.title = extractPostTitle(postText) || existing.title;
+        } else {
+          trackerRows.push({
+            id: Date.now() + '_' + Math.random().toString(36).slice(2),
+            url: url || '',
+            date: dateStr,
+            industry: 'Scanned',
+            title: extractPostTitle(postText) || 'Scanned Tender',
+            tenderId: '',
+            postText: postText
+          });
+        }
+        saveTracker();
+        showToast('Added to LinkedIn Stager', 'success');
+      }
+
+      async function pushScannedToSheets() {
+        var url = document.getElementById('scannerUrlInput').value.trim();
+        var postText = document.getElementById('scannerPostTa').value.trim();
+        if (!postText) { showToast('No post to push', 'error'); return; }
+        var btn = document.getElementById('btnScannerPush');
+        var statusEl = document.getElementById('scannerStatus');
+        btn.disabled = true;
+        btn.textContent = '⏳ Pushing...';
+        var now = new Date();
+        var dateStr = ordinalSuffix(now.getDate()) + ' ' + now.toLocaleString('en-GB', { month: 'long' }) + ' ' + now.getFullYear();
+        var title = extractPostTitle(postText) || 'Scanned Tender';
+        try {
+          var res = await fetch('/api/push-to-sheets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rows: [{ url: url, date: dateStr, industry: 'Scanned', title: title }] }),
+          });
+          var data = await res.json();
+          statusEl.textContent = '✅ Pushed to Sheets';
+          statusEl.className = 'scanner-status success';
+          showToast('Pushed to Google Sheets', 'success');
+        } catch (e) {
+          statusEl.textContent = '❌ ' + e.message;
+          statusEl.className = 'scanner-status error';
+          showToast('Push failed: ' + e.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '📋 Push to Sheets';
+        }
+      }
+
+      var toastT;
+      function showToast(msg, type) {
+        var el = document.getElementById("toast");
+        el.textContent = msg;
+        el.className = "toast " + (type || "success") + " show";
+        clearTimeout(toastT);
+        toastT = setTimeout(function () {
+          el.classList.remove("show");
+        }, 2600);
+      }
+      </script>
+      </body>
+      </html>
