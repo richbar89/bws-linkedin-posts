@@ -2241,25 +2241,29 @@ app.get("/api/agent/test-buffer", async (_req, res) => {
 // TENDER SCANNER
 // ============================================================================
 
-// POST /api/scanner/scan — fetch a URL and generate a LinkedIn post from it
+// POST /api/scanner/scan — generate a LinkedIn post from a URL + pasted page content
 app.post("/api/scanner/scan", async (req, res) => {
-  const { url } = req.body;
+  const { url, pageContent } = req.body;
   if (!url || typeof url !== "string") {
     return res.status(400).json({ success: false, error: "URL required" });
   }
   try {
     console.log(`\n🔍 Scanner: generating post for ${url}`);
     const { writeTenderPost } = require("./agents/writer");
-    const postText = await writeTenderPost({
-      tender_url: url.trim(),
-      title: "",
-      ai_category: "",
-      buyer_name: "",
-      status: "",
-      deadline_date: null,
-      value_amount: null,
-      description: "",
-    });
+    const postText = await writeTenderPost(
+      {
+        tender_url: url.trim(),
+        title: "",
+        ai_category: "",
+        buyer_name: "",
+        status: "",
+        deadline_date: null,
+        value_amount: null,
+        description: "",
+      },
+      0,
+      pageContent ? pageContent.substring(0, 12000) : null,
+    );
     res.json({ success: true, post_text: postText });
   } catch (err) {
     console.error("❌ Scanner error:", err.message);
