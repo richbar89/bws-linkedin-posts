@@ -2212,6 +2212,47 @@ app.post("/api/push-to-sheets", async (req, res) => {
 });
 
 // ============================================================================
+// BUFFER QUEUE
+// ============================================================================
+
+// GET /api/buffer/queue — fetch scheduled posts for all three LinkedIn channels
+app.get("/api/buffer/queue", async (_req, res) => {
+  try {
+    const { getScheduledPosts, LINKEDIN_PAGES } = require("./agents/buffer");
+    const channels = await Promise.all(
+      Object.entries(LINKEDIN_PAGES).map(async ([key, page]) => {
+        try {
+          const posts = await getScheduledPosts(page.id);
+          return { key, name: page.name, posts };
+        } catch (err) {
+          return { key, name: page.name, posts: [], error: err.message };
+        }
+      }),
+    );
+    res.json({ success: true, channels });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE /api/buffer/post/:id — delete a scheduled post from Buffer
+app.delete("/api/buffer/post/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { bufferQuery } = require("./agents/buffer");
+    await bufferQuery(
+      `mutation DeletePost($input: DeletePostInput!) {
+        deletePost(input: $input) { __typename }
+      }`,
+      { input: { id } },
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
 // AGENT ENDPOINTS
 // ============================================================================
 
