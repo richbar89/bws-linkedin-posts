@@ -315,7 +315,7 @@
 
       async function loadStats() {
         try {
-          const response = await fetch("/api/stats");
+          const response = await fetch("/posts/api/stats");
           const data = await response.json();
 
           document.getElementById("totalTenders").textContent =
@@ -350,7 +350,7 @@
           "⏳ Fetching new tenders from the source... This may take 30-60 seconds.";
 
         try {
-          const response = await fetch("/api/refresh-tenders", {
+          const response = await fetch("/posts/api/refresh-tenders", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

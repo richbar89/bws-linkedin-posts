@@ -2500,7 +2500,12 @@ cron.schedule(
   { timezone: "Europe/London" },
 );
 
-app.listen(PORT, "0.0.0.0", () => {
+// PORTAL TRIAL (branch only): the whole app mounts under /posts so the BWS
+// workspace portal can proxy it. Bare "/" redirects so direct visits still work.
+const portalRoot = express();
+portalRoot.get("/", (_req, res) => res.redirect("/posts/"));
+portalRoot.use("/posts", app);
+portalRoot.listen(PORT, "0.0.0.0", () => {
   ensurePipelineTables().catch((err) =>
     console.error("⚠️  Could not create pipeline tables:", err.message),
   );
