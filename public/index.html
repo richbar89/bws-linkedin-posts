@@ -1946,7 +1946,7 @@
 
       async function loadTenders() {
         const url =
-          "/api/tenders" +
+          "/posts/api/tenders" +
           (selectedCategory ? "?category=" + selectedCategory : "");
         try {
           const res = await fetch(url);
