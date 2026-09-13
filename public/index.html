@@ -1903,7 +1903,7 @@
 
       async function loadCategories() {
         try {
-          const res = await fetch("/api/categories");
+          const res = await fetch("/posts/api/categories");
           categories = await res.json();
           renderCategories();
         } catch (e) {
@@ -1946,7 +1946,7 @@
 
       async function loadTenders() {
         const url =
-          "/api/tenders" +
+          "/posts/api/tenders" +
           (selectedCategory ? "?category=" + selectedCategory : "");
         try {
           const res = await fetch(url);
@@ -2128,7 +2128,7 @@
         btn.disabled = true;
         try {
           var ids = Array.from(selectedIds);
-          var res = await fetch("/api/generate-posts", {
+          var res = await fetch("/posts/api/generate-posts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ tender_ids: ids }),
@@ -2202,7 +2202,7 @@
         }
 
         try {
-          var res = await fetch("/api/posts/by-tender/" + tenderId);
+          var res = await fetch("/posts/api/posts/by-tender/" + tenderId);
           if (res.ok) {
             var post = await res.json();
             postCache[tenderId] = post;
@@ -2225,7 +2225,7 @@
         var post = postCache[tenderId];
         if (!post || !post.id) return;
         var text = document.getElementById("ta-" + tenderId).value;
-        await fetch("/api/posts/" + post.id, {
+        await fetch("/posts/api/posts/" + post.id, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ post_text: text }),
@@ -2247,7 +2247,7 @@
         }
 
         try {
-          var statusRes = await fetch("/api/linkedin/status");
+          var statusRes = await fetch("/posts/api/linkedin/status");
           var status = await statusRes.json();
 
           if (!status.authenticated) {
@@ -2266,7 +2266,7 @@
           }
 
           showToast("Publishing to LinkedIn...", "success");
-          var res = await fetch("/api/linkedin/post", {
+          var res = await fetch("/posts/api/linkedin/post", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ post_text: post.post_text }),
@@ -2286,7 +2286,7 @@
       async function regenPost(tenderId) {
         showToast("Regenerating...", "success");
         try {
-          var res = await fetch("/api/generate-posts", {
+          var res = await fetch("/posts/api/generate-posts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ tender_ids: [tenderId] }),
@@ -2312,7 +2312,7 @@
         var post = postCache[tenderId];
         if (!post || !post.id) return;
         if (!confirm("Delete this post?")) return;
-        await fetch("/api/posts/" + post.id, { method: "DELETE" });
+        await fetch("/posts/api/posts/" + post.id, { method: "DELETE" });
         delete postCache[tenderId];
         generatedSet.delete(tenderId);
         var panelRow = document.querySelector(
@@ -2383,7 +2383,7 @@
       async function refreshTenders() {
         showToast("Refreshing...", "success");
         try {
-          var res = await fetch("/api/refresh-tenders", { method: "POST" });
+          var res = await fetch("/posts/api/refresh-tenders", { method: "POST" });
           if (res.ok) {
             showToast("Tenders refreshed", "success");
             await loadCategories();
@@ -2495,7 +2495,7 @@
         document.querySelectorAll('.cat-item').forEach(function(el) { el.classList.remove('active'); });
 
         // Pull pipeline-scheduled posts from the server and merge into local tracker
-        fetch('/api/stager')
+        fetch('/posts/api/stager')
           .then(function(r) { return r.json(); })
           .then(function(data) {
             if (!data.success || !data.rows) return;
@@ -2607,7 +2607,7 @@
         renderTracker();
         document.getElementById('topCount').textContent = '0 entries';
         // Also clear server-side rows so they don't reappear on refresh
-        fetch('/api/stager/clear', { method: 'DELETE' }).catch(function() {});
+        fetch('/posts/api/stager/clear', { method: 'DELETE' }).catch(function() {});
       }
 
       function copyTrackerToSheets() {
@@ -2631,7 +2631,7 @@
         btn.textContent = '⏳ Pushing...';
         btn.disabled = true;
         try {
-          var res = await fetch('/api/push-to-sheets', {
+          var res = await fetch('/posts/api/push-to-sheets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rows: trackerRows })
@@ -3060,7 +3060,7 @@
         btn.textContent = '⏳ Pushing...';
         btn.disabled = true;
         try {
-          var res = await fetch('/api/push-to-sheets', {
+          var res = await fetch('/posts/api/push-to-sheets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rows: allRows })
@@ -3144,7 +3144,7 @@
         document.getElementById('scannerStatus').className = 'scanner-status';
 
         try {
-          var res = await fetch('/api/scanner/scan', {
+          var res = await fetch('/posts/api/scanner/scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: url, pageContent: pageContent }),
@@ -3200,7 +3200,7 @@
         var dateStr = ordinalSuffix(now.getDate()) + ' ' + now.toLocaleString('en-GB', { month: 'long' }) + ' ' + now.getFullYear();
         var title = extractPostTitle(postText) || 'Scanned Tender';
         try {
-          var res = await fetch('/api/push-to-sheets', {
+          var res = await fetch('/posts/api/push-to-sheets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rows: [{ url: url, date: dateStr, industry: 'Scanned', title: title }] }),
@@ -3247,7 +3247,7 @@
         var cols = document.getElementById('queueColumns');
         cols.innerHTML = '<div style="grid-column:1/-1;padding:48px;text-align:center;color:var(--text-muted);">Loading queue...</div>';
         try {
-          var res = await fetch('/api/buffer/queue');
+          var res = await fetch('/posts/api/buffer/queue');
           var data = await res.json();
           if (!data.success) throw new Error(data.error || 'Failed to load queue');
           cols.innerHTML = '';
@@ -3327,7 +3327,7 @@
         btn.disabled = true;
         btn.textContent = '...';
         try {
-          var res = await fetch('/api/buffer/post/' + encodeURIComponent(postId), { method: 'DELETE' });
+          var res = await fetch('/posts/api/buffer/post/' + encodeURIComponent(postId), { method: 'DELETE' });
           var data = await res.json();
           if (!data.success) throw new Error(data.error || 'Delete failed');
           var card = btn.closest('.queue-card');
