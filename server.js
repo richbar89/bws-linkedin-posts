@@ -1516,6 +1516,23 @@ const AI_CATEGORY_MAP = {
 // MIDDLEWARE
 // ============================================================================
 
+// ── Team gate: HTTP Basic auth (any username + POSTS_PASSWORD). Excludes
+// /health (probes) and /auth/* (LinkedIn OAuth callbacks). Browsers cache the
+// credential, so the team enters it once. No-ops if POSTS_PASSWORD is unset.
+app.use((req, res, next) => {
+  const pw = process.env.POSTS_PASSWORD;
+  if (!pw) return next();
+  if (req.path === "/health" || req.path.startsWith("/auth/")) return next();
+  const hdr = req.headers.authorization || "";
+  if (hdr.startsWith("Basic ")) {
+    const decoded = Buffer.from(hdr.slice(6), "base64").toString("utf8");
+    const supplied = decoded.slice(decoded.indexOf(":") + 1);
+    if (supplied === pw) return next();
+  }
+  res.set("WWW-Authenticate", 'Basic realm="BWS LinkedIn Posts"');
+  return res.status(401).send("Authentication required");
+});
+
 app.use(express.json());
 app.use(express.static("public"));
 app.use("/api", (req, res, next) => {
