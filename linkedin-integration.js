@@ -1,13 +1,60 @@
 // linkedin-integration.js
+// LinkedIn OAuth + posting. The access token is persisted in Postgres (app_kv)
+// because serverless instances are ephemeral — an in-memory token dies on
+// every cold start, which made the connection appear to "keep failing".
 const https = require("https");
 const querystring = require("querystring");
+const { Client } = require("pg");
 
 const CLIENT_ID = process.env.LINKEDIN_CLIENT_ID;
 const CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET;
 const REDIRECT_URI = process.env.LINKEDIN_REDIRECT_URI;
 const ORG_ID = process.env.LINKEDIN_ORG_ID;
 
-let accessToken = null;
+let cache = null; // { token, expiresAt } — per-instance cache over the DB copy
+
+async function withDb(fn) {
+  const c = new Client({ connectionString: process.env.DATABASE_URL });
+  await c.connect();
+  try {
+    await c.query(
+      "CREATE TABLE IF NOT EXISTS app_kv (k text PRIMARY KEY, v text NOT NULL, updated_at timestamptz NOT NULL DEFAULT now())"
+    );
+    return await fn(c);
+  } finally {
+    await c.end();
+  }
+}
+
+async function saveToken(token, expiresInSeconds) {
+  const expiresAt = Date.now() + (expiresInSeconds || 60 * 24 * 3600) * 1000;
+  cache = { token, expiresAt };
+  await withDb((c) =>
+    c.query(
+      `INSERT INTO app_kv (k, v) VALUES ('linkedin_token', $1)
+       ON CONFLICT (k) DO UPDATE SET v = $1, updated_at = now()`,
+      [JSON.stringify({ token, expiresAt })]
+    )
+  );
+}
+
+async function loadToken() {
+  if (cache && cache.expiresAt > Date.now()) return cache.token;
+  try {
+    const row = await withDb(async (c) => {
+      const r = await c.query("SELECT v FROM app_kv WHERE k = 'linkedin_token'");
+      return r.rows[0];
+    });
+    if (!row) return null;
+    const parsed = JSON.parse(row.v);
+    if (parsed.expiresAt <= Date.now()) return null; // expired — reconnect needed
+    cache = parsed;
+    return parsed.token;
+  } catch (e) {
+    console.error("linkedin token load failed:", e.message);
+    return null;
+  }
+}
 
 function getAuthUrl() {
   const params = querystring.stringify({
@@ -35,22 +82,25 @@ function exchangeCodeForToken(code) {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Content-Length": postData.length,
+        "Content-Length": Buffer.byteLength(postData),
       },
     };
 
     const req = https.request(options, (res) => {
       let data = "";
-      res.on("data", (chunk) => { data += chunk; });
+      res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
         try {
           const parsed = JSON.parse(data);
           if (parsed.access_token) {
-            accessToken = parsed.access_token;
-            console.log("✅ LinkedIn access token obtained");
-            resolve(parsed.access_token);
+            saveToken(parsed.access_token, parsed.expires_in)
+              .then(() => resolve(parsed.access_token))
+              .catch((e) => {
+                console.error("token save failed:", e.message);
+                resolve(parsed.access_token); // still usable this instance
+              });
           } else {
-            reject(new Error("No access token: " + data));
+            reject(new Error("No access token in response: " + data));
           }
         } catch (e) {
           reject(e);
@@ -64,9 +114,10 @@ function exchangeCodeForToken(code) {
   });
 }
 
-function postToLinkedIn(postText) {
+async function postToLinkedIn(postText) {
+  const accessToken = await loadToken();
   if (!accessToken) {
-    throw new Error("Not authenticated with LinkedIn");
+    throw new Error("Not authenticated with LinkedIn — reconnect via /auth/linkedin");
   }
 
   return new Promise((resolve, reject) => {
@@ -116,8 +167,8 @@ function postToLinkedIn(postText) {
   });
 }
 
-function isAuthenticated() {
-  return !!accessToken;
+async function isAuthenticated() {
+  return !!(await loadToken());
 }
 
 module.exports = { getAuthUrl, exchangeCodeForToken, postToLinkedIn, isAuthenticated };

@@ -2198,8 +2198,8 @@ app.get("/auth/linkedin/callback", async (req, res) => {
   }
 });
 
-app.get("/api/linkedin/status", (req, res) => {
-  res.json({ authenticated: linkedin.isAuthenticated() });
+app.get("/api/linkedin/status", async (req, res) => {
+  res.json({ authenticated: await linkedin.isAuthenticated() });
 });
 
 app.post("/api/linkedin/post", async (req, res) => {
