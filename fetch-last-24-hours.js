@@ -197,7 +197,13 @@ async function fetchLast24Hours() {
     );
     console.log("=".repeat(70) + "\n");
 
-    // Wipe tenders from last 24 hours so we repopulate with correct filters
+    // Wipe tenders from last 24 hours so we repopulate with correct filters.
+    // generated_posts references tenders (FK) — clear dependents first or the
+    // delete is blocked.
+    await client.query(
+      "DELETE FROM generated_posts WHERE tender_id IN (SELECT id FROM tenders WHERE publication_date >= $1)",
+      [twentyFourHoursAgo.toISOString()],
+    );
     const wipeResult = await client.query(
       "DELETE FROM tenders WHERE publication_date >= $1",
       [twentyFourHoursAgo.toISOString()],
@@ -421,7 +427,11 @@ async function fetchLast24Hours() {
       );
     }
 
-    // Clean up old tenders (older than 24 hours)
+    // Clean up old tenders (older than 24 hours) — dependents first (FK)
+    await client.query(
+      "DELETE FROM generated_posts WHERE tender_id IN (SELECT id FROM tenders WHERE publication_date < $1)",
+      [twentyFourHoursAgo.toISOString()],
+    );
     const deleteResult = await client.query(
       "DELETE FROM tenders WHERE publication_date < $1",
       [twentyFourHoursAgo.toISOString()],
