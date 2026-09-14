@@ -4,20 +4,42 @@
     {
       "src": "server.js",
       "use": "@vercel/node",
-      "config": { "includeFiles": ["public/**"] }
+      "config": {
+        "includeFiles": [
+          "public/**",
+          "*.js",
+          "*.json",
+          "agents/**"
+        ]
+      }
     }
   ],
-  "rewrites": [{ "source": "/(.*)", "destination": "/server.js" }],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/server.js"
+    }
+  ],
   "redirects": [
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "bws-linkedin-posts.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "bws-linkedin-posts.vercel.app"
+        }
+      ],
       "destination": "https://bws-workspace.vercel.app/#posts",
       "permanent": false
     },
     {
       "source": "/:path+",
-      "has": [{ "type": "host", "value": "bws-linkedin-posts.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "bws-linkedin-posts.vercel.app"
+        }
+      ],
       "destination": "https://bws-workspace.vercel.app/posts/:path+",
       "permanent": false
     }
