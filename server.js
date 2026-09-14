@@ -1519,15 +1519,27 @@ const AI_CATEGORY_MAP = {
 // ── Team gate: HTTP Basic auth (any username + POSTS_PASSWORD). Excludes
 // /health (probes) and /auth/* (LinkedIn OAuth callbacks). Browsers cache the
 // credential, so the team enters it once. No-ops if POSTS_PASSWORD is unset.
+const crypto = require("crypto");
 app.use((req, res, next) => {
   const pw = process.env.POSTS_PASSWORD;
   if (!pw) return next();
   if (req.path === "/health" || req.path.startsWith("/auth/")) return next();
+  // 1) Portal SSO cookie: HMAC(POSTS_PASSWORD, "bws-posts") minted by the
+  //    workspace at login — lets the team in with zero prompts.
+  const cookies = req.headers.cookie || "";
+  const m = cookies.match(/(?:^|;\s*)posts_auth=([a-f0-9]+)/);
+  const expected = crypto.createHmac("sha256", pw).update("bws-posts").digest("hex");
+  if (m && m[1] === expected) return next();
+  // 2) Fallback: HTTP Basic (direct visits outside the portal).
   const hdr = req.headers.authorization || "";
   if (hdr.startsWith("Basic ")) {
     const decoded = Buffer.from(hdr.slice(6), "base64").toString("utf8");
     const supplied = decoded.slice(decoded.indexOf(":") + 1);
-    if (supplied === pw) return next();
+    if (supplied === pw) {
+      res.cookie ? res.cookie("posts_auth", expected, { httpOnly: true, sameSite: "lax", maxAge: 30*24*3600*1000 })
+                 : res.setHeader("Set-Cookie", `posts_auth=${expected}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30*24*3600}`);
+      return next();
+    }
   }
   res.set("WWW-Authenticate", 'Basic realm="BWS LinkedIn Posts"');
   return res.status(401).send("Authentication required");
