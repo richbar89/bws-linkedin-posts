@@ -8,24 +8,27 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// Convert plain text to Unicode Mathematical Bold characters for LinkedIn bold rendering
+// Convert plain text to Unicode SANS-SERIF Bold for LinkedIn bold rendering.
+// (Sans-serif — 𝗕𝗼𝗹𝗱 — matches LinkedIn's UI font; the old serif math bold
+// looked like a different typeface dropped into the post.)
 function toBold(str) {
   return str
     .split("")
     .map((ch) => {
       const code = ch.charCodeAt(0);
       if (code >= 65 && code <= 90)
-        return String.fromCodePoint(0x1d400 + code - 65); // A-Z
+        return String.fromCodePoint(0x1d5d4 + code - 65); // A-Z
       if (code >= 97 && code <= 122)
-        return String.fromCodePoint(0x1d41a + code - 97); // a-z
+        return String.fromCodePoint(0x1d5ee + code - 97); // a-z
       if (code >= 48 && code <= 57)
-        return String.fromCodePoint(0x1d7ce + code - 48); // 0-9
+        return String.fromCodePoint(0x1d7ec + code - 48); // 0-9
       return ch;
     })
     .join("");
 }
 
-// Apply bold formatting to the title line and metadata labels before sending to Buffer
+// Bold the title line and the WHOLE of each metadata line (Value / Location /
+// Submission Deadline / Tender Release Date), so the key facts jump out.
 function formatForLinkedIn(text) {
   const lines = text.split("\n");
 
@@ -35,29 +38,30 @@ function formatForLinkedIn(text) {
     lines[titleIndex] = toBold(lines[titleIndex]);
   }
 
-  // Bold the metadata labels (label word + colon only)
-  const labelPatterns = [
-    /^(Value:)/,
-    /^(Location:)/,
-    /^(Submission Deadline:)/,
-    /^(Tender Release Date:)/,
+  const metaPatterns = [
+    /^Value:/,
+    /^Location:/,
+    /^Submission Deadline:/,
+    /^Tender Release Date:/,
   ];
 
   for (let i = 0; i < lines.length; i++) {
-    for (const pattern of labelPatterns) {
-      const match = lines[i].match(pattern);
-      if (match) {
-        lines[i] = lines[i].replace(match[1], toBold(match[1]));
-        break;
-      }
+    if (metaPatterns.some((p) => p.test(lines[i]))) {
+      lines[i] = toBold(lines[i]);
     }
   }
 
   return lines.join("\n");
 }
 
-// All 3 rotating members appear each time in random order — Mike Baron always last
-const ROTATING_MEMBERS = ["James Wignall", "Stacey Crawford", "Jake Swinburn"];
+// All rotating members appear each time in random order — Mike Baron always last
+const ROTATING_MEMBERS = [
+  "James Wignall",
+  "Stacey Crawford",
+  "Jake Swinburn",
+  "Natasha Marshall",
+  "James Kerwin",
+];
 const TEAM_MEMBERS = [...ROTATING_MEMBERS, "Mike Baron"];
 
 const SIGNOFFS = [
@@ -218,7 +222,7 @@ BODY:
 
 METADATA BLOCK (always in this order, each on its own line):
 - Value: Find the contract value on the page. First look for a field explicitly labelled "Value including VAT" or "Total value including VAT" — if found, format as "£Xm (inc. VAT)". If you only find "Estimated value", "Estimated value excluding VAT", or any figure labelled as excluding VAT, format as "£Xm (exc. VAT)". NEVER add "(inc. VAT)" unless the page explicitly states the value includes VAT. If no value is found at all, use "N/A".
-- Location: Search the page content carefully for the most specific location available. Look for "Place of performance", "Town", "Region", "Delivery location", "Nuts code description", and the buyer's address. Use the most specific location found — town + county if possible (e.g. "Derby, Derbyshire"). NEVER use "UK", "United Kingdom", "England", or "GB" as the location — if the only location information is country-level, use "N/A" instead.
+- Location: "DB Location" below is extracted from the tender's structured data and is AUTHORITATIVE — use it whenever it is set, unless the page content gives something strictly MORE specific (e.g. DB says "North West" but the page names "Bolton, Greater Manchester"). Only when DB Location is empty, search the page for "Place of performance", "Town", "Region", "Delivery location", "Nuts code description" and the buyer's address; use the most specific found (e.g. "Derby, Derbyshire"). Never output "N/A" when DB Location is set. NEVER use "UK", "United Kingdom", "England", or "GB" — if the only information anywhere is country-level, use "N/A".
 - If LIVE: "Submission Deadline: [date]" — search the page for: "Submission deadline", "Deadline for receipt of tenders", "Deadline for requests to participate", "Time limit for receipt of tenders"
 - If PLANNING: "Tender Release Date: [date]"
 
@@ -253,7 +257,9 @@ Write the post now:`;
       messages: [{ role: "user", content: prompt }],
     });
 
-    const postText = message.content[0].text.trim();
+    // formatForLinkedIn was written but never wired in — posts went out with
+    // no bold at all. Applied here so EVERY generation path gets it.
+    const postText = formatForLinkedIn(message.content[0].text.trim());
     return { success: true, post_text: postText, team_member: teamMember };
   } catch (error) {
     console.error(
@@ -294,4 +300,10 @@ async function generatePostsForTenders(tenders, categoryName) {
   return results;
 }
 
-module.exports = { generatePost, generatePostsForTenders, TEAM_MEMBERS };
+module.exports = {
+  generatePost,
+  generatePostsForTenders,
+  TEAM_MEMBERS,
+  toBold,
+  formatForLinkedIn,
+};

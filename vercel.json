@@ -10,8 +10,15 @@
           "*.js",
           "*.json",
           "agents/**"
-        ]
+        ],
+        "maxDuration": 800
       }
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/pipeline",
+      "schedule": "0 17 * * 1-5"
     }
   ],
   "rewrites": [
@@ -33,14 +40,14 @@
       "permanent": false
     },
     {
-      "source": "/:path+",
+      "source": "/((?!api/).+)",
       "has": [
         {
           "type": "host",
           "value": "bws-linkedin-posts.vercel.app"
         }
       ],
-      "destination": "https://bws-workspace.vercel.app/posts/:path+",
+      "destination": "https://bws-workspace.vercel.app/posts/$1",
       "permanent": false
     }
   ]

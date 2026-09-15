@@ -58,55 +58,98 @@ async function categoriseTender(title, description) {
   }
 }
 
-// Extract the most specific delivery location from an OCDS release
+// NUTS/ITL prefix → readable region. Covers UK* (NUTS) and TL* (ITL) codes.
+const NUTS_REGIONS = {
+  C: "North East",
+  D: "North West",
+  E: "Yorkshire and the Humber",
+  F: "East Midlands",
+  G: "West Midlands",
+  H: "East of England",
+  I: "London",
+  J: "South East",
+  K: "South West",
+  L: "Wales",
+  M: "Scotland",
+  N: "Northern Ireland",
+};
+
+function regionFromCode(code) {
+  const m = String(code || "").trim().toUpperCase().match(/^(?:UK|TL)([C-N])/);
+  return m ? NUTS_REGIONS[m[1]] : null;
+}
+
+// Extract the most specific delivery location from an OCDS release.
+// Candidates are RANKED by specificity (town+region beats region beats
+// nation), instead of taking whatever happened to appear first. Fixes the
+// frequent "Location: N/A" on posts where the release did carry geography:
+//  - Procurement Act notices put it in deliveryAddresses (never read before)
+//  - many releases carry only a NUTS/ITL code (never decoded before)
+//  - Wales/Scotland/NI were being binned as "generic" (they're real locations)
 function extractDeliveryLocation(release) {
-  const candidates = [];
+  const candidates = []; // { text, rank } — higher rank wins
 
-  // 1. Tender-level delivery locations (NUTS descriptions)
-  if (Array.isArray(release.tender?.deliveryLocations)) {
-    for (const loc of release.tender.deliveryLocations) {
-      if (loc.description && loc.description.trim()) {
-        candidates.push(loc.description.trim());
-      }
-    }
+  const GENERIC = new Set(["uk", "united kingdom", "england", "gb", "great britain"]);
+  const add = (text, rank) => {
+    const t = (text || "").trim().replace(/\s+/g, " ");
+    if (!t || GENERIC.has(t.toLowerCase())) return;
+    candidates.push({ text: t, rank });
+  };
+
+  // deliveryAddresses (tender + item level) — the Procurement Act standard.
+  const addresses = [
+    ...(Array.isArray(release.tender?.deliveryAddresses) ? release.tender.deliveryAddresses : []),
+    ...((release.tender?.items ?? []).flatMap((it) =>
+      Array.isArray(it.deliveryAddresses) ? it.deliveryAddresses : [],
+    )),
+  ];
+  for (const a of addresses) {
+    const locality = (a.locality || "").trim();
+    const region = (a.region || "").trim();
+    const decoded = regionFromCode(region) || (GENERIC.has(region.toLowerCase()) ? "" : region);
+    if (locality && decoded && locality.toLowerCase() !== decoded.toLowerCase())
+      add(`${locality}, ${decoded}`, 4);
+    else if (locality) add(locality, 3);
+    else if (decoded) add(decoded, 2);
   }
 
-  // 2. Item-level delivery locations
-  if (Array.isArray(release.tender?.items)) {
-    for (const item of release.tender.items) {
-      if (Array.isArray(item.deliveryLocations)) {
-        for (const loc of item.deliveryLocations) {
-          if (loc.description && loc.description.trim()) {
-            candidates.push(loc.description.trim());
-          }
-        }
-      }
-    }
+  // deliveryLocations (older OCDS shape): free-text description OR bare code.
+  const locations = [
+    ...(Array.isArray(release.tender?.deliveryLocations) ? release.tender.deliveryLocations : []),
+    ...((release.tender?.items ?? []).flatMap((it) =>
+      Array.isArray(it.deliveryLocations) ? it.deliveryLocations : [],
+    )),
+  ];
+  for (const loc of locations) {
+    if (loc.description) add(loc.description, 3);
+    const code = loc.nuts || loc.region || loc.gazetteer?.identifiers?.[0];
+    const decoded = regionFromCode(code);
+    if (decoded) add(decoded, 2);
   }
 
-  // 3. Buyer address — locality or region
+  // Buyer address — decent proxy for where the work is.
   const addr = release.buyer?.address;
   if (addr) {
-    const parts = [addr.locality, addr.region]
-      .filter(Boolean)
-      .map((s) => s.trim());
-    if (parts.length > 0) candidates.push(parts.join(", "));
+    const locality = (addr.locality || "").trim();
+    const region = regionFromCode(addr.region) || (addr.region || "").trim();
+    if (locality) add(region && region !== locality ? `${locality}, ${region}` : locality, 2);
+    else if (region) add(region, 1);
   }
 
-  // Filter out country-level noise
-  const GENERIC = new Set([
-    "uk",
-    "united kingdom",
-    "england",
-    "gb",
-    "great britain",
-    "wales",
-    "scotland",
-    "northern ireland",
-  ]);
-  const specific = candidates.filter((c) => !GENERIC.has(c.toLowerCase()));
+  // Last resort: read the place out of the buyer's name
+  // ("Leeds City Council" → Leeds, "London Borough of Camden" → Camden).
+  const buyer = release.buyer?.name || "";
+  const lb = buyer.match(/^(?:The )?London Borough of ([A-Za-z\s]+?)$/i);
+  const cc = buyer.match(
+    /^(?:The )?([A-Za-z\s&]+?)\s+(?:City|Borough|District|Metropolitan|Town|County)?\s*Council\b/i,
+  );
+  const nhs = buyer.match(/^([A-Za-z\s&]+?)\s+(?:University\s+)?(?:NHS|Health)/i);
+  const place = lb?.[1] || cc?.[1] || nhs?.[1];
+  if (place && place.trim().length > 2) add(place.trim(), 1);
 
-  return specific.length > 0 ? specific[0] : null;
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => b.rank - a.rank);
+  return candidates[0].text;
 }
 
 // Helper function to normalize CPV codes
@@ -197,19 +240,18 @@ async function fetchLast24Hours() {
     );
     console.log("=".repeat(70) + "\n");
 
-    // Wipe tenders from last 24 hours so we repopulate with correct filters.
-    // generated_posts references tenders (FK) — clear dependents first or the
-    // delete is blocked.
-    await client.query(
-      "DELETE FROM generated_posts WHERE tender_id IN (SELECT id FROM tenders WHERE publication_date >= $1)",
-      [twentyFourHoursAgo.toISOString()],
-    );
+    // Wipe last-24h tenders so the list repopulates with current filters —
+    // but NEVER touch a tender someone has already written a post for.
+    // (Generation is a manual job now; a refresh must not destroy that work.
+    // Kept tenders are refreshed via the upsert's ON CONFLICT DO UPDATE.)
     const wipeResult = await client.query(
-      "DELETE FROM tenders WHERE publication_date >= $1",
+      `DELETE FROM tenders
+        WHERE publication_date >= $1
+          AND id NOT IN (SELECT tender_id FROM generated_posts WHERE tender_id IS NOT NULL)`,
       [twentyFourHoursAgo.toISOString()],
     );
     console.log(
-      `🗑️  Cleared ${wipeResult.rowCount} tenders from last 24 hours — repopulating...\n`,
+      `🗑️  Cleared ${wipeResult.rowCount} unworked tenders from last 24 hours — repopulating...\n`,
     );
 
     // Now process and filter
@@ -522,4 +564,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { fetchLast24Hours };
+module.exports = { fetchLast24Hours, extractDeliveryLocation, regionFromCode };

@@ -10,7 +10,6 @@ const { Client } = require("pg");
 const { fetchLast24Hours } = require("../fetch-last-24-hours");
 const { fetchAndScoreTenders } = require("./fetcher");
 const { writePostsForShortlist } = require("./writer");
-const { scheduleToChannels } = require("./buffer");
 const { generateRoundupPost } = require("./roundup");
 
 // Categories available as the rotating third industry (not Security or Construction)
@@ -36,7 +35,7 @@ const THIRD_INDUSTRY_OPTIONS = [
 // Per-channel daily post limits
 const MAX_GENERAL_POSTS = 8; // BWS main page
 const MAX_CONSTRUCTION_POSTS = 6; // Construction page
-// Security: no cap — schedule all qualifying tenders
+const MAX_SECURITY_POSTS = 10; // capped for serverless runtime, was unlimited
 
 // ============================================================================
 // TIME HELPERS
@@ -331,7 +330,9 @@ async function runDailyPipeline(triggeredBy = "cron") {
 
     // Apply per-channel caps before writing posts (saves API calls)
     const getKey = (t) => t.industryKey || "general";
-    const securitySelected = shortlist.filter((t) => getKey(t) === "security");
+    const securitySelected = shortlist
+      .filter((t) => getKey(t) === "security")
+      .slice(0, MAX_SECURITY_POSTS);
     const constructionSelected = shortlist
       .filter((t) => getKey(t) === "construction")
       .slice(0, MAX_CONSTRUCTION_POSTS);
@@ -369,14 +370,12 @@ async function runDailyPipeline(triggeredBy = "cron") {
     });
     console.log(`  Third industry this week: ${thirdIndustry}\n`);
 
-    // Sort by score + value descending
-    const ranked = successful.sort((a, b) => {
-      const ta = shortlist.find((t) => t.id === a.id) || {};
-      const tb = shortlist.find((t) => t.id === b.id) || {};
-      const scoreA = (ta.score || 0) + (parseFloat(ta.value_amount) || 0) / 1e6;
-      const scoreB = (tb.score || 0) + (parseFloat(tb.value_amount) || 0) / 1e6;
-      return scoreB - scoreA;
-    });
+    // Keep the shortlist's (AI-ranked) order for slot allocation — the best
+    // tenders get the best posting slots.
+    const orderOf = new Map(shortlist.map((t, i) => [t.id, i]));
+    const ranked = successful.sort(
+      (a, b) => (orderOf.get(a.id) ?? 999) - (orderOf.get(b.id) ?? 999),
+    );
 
     // Split into per-channel buckets (already capped at write time, but keep explicit)
     const securityRanked = ranked.filter(
@@ -518,13 +517,27 @@ async function runDailyPipeline(triggeredBy = "cron") {
           item.category,
         );
         const scheduledAt = getNextWeekday(1, item.monTime[0], item.monTime[1]);
-        const results = await scheduleToChannels(
-          item.pages,
-          postText,
-          scheduledAt,
-        );
-        const anySuccess = results.some((r) => !r.error);
-        if (anySuccess) {
+        // Round-ups go to the stager like everything else — Buffer is no
+        // longer part of the toolset, so scheduling there silently failed.
+        try {
+          await db.query(
+            `INSERT INTO post_staging (tender_id, title, url, ai_category, industry_key, pages, post_text, proposed_slot)
+             VALUES ($1, $2, '', $3, $4, $5, $6, $7)
+             ON CONFLICT (tender_id) DO UPDATE SET
+               post_text = EXCLUDED.post_text,
+               proposed_slot = EXCLUDED.proposed_slot,
+               status = 'pending',
+               created_at = NOW()`,
+            [
+              `roundup-${item.category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${weekStart}`,
+              `${item.category} Weekly Round-Up`,
+              item.category,
+              "roundup",
+              item.pages.join(","),
+              postText,
+              scheduledAt.toISOString(),
+            ],
+          );
           allScheduled.push({
             title: `${item.category} Weekly Round-Up`,
             category: item.category,
@@ -532,10 +545,12 @@ async function runDailyPipeline(triggeredBy = "cron") {
             scheduled_at: scheduledAt.toISOString(),
             is_roundup: true,
           });
+          console.log(
+            `  ✅ ${item.category} round-up staged → Mon ${scheduledAt.toLocaleTimeString("en-GB")} [${item.pages.join(", ")}]`,
+          );
+        } catch (e) {
+          console.log(`  ❌ Could not stage ${item.category} round-up: ${e.message}`);
         }
-        console.log(
-          `  ${anySuccess ? "✅" : "❌"} ${item.category} round-up → Mon ${scheduledAt.toLocaleTimeString("en-GB")} [${item.pages.join(", ")}]`,
-        );
       }
 
       // Clear pool and rotate industry

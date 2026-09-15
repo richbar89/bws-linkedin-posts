@@ -338,6 +338,55 @@ function buildSchedule(
 // MAIN FETCH + SCORE FUNCTION
 // ============================================================================
 
+// One Haiku call over the whole heuristic shortlist: rank for LinkedIn-post
+// quality (recognisable buyer, clear scope, broad SME appeal, sector variety)
+// and drop the duds a point-score can't see (mini-lots, ultra-niche, rebids).
+// Order-only — no tender is invented or modified. Fail-soft to heuristic order.
+async function aiRankShortlist(shortlist) {
+  if (!process.env.ANTHROPIC_API_KEY || shortlist.length < 3) return shortlist;
+  try {
+    const Anthropic = require("@anthropic-ai/sdk");
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const listing = shortlist
+      .map(
+        (t, i) =>
+          `${i}. [${t.ai_category || "General"}] ${t.title} — ${t.buyer_name || "?"} — £${Math.round(parseFloat(t.value_amount) || 0).toLocaleString()} — ${(t.description || "").replace(/\s+/g, " ").slice(0, 150)}`,
+      )
+      .join("\n");
+    const resp = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      messages: [
+        {
+          role: "user",
+          content: `You pick which UK tender notices make the best LinkedIn posts for a bid-writing consultancy's SME audience.
+
+Rank ALL of these tenders best-first. Favour: recognisable public buyers, larger values, clear winnable scopes SMEs bid for, and variety across sectors. Push down: obscure mini-lots, ultra-niche academic/research buys, and near-duplicate notices (keep the best one of any duplicate set high and its twins last).
+
+${listing}
+
+Respond with ONLY a JSON array of the index numbers, best first, e.g. [4,0,2,1,3]. Include every index exactly once.`,
+        },
+      ],
+    });
+    const text = resp.content
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("");
+    const arr = JSON.parse(text.match(/\[[\d,\s]*\]/)?.[0] ?? "x");
+    const seen = new Set();
+    const order = arr.filter(
+      (n) => Number.isInteger(n) && n >= 0 && n < shortlist.length && !seen.has(n) && seen.add(n),
+    );
+    for (let i = 0; i < shortlist.length; i++) if (!seen.has(i)) order.push(i);
+    console.log(`🧠 AI ranked shortlist: [${order.join(", ")}]`);
+    return order.map((n) => shortlist[n]);
+  } catch (e) {
+    console.log(`⚠️  AI ranking skipped (${e.message}) — using heuristic order`);
+    return shortlist;
+  }
+}
+
 async function fetchAndScoreTenders(options = {}) {
   const {
     hoursBack = 24,
@@ -354,6 +403,12 @@ async function fetchAndScoreTenders(options = {}) {
   try {
     const cutoff = new Date();
     cutoff.setHours(cutoff.getHours() - hoursBack);
+
+    // The prod tenders table predates this column — ensure it exists so the
+    // "not yet posted" filter can't crash the whole pipeline.
+    await client.query(
+      `ALTER TABLE tenders ADD COLUMN IF NOT EXISTS linkedin_posted_at TIMESTAMPTZ`,
+    );
 
     // Fetch recent tenders not yet posted to LinkedIn
     const result = await client.query(
@@ -392,7 +447,7 @@ async function fetchAndScoreTenders(options = {}) {
 
     console.log(`✅ ${scored.length} tenders passed filters and scored`);
 
-    return scored.map((s) => ({
+    const shortlist = scored.map((s) => ({
       id: s.tender.id,
       title: s.tender.title,
       buyer_name: s.tender.buyer_name,
@@ -401,12 +456,17 @@ async function fetchAndScoreTenders(options = {}) {
       ai_category: s.tender.ai_category,
       description: s.tender.description,
       tender_url: s.tender.tender_url,
+      delivery_location: s.tender.delivery_location,
       score: s.score,
       location: s.location,
       industryKey: s.industryKey,
       targetPages: getTargetPages(s.industryKey),
       scoreReasons: s.reasons,
     }));
+
+    // AI relevance pass: the heuristic filters junk, but Claude picks WHICH
+    // survivors make the best LinkedIn content. Falls back to heuristic order.
+    return await aiRankShortlist(shortlist);
   } finally {
     await client.end();
   }

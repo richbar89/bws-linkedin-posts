@@ -8,7 +8,13 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const ROTATING_MEMBERS = ["James Wignall", "Stacey Crawford", "Jake Swinburn"];
+const ROTATING_MEMBERS = [
+  "James Wignall",
+  "Stacey Crawford",
+  "Jake Swinburn",
+  "Natasha Marshall",
+  "James Kerwin",
+];
 const TEAM_MEMBERS = [...ROTATING_MEMBERS, "Mike Baron"];
 
 const SIGNOFFS = [
@@ -26,53 +32,9 @@ const CONTACT_VERBS = [
   "Connect with",
 ];
 
-// Convert plain text to Unicode Mathematical Bold characters for LinkedIn bold rendering
-function toBold(str) {
-  return str
-    .split("")
-    .map((ch) => {
-      const code = ch.charCodeAt(0);
-      if (code >= 65 && code <= 90)
-        return String.fromCodePoint(0x1d400 + code - 65); // A-Z
-      if (code >= 97 && code <= 122)
-        return String.fromCodePoint(0x1d41a + code - 97); // a-z
-      if (code >= 48 && code <= 57)
-        return String.fromCodePoint(0x1d7ce + code - 48); // 0-9
-      return ch;
-    })
-    .join("");
-}
-
-// Apply bold formatting to the title line and metadata labels before sending to Buffer
-function formatForLinkedIn(text) {
-  const lines = text.split("\n");
-
-  // Bold the first non-empty line (the title)
-  const titleIndex = lines.findIndex((l) => l.trim().length > 0);
-  if (titleIndex !== -1) {
-    lines[titleIndex] = toBold(lines[titleIndex]);
-  }
-
-  // Bold the metadata labels (label word + colon only)
-  const labelPatterns = [
-    /^(Value:)/,
-    /^(Location:)/,
-    /^(Submission Deadline:)/,
-    /^(Tender Release Date:)/,
-  ];
-
-  for (let i = 0; i < lines.length; i++) {
-    for (const pattern of labelPatterns) {
-      const match = lines[i].match(pattern);
-      if (match) {
-        lines[i] = lines[i].replace(match[1], toBold(match[1]));
-        break;
-      }
-    }
-  }
-
-  return lines.join("\n");
-}
+// Bold styling is shared with the UI generation path so pipeline posts and
+// button-generated posts always match.
+const { formatForLinkedIn } = require("../generate-posts");
 
 function buildSignoff() {
   const signoff = SIGNOFFS[Math.floor(Math.random() * SIGNOFFS.length)];
@@ -207,7 +169,7 @@ BODY:
 
 METADATA BLOCK (always in this order, each on its own line):
 - Value: Search the page content for the contract value including VAT. Look for fields like "Estimated value", "Total value", "Framework value". Format as "£Xm (inc. VAT)" or "£Xk (inc. VAT)". If genuinely unavailable, use "N/A"
-- Location: Search the page content carefully for specific location. Look for "Place of performance", "Town", "Region", "Delivery location". Use the most specific location found — town + county if possible. NEVER use just "UK" or "England" if a more specific location appears anywhere in the page.
+- Location: "DB Location" below is extracted from the tender's structured data and is AUTHORITATIVE — use it whenever it is set, unless the page content gives something strictly MORE specific (e.g. DB says "North West" but the page names "Bolton, Greater Manchester"). Only when DB Location is empty, search the page for "Place of performance", "Town", "Region", "Delivery location". Never output "N/A" when DB Location is set. Never use just "UK" or "England".
 - If LIVE: "Submission Deadline: [date]" — search the page for: "Submission deadline", "Deadline for receipt of tenders", "Deadline for requests to participate", "Time limit for receipt of tenders"
 - If PLANNING: "Tender Release Date: [date]"
 
@@ -227,6 +189,7 @@ Buyer: ${tender.buyer_name || "Not specified"}
 DB Status: ${tender.status || "unknown"}
 DB Deadline: ${tender.deadline_date || "not set"}
 DB Value: ${tender.value_amount || "not set"}
+DB Location: ${tender.delivery_location || "not set"}
 Tender URL: ${tender.tender_url || "N/A"}
 Description: ${tender.description || "Not available"}
 
@@ -250,39 +213,27 @@ Write the post now:`;
 
 // Generate posts for a list of tenders (the approved shortlist)
 async function writePostsForShortlist(tenders) {
-  const results = [];
-
-  for (let i = 0; i < tenders.length; i++) {
-    const tender = tenders[i];
-    console.log(
-      `  ✍️  [${i + 1}/${tenders.length}] Writing post for: ${(tender.title || "").substring(0, 60)}`,
-    );
-
-    try {
-      const postText = await writeTenderPost(tender, i);
-      results.push({
-        id: tender.id,
-        title: tender.title,
-        post_text: postText,
-        success: true,
-      });
-    } catch (err) {
-      console.error(`  ❌ Failed for ${tender.id}: ${err.message}`);
-      results.push({
-        id: tender.id,
-        title: tender.title,
-        post_text: null,
-        success: false,
-        error: err.message,
-      });
+  // Each post = live page fetch + Claude call (~10-20s). Sequential writing
+  // blew the serverless time budget, so run 4 at a time.
+  const results = new Array(tenders.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(4, tenders.length) }, async () => {
+    while (next < tenders.length) {
+      const i = next++;
+      const tender = tenders[i];
+      console.log(
+        `  ✍️  [${i + 1}/${tenders.length}] Writing post for: ${(tender.title || "").substring(0, 60)}`,
+      );
+      try {
+        const postText = await writeTenderPost(tender, i);
+        results[i] = { id: tender.id, title: tender.title, post_text: postText, success: true };
+      } catch (err) {
+        console.error(`  ❌ Failed for ${tender.id}: ${err.message}`);
+        results[i] = { id: tender.id, title: tender.title, post_text: null, success: false, error: err.message };
+      }
     }
-
-    // Small delay between API calls
-    if (i < tenders.length - 1) {
-      await new Promise((r) => setTimeout(r, 300));
-    }
-  }
-
+  });
+  await Promise.all(workers);
   return results;
 }
 

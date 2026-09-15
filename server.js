@@ -16,6 +16,7 @@ const {
   LINKEDIN_PAGES,
 } = require("./agents/buffer");
 const { runDailyPipeline } = require("./agents/pipeline");
+const { fetchLast24Hours } = require("./fetch-last-24-hours");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -1524,6 +1525,8 @@ app.use((req, res, next) => {
   const pw = process.env.POSTS_PASSWORD;
   if (!pw) return next();
   if (req.path === "/health" || req.path.startsWith("/auth/")) return next();
+  // Vercel Cron calls carry their own Bearer CRON_SECRET, not the team cookie.
+  if (req.path === "/api/cron/pipeline") return next();
   // 1) Portal SSO cookie: HMAC(POSTS_PASSWORD, "bws-posts") minted by the
   //    workspace at login — lets the team in with zero prompts.
   const cookies = req.headers.cookie || "";
@@ -2408,13 +2411,63 @@ async function ensurePipelineTables() {
         created_at    TIMESTAMPTZ DEFAULT NOW()
       )
     `);
-    // Add value columns if they don't exist yet (safe on existing tables)
-    await client.query(
-      `ALTER TABLE post_staging ADD COLUMN IF NOT EXISTS value_amount NUMERIC`,
-    );
-    await client.query(
-      `ALTER TABLE post_staging ADD COLUMN IF NOT EXISTS value_currency TEXT DEFAULT 'GBP'`,
-    );
+    // pipeline_logs is also old-shape in prod — same treatment, so run
+    // history actually records instead of failing silently.
+    const logCols = [
+      `finished_at      TIMESTAMP`,
+      `triggered_by     VARCHAR(20) DEFAULT 'cron'`,
+      `status           VARCHAR(20) DEFAULT 'running'`,
+      `day_type         VARCHAR(20)`,
+      `third_industry   VARCHAR(100)`,
+      `tenders_fetched  INTEGER DEFAULT 0`,
+      `tenders_scored   INTEGER DEFAULT 0`,
+      `posts_generated  INTEGER DEFAULT 0`,
+      `posts_scheduled  INTEGER DEFAULT 0`,
+      `roundup_added    INTEGER DEFAULT 0`,
+      `duration_seconds DECIMAL`,
+      `error_message    TEXT`,
+      `scheduled_posts  JSONB DEFAULT '[]'`,
+    ];
+    for (const col of logCols) {
+      await client.query(
+        `ALTER TABLE pipeline_logs ADD COLUMN IF NOT EXISTS ${col}`,
+      );
+    }
+
+    // The prod table predates several columns and CREATE TABLE IF NOT EXISTS
+    // never upgrades an existing shape — add every expected column
+    // idempotently so the pipeline can't die on a schema mismatch.
+    const stagingCols = [
+      `tender_id     TEXT`,
+      `title         TEXT`,
+      `url           TEXT`,
+      `ai_category   TEXT`,
+      `industry_key  TEXT`,
+      `pages         TEXT`,
+      `post_text     TEXT`,
+      `proposed_slot TIMESTAMPTZ`,
+      `status        TEXT DEFAULT 'pending'`,
+      `created_at    TIMESTAMPTZ DEFAULT NOW()`,
+      `value_amount  NUMERIC`,
+      `value_currency TEXT DEFAULT 'GBP'`,
+    ];
+    for (const col of stagingCols) {
+      await client.query(
+        `ALTER TABLE post_staging ADD COLUMN IF NOT EXISTS ${col}`,
+      );
+    }
+    // ON CONFLICT (tender_id) needs a unique constraint; dedupe then index.
+    try {
+      await client.query(`
+        DELETE FROM post_staging a USING post_staging b
+        WHERE a.tender_id = b.tender_id AND a.id < b.id
+      `);
+      await client.query(
+        `CREATE UNIQUE INDEX IF NOT EXISTS post_staging_tender_id_unique ON post_staging (tender_id)`,
+      );
+    } catch (e) {
+      console.log("⚠️  post_staging unique index:", e.message);
+    }
     await client.query(
       `ALTER TABLE tenders ADD COLUMN IF NOT EXISTS delivery_location TEXT`,
     );
@@ -2423,27 +2476,42 @@ async function ensurePipelineTables() {
   }
 }
 
-// GET /api/stager — return pipeline-scheduled posts for the LinkedIn Stager UI
+// GET /api/stager — return pipeline-staged posts for the LinkedIn Stager UI.
+// Reads post_staging — the table the daily pipeline actually writes to. (The
+// UI previously read a separate `linkedin_stager` table that nothing ever
+// inserted into, which is why the stager always looked empty.)
 app.get("/api/stager", async (_req, res) => {
   const client = await getDatabaseClient();
   try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS linkedin_stager (
-        id SERIAL PRIMARY KEY,
-        tender_id TEXT,
-        title TEXT,
-        url TEXT,
-        industry TEXT,
-        post_text TEXT,
-        scheduled_at TIMESTAMPTZ,
-        channel TEXT,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
     const result = await client.query(
-      "SELECT * FROM linkedin_stager ORDER BY created_at DESC LIMIT 200",
+      `SELECT id, tender_id, title, url,
+              ai_category AS industry,
+              post_text,
+              proposed_slot AS scheduled_at,
+              pages AS channel,
+              status, created_at
+         FROM post_staging
+        ORDER BY created_at DESC
+        LIMIT 200`,
     );
     res.json({ success: true, rows: result.rows });
+  } catch (err) {
+    // Table not created yet (pipeline never run) → empty stager, not an error.
+    if (/relation "post_staging" does not exist/i.test(err.message)) {
+      return res.json({ success: true, rows: [] });
+    }
+    res.status(500).json({ success: false, error: err.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// DELETE /api/stager/clear — wipe staged posts (used by "Clear All" button)
+app.delete("/api/stager/clear", async (_req, res) => {
+  const client = await getDatabaseClient();
+  try {
+    await client.query("DELETE FROM post_staging");
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   } finally {
@@ -2451,12 +2519,32 @@ app.get("/api/stager", async (_req, res) => {
   }
 });
 
-// DELETE /api/stager/clear — wipe all rows from linkedin_stager (used by "Clear All" button)
-app.delete("/api/stager/clear", async (_req, res) => {
+// GET /api/cron/pipeline — Vercel Cron entry point. REFRESH ONLY: fetch the
+// last 24h of tenders and classify them so the list is fresh each morning.
+// Generating posts and staging them is deliberately a MANUAL job — the full
+// runDailyPipeline stays available via the explicit /api/pipeline/run button.
+app.get("/api/cron/pipeline", async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+    return res.status(401).json({ success: false, error: "unauthorized" });
+  }
   const client = await getDatabaseClient();
   try {
-    await client.query("DELETE FROM linkedin_stager");
-    res.json({ success: true });
+    // Serverless cold starts skip the app.listen bootstrap — make sure the
+    // tables/columns exist before every run.
+    await ensurePipelineTables();
+    await fetchLast24Hours();
+    const count = await client.query(
+      "SELECT COUNT(*) FROM tenders WHERE publication_date >= NOW() - INTERVAL '24 hours'",
+    );
+    const fetched = parseInt(count.rows[0].count);
+    // Record the refresh in the run history so the Agent Logs view shows it.
+    await client.query(
+      `INSERT INTO pipeline_logs (triggered_by, status, day_type, tenders_fetched, finished_at, duration_seconds)
+       VALUES ('cron', 'complete', 'refresh-only', $1, NOW(), 0)`,
+      [fetched],
+    );
+    res.json({ success: true, refreshOnly: true, tendersFetched: fetched });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   } finally {
@@ -2517,17 +2605,8 @@ app.get("/api/pipeline/status", async (_req, res) => {
   }
 });
 
-// Schedule the pipeline to run at 6pm Mon-Fri (UK time)
-cron.schedule(
-  "0 18 * * 1-5",
-  () => {
-    console.log("⏰ Cron triggered: running daily pipeline");
-    runDailyPipeline("cron").catch((err) =>
-      console.error("❌ Cron pipeline error:", err.message),
-    );
-  },
-  { timezone: "Europe/London" },
-);
+// NB: no in-process cron. The Vercel cron hits /api/cron/pipeline, which only
+// REFRESHES the tender list — generating and staging posts is a manual job.
 
 app.listen(PORT, "0.0.0.0", () => {
   ensurePipelineTables().catch((err) =>
