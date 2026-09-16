@@ -2538,6 +2538,16 @@
                 added++;
               }
             });
+            // Heal: push any local-only rows (staged before server persistence
+            // existed, or while offline) up to the server so the whole team
+            // sees them. Rows from the server itself are skipped.
+            var serverKeys = {};
+            data.rows.forEach(function(row) { serverKeys[String(row.tender_id)] = true; });
+            trackerRows.forEach(function(r) {
+              if (String(r.id).indexOf('server_') === 0 || !r.postText) return;
+              if (!r.tenderId) r.tenderId = 'manual-' + r.id;
+              if (!serverKeys[r.tenderId]) syncStageToServer(r);
+            });
             if (added > 0) {
               saveTracker();
               renderTracker();
