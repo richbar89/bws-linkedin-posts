@@ -2508,7 +2508,6 @@
         document.getElementById('trackerNav').classList.add('active');
         document.getElementById('instantlyNav').classList.remove('active');
         document.getElementById('scannerNav').classList.remove('active');
-        document.getElementById('queueNav').classList.remove('active');
 
         document.querySelectorAll('.cat-item').forEach(function(el) { el.classList.remove('active'); });
 
@@ -2732,7 +2731,6 @@
         document.getElementById("trackerNav").classList.remove("active");
         document.getElementById("instantlyNav").classList.remove("active");
         document.getElementById("scannerNav").classList.remove("active");
-        document.getElementById("queueNav").classList.remove("active");
 
         document.querySelectorAll(".cat-item").forEach(function(el) { el.classList.remove("active"); });
         document.getElementById("fmtEditor").focus();
@@ -2751,7 +2749,6 @@
         document.getElementById("trackerNav").classList.remove("active");
         document.getElementById("instantlyNav").classList.remove("active");
         document.getElementById("scannerNav").classList.remove("active");
-        document.getElementById("queueNav").classList.remove("active");
 
         renderCategories();
         loadTenders();
@@ -3150,7 +3147,6 @@
         document.getElementById('trackerNav').classList.remove('active');
         document.getElementById('instantlyNav').classList.add('active');
         document.getElementById('scannerNav').classList.remove('active');
-        document.getElementById('queueNav').classList.remove('active');
 
         document.querySelectorAll('.cat-item').forEach(function(el) { el.classList.remove('active'); });
         renderInstantlyGrid();
@@ -3175,7 +3171,6 @@
         document.getElementById('trackerNav').classList.remove('active');
         document.getElementById('instantlyNav').classList.remove('active');
         document.getElementById('scannerNav').classList.add('active');
-        document.getElementById('queueNav').classList.remove('active');
         document.querySelectorAll('.cat-item').forEach(function(el) { el.classList.remove('active'); });
         document.getElementById('scannerUrlInput').focus();
       }
@@ -3297,7 +3292,7 @@
         document.getElementById('trackerNav').classList.remove('active');
         document.getElementById('instantlyNav').classList.remove('active');
         document.getElementById('scannerNav').classList.remove('active');
-        document.getElementById('queueNav').classList.add('active');
+        var __qn = document.getElementById('queueNav'); if (__qn) __qn.classList.add('active');
         document.querySelectorAll('.cat-item').forEach(function(el) { el.classList.remove('active'); });
         loadQueue();
       }
