@@ -2416,6 +2416,23 @@
       // ============================================================
       var trackerRows = JSON.parse(localStorage.getItem('bws_tracker') || '[]');
 
+      // Mirror a staged row to the server so it survives this browser and is
+      // visible to the whole team (localStorage alone loses it elsewhere).
+      function syncStageToServer(row) {
+        if (!row || !row.tenderId || !row.postText) return;
+        fetch('/posts/api/stager/add', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            tender_id: row.tenderId,
+            title: row.title || '',
+            url: row.url || '',
+            industry: row.industry || '',
+            post_text: row.postText
+          })
+        }).catch(function() {});
+      }
+
       function saveTracker() {
         localStorage.setItem('bws_tracker', JSON.stringify(trackerRows));
         updateTrackerCount();
@@ -2456,11 +2473,12 @@
         if (existing) {
           if (postText) existing.postText = postText;
           saveTracker();
+          syncStageToServer(existing);
           return;
         }
         var now = new Date();
         var dateStr = ordinalSuffix(now.getDate()) + ' ' + now.toLocaleString('en-GB', { month: 'long' }) + ' ' + now.getFullYear();
-        trackerRows.push({
+        var newRow = {
           id: Date.now() + '_' + Math.random().toString(36).slice(2),
           url: tender.tender_url || '',
           date: dateStr,
@@ -2468,8 +2486,10 @@
           title: extractPostTitle(postText) || tender.title || '',
           tenderId: String(tender.id),
           postText: postText || ''
-        });
+        };
+        trackerRows.push(newRow);
         saveTracker();
+        syncStageToServer(newRow);
         if (currentView === 'tracker') renderTracker();
       }
 
@@ -2512,7 +2532,8 @@
                   industry: row.industry || '',
                   title: extractPostTitle(row.post_text) || row.title || '',
                   tenderId: String(row.tender_id),
-                  postText: row.post_text || ''
+                  postText: row.post_text || '',
+                  fromFormatter: !row.url
                 });
                 added++;
               }
@@ -2587,10 +2608,30 @@
 
       function updateTrackerTitle(id, newTitle) {
         var row = trackerRows.find(function(r) { return r.id === id; });
-        if (row) { row.title = newTitle; saveTracker(); }
+        if (row) {
+          row.title = newTitle;
+          saveTracker();
+          var body = String(id).indexOf('server_') === 0
+            ? { id: String(id).slice(7), title: newTitle }
+            : (row.tenderId ? { tender_id: row.tenderId, title: newTitle } : null);
+          if (body) {
+            fetch('/posts/api/stager/item', {
+              method: 'PATCH',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify(body)
+            }).catch(function() {});
+          }
+        }
       }
 
       function removeTrackerRow(id) {
+        var doomed = trackerRows.find(function(r) { return r.id === id; });
+        if (doomed) {
+          var q = String(id).indexOf('server_') === 0
+            ? 'id=' + encodeURIComponent(String(id).slice(7))
+            : (doomed.tenderId ? 'tender_id=' + encodeURIComponent(doomed.tenderId) : null);
+          if (q) fetch('/posts/api/stager/item?' + q, { method: 'DELETE' }).catch(function() {});
+        }
         trackerRows = trackerRows.filter(function(r) { return r.id !== id; });
         saveTracker();
         renderTracker();
@@ -2848,6 +2889,7 @@
           // Update the existing row's post text with the newly formatted version
           existing.postText = text;
           saveTracker();
+          syncStageToServer(existing);
           if (currentView === 'tracker') renderTracker();
           var btn = document.getElementById('btnFmtStage');
           btn.textContent = '✓ Updated!';
@@ -2861,17 +2903,20 @@
         var title = cleanPostTitle(text);
         var now = new Date();
         var dateStr = ordinalSuffix(now.getDate()) + ' ' + now.toLocaleString('en-GB', { month: 'long' }) + ' ' + now.getFullYear();
-        trackerRows.push({
-          id: Date.now() + '_' + Math.random().toString(36).slice(2),
+        var fmtId = Date.now() + '_' + Math.random().toString(36).slice(2);
+        var fmtRow = {
+          id: fmtId,
           url: '',
           date: dateStr,
           industry: 'Formatted',
           title: title,
-          tenderId: '',
+          tenderId: 'manual-' + fmtId,
           postText: text,
           fromFormatter: true
-        });
+        };
+        trackerRows.push(fmtRow);
         saveTracker();
+        syncStageToServer(fmtRow);
         if (currentView === 'tracker') renderTracker();
         var btn = document.getElementById('btnFmtStage');
         btn.textContent = '✓ Staged!';
@@ -3171,18 +3216,24 @@
         if (existing) {
           existing.postText = postText;
           existing.title = extractPostTitle(postText) || existing.title;
+          if (!existing.tenderId) existing.tenderId = 'scan-' + existing.id;
+          saveTracker();
+          syncStageToServer(existing);
         } else {
-          trackerRows.push({
-            id: Date.now() + '_' + Math.random().toString(36).slice(2),
+          var scanId = Date.now() + '_' + Math.random().toString(36).slice(2);
+          var scanRow = {
+            id: scanId,
             url: url || '',
             date: dateStr,
             industry: 'Scanned',
             title: extractPostTitle(postText) || 'Scanned Tender',
-            tenderId: '',
+            tenderId: 'scan-' + scanId,
             postText: postText
-          });
+          };
+          trackerRows.push(scanRow);
+          saveTracker();
+          syncStageToServer(scanRow);
         }
-        saveTracker();
         showToast('Added to LinkedIn Stager', 'success');
       }
 

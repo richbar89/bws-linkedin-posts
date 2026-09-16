@@ -2506,6 +2506,70 @@ app.get("/api/stager", async (_req, res) => {
   }
 });
 
+// POST /api/stager/add — persist a manually staged post. The 📌 Stage buttons
+// used to write ONLY browser localStorage, so staged tenders vanished on any
+// other device/domain and teammates never saw them. Server is now the truth.
+app.post("/api/stager/add", async (req, res) => {
+  const { tender_id, title, url, industry, post_text } = req.body || {};
+  if (!tender_id || !post_text) {
+    return res.status(400).json({ success: false, error: "tender_id and post_text required" });
+  }
+  const client = await getDatabaseClient();
+  try {
+    await client.query(
+      `INSERT INTO post_staging (tender_id, title, url, ai_category, industry_key, pages, post_text)
+       VALUES ($1, $2, $3, $4, 'manual', 'main', $5)
+       ON CONFLICT (tender_id) DO UPDATE SET
+         title = EXCLUDED.title,
+         url = EXCLUDED.url,
+         ai_category = EXCLUDED.ai_category,
+         post_text = EXCLUDED.post_text`,
+      [String(tender_id), title || "", url || "", industry || "", post_text],
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// PATCH /api/stager/item — rename a staged post ({ id | tender_id, title })
+app.patch("/api/stager/item", async (req, res) => {
+  const { id, tender_id, title } = req.body || {};
+  if ((!id && !tender_id) || typeof title !== "string") {
+    return res.status(400).json({ success: false, error: "id or tender_id, plus title, required" });
+  }
+  const client = await getDatabaseClient();
+  try {
+    if (id) await client.query("UPDATE post_staging SET title = $1 WHERE id = $2", [title, Number(id)]);
+    else await client.query("UPDATE post_staging SET title = $1 WHERE tender_id = $2", [title, String(tender_id)]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  } finally {
+    await client.end();
+  }
+});
+
+// DELETE /api/stager/item?id=… | ?tender_id=… — remove one staged post
+app.delete("/api/stager/item", async (req, res) => {
+  const { id, tender_id } = req.query;
+  if (!id && !tender_id) {
+    return res.status(400).json({ success: false, error: "id or tender_id required" });
+  }
+  const client = await getDatabaseClient();
+  try {
+    if (id) await client.query("DELETE FROM post_staging WHERE id = $1", [Number(id)]);
+    else await client.query("DELETE FROM post_staging WHERE tender_id = $1", [String(tender_id)]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  } finally {
+    await client.end();
+  }
+});
+
 // DELETE /api/stager/clear — wipe staged posts (used by "Clear All" button)
 app.delete("/api/stager/clear", async (_req, res) => {
   const client = await getDatabaseClient();
