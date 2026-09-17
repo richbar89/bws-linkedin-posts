@@ -1580,6 +1580,15 @@ app.use((req, res, next) => {
   return res.status(401).send("Authentication required");
 });
 
+// Baseline security headers (Express has no framework defaults).
+app.use((req, res, next) => {
+  res.set("X-Content-Type-Options", "nosniff");
+  res.set("X-Frame-Options", "SAMEORIGIN");
+  res.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+});
+
 app.use(express.json());
 app.use(express.static("public"));
 app.use("/api", (req, res, next) => {
@@ -2621,8 +2630,9 @@ app.delete("/api/stager/clear", async (_req, res) => {
 // Generating posts and staging them is deliberately a MANUAL job — the full
 // runDailyPipeline stays available via the explicit /api/pipeline/run button.
 app.get("/api/cron/pipeline", async (req, res) => {
+  // Fail CLOSED: a missing CRON_SECRET must never mean an open endpoint.
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+  if (!secret || req.headers.authorization !== `Bearer ${secret}`) {
     return res.status(401).json({ success: false, error: "unauthorized" });
   }
   const client = await getDatabaseClient();
