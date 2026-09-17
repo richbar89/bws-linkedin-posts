@@ -6,7 +6,6 @@
 const express = require("express");
 const { Client } = require("pg");
 const { exec } = require("child_process");
-const cron = require("node-cron");
 const { generatePost, TEAM_MEMBERS } = require("./generate-posts");
 const { fetchAndScoreTenders } = require("./agents/fetcher");
 const { writePostsForShortlist } = require("./agents/writer");
@@ -1517,267 +1516,70 @@ const AI_CATEGORY_MAP = {
 // MIDDLEWARE
 // ============================================================================
 
-// ── Team gate: HTTP Basic auth (any username + POSTS_PASSWORD). Excludes
-// /health (probes) and /auth/* (LinkedIn OAuth callbacks). Browsers cache the
-// credential, so the team enters it once. No-ops if POSTS_PASSWORD is unset.
+// ── Team gate (v2). The portal mints a per-member signed token and refreshes
+// it continually; direct visits use HTTP Basic (any username + POSTS_PASSWORD)
+// which mints the same short-lived token. Token format shared with the other
+// tools: base64url(JSON{e,x}) + "." + HMAC(pw, "bws-posts:"+payload).
+// Excludes /health (probes), /auth/* (LinkedIn OAuth) and the cron endpoint
+// (its own Bearer secret). No-ops if POSTS_PASSWORD is unset.
 const crypto = require("crypto");
+const authAttempts = new Map();
+function postsToken(pw) {
+  const payload = Buffer.from(JSON.stringify({ e: "direct", x: Date.now() + 24 * 3600 * 1000 })).toString("base64url");
+  return payload + "." + crypto.createHmac("sha256", pw).update("bws-posts:" + payload).digest("hex");
+}
+function verifyPostsToken(token, pw) {
+  if (!token) return false;
+  const i = token.indexOf(".");
+  if (i < 1) return false;
+  const payload = token.slice(0, i);
+  const sig = token.slice(i + 1);
+  const expect = crypto.createHmac("sha256", pw).update("bws-posts:" + payload).digest("hex");
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expect);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+  try {
+    const { x } = JSON.parse(Buffer.from(payload, "base64url").toString());
+    return typeof x === "number" && x > Date.now();
+  } catch {
+    return false;
+  }
+}
 app.use((req, res, next) => {
   const pw = process.env.POSTS_PASSWORD;
   if (!pw) return next();
   if (req.path === "/health" || req.path.startsWith("/auth/")) return next();
-  // Vercel Cron calls carry their own Bearer CRON_SECRET, not the team cookie.
   if (req.path === "/api/cron/pipeline") return next();
-  // 1) Portal SSO cookie: HMAC(POSTS_PASSWORD, "bws-posts") minted by the
-  //    workspace at login — lets the team in with zero prompts.
+
   const cookies = req.headers.cookie || "";
-  const m = cookies.match(/(?:^|;\s*)posts_auth=([a-f0-9]+)/);
-  const expected = crypto.createHmac("sha256", pw).update("bws-posts").digest("hex");
-  if (m && m[1] === expected) return next();
-  // 2) Fallback: HTTP Basic (direct visits outside the portal).
+  const m = cookies.match(/(?:^|;\s*)posts_auth=([^;\s]+)/);
+  if (m && verifyPostsToken(decodeURIComponent(m[1]), pw)) return next();
+
+  // Fallback: HTTP Basic for direct visits, with per-IP damping.
+  const ip = (req.headers["x-forwarded-for"] || "unknown").toString().split(",")[0].trim();
+  const now = Date.now();
+  const h = authAttempts.get(ip);
+  if (h && now - h.at < 10 * 60_000 && h.n > 20) {
+    return res.status(429).send("Too many attempts — try again later");
+  }
   const hdr = req.headers.authorization || "";
   if (hdr.startsWith("Basic ")) {
     const decoded = Buffer.from(hdr.slice(6), "base64").toString("utf8");
     const supplied = decoded.slice(decoded.indexOf(":") + 1);
     if (supplied === pw) {
-      res.cookie ? res.cookie("posts_auth", expected, { httpOnly: true, sameSite: "lax", maxAge: 30*24*3600*1000 })
-                 : res.setHeader("Set-Cookie", `posts_auth=${expected}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30*24*3600}`);
+      const tok = postsToken(pw);
+      res.cookie
+        ? res.cookie("posts_auth", tok, { httpOnly: true, sameSite: "lax", maxAge: 24 * 3600 * 1000 })
+        : res.setHeader("Set-Cookie", `posts_auth=${tok}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${24 * 3600}`);
+      authAttempts.delete(ip);
       return next();
     }
+    authAttempts.set(ip, { n: (h && now - h.at < 10 * 60_000 ? h.n : 0) + 1, at: now });
   }
   res.set("WWW-Authenticate", 'Basic realm="BWS LinkedIn Posts"');
   return res.status(401).send("Authentication required");
 });
 
-app.use(express.json());
-app.use(express.static("public"));
-app.use("/api", (req, res, next) => {
-  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  next();
-});
-
-// ============================================================================
-// DATABASE HELPERS
-// ============================================================================
-
-async function getDatabaseClient() {
-  const client = new Client({
-    connectionString:
-      process.env.DATABASE_URL || "postgresql://localhost:5432/tenders",
-  });
-  await client.connect();
-  return client;
-}
-
-// ============================================================================
-// CPV CODE MATCHING
-// ============================================================================
-
-function normalizeCpvCode(cpv) {
-  if (!cpv) return "";
-  return String(cpv).replace(/-/g, "").substring(0, 8);
-}
-
-function cpvCodesMatch(cpv1, cpv2) {
-  const normalized1 = normalizeCpvCode(cpv1);
-  const normalized2 = normalizeCpvCode(cpv2);
-
-  if (!normalized1 || !normalized2) return false;
-
-  // Exact match
-  if (normalized1 === normalized2) return true;
-
-  // 6-digit match (class level)
-  if (normalized1.length >= 6 && normalized2.length >= 6) {
-    if (normalized1.substring(0, 6) === normalized2.substring(0, 6))
-      return true;
-  }
-
-  // 5-digit match (group level)
-  if (normalized1.length >= 5 && normalized2.length >= 5) {
-    if (normalized1.substring(0, 5) === normalized2.substring(0, 5))
-      return true;
-  }
-
-  // 4-digit match (division level)
-  if (normalized1.length >= 4 && normalized2.length >= 4) {
-    if (normalized1.substring(0, 4) === normalized2.substring(0, 4))
-      return true;
-  }
-
-  return false;
-}
-
-function parseCpvCodes(raw) {
-  if (Array.isArray(raw)) return raw;
-  if (typeof raw === "string") {
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      return [];
-    }
-  }
-  if (typeof raw === "object" && raw !== null) return Object.values(raw);
-  return [];
-}
-
-function findIndustryForTender(tenderCpvCodes) {
-  for (const [key, industry] of Object.entries(INDUSTRIES)) {
-    for (const industryCpv of industry.cpvCodes) {
-      for (const tenderCpv of tenderCpvCodes) {
-        if (cpvCodesMatch(industryCpv, tenderCpv)) {
-          return key;
-        }
-      }
-    }
-  }
-  return "general";
-}
-
-// ============================================================================
-// FORMATTING HELPERS
-// ============================================================================
-
-function formatContractValue(tender) {
-  if (!tender.value_amount || tender.value_amount <= 0) {
-    return "N/A";
-  }
-
-  const amount = parseFloat(tender.value_amount);
-
-  if (amount >= 1000000) {
-    return "£" + (amount / 1000000).toFixed(1) + "m";
-  }
-  if (amount >= 1000) {
-    return "£" + Math.round(amount / 1000) + "k";
-  }
-
-  return "£" + amount.toLocaleString("en-GB");
-}
-
-function formatDeadline(dateString) {
-  if (!dateString) return "N/A";
-
-  const date = new Date(dateString);
-  const day = date.getDate();
-  const month = date.toLocaleString("en-GB", { month: "long" });
-  const year = date.getFullYear();
-
-  const suffixes = ["th", "st", "nd", "rd"];
-  const v = day % 100;
-  const suffix = suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0];
-
-  return `${day}${suffix} ${month} ${year}`;
-}
-
-function extractLocation(tender) {
-  const buyer = tender.buyer_name || "";
-  const description = tender.description || "";
-
-  // Skip generic non-location terms
-  const skipTerms = [
-    "post office",
-    "limited",
-    "ltd",
-    "housing association",
-    "nhs",
-    "trust",
-  ];
-
-  // Try to extract location from buyer name (councils, authorities)
-  const councilMatch = buyer.match(
-    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:City |Borough |County |District )?(?:Council|Authority)/i,
-  );
-  if (
-    councilMatch &&
-    !skipTerms.some((term) => councilMatch[1].toLowerCase().includes(term))
-  ) {
-    return councilMatch[1];
-  }
-
-  // Try to extract UK place names from buyer name
-  const placeMatch = buyer.match(
-    /(Northumberland|Nottingham|Islington|Shoreditch|Chippenham|Luton|London|Birmingham|Manchester|Liverpool|Leeds|Sheffield|Bristol|Edinburgh|Glasgow|Cardiff|Belfast|Newcastle|Southampton|Cambridge|Oxford|Brighton|York|Bath|Durham|Kent|Essex|Devon|Cornwall|Sussex|Norfolk|Suffolk|Hampshire|Berkshire|Surrey|Wiltshire|Somerset|Dorset|Gloucestershire|Worcestershire|Warwickshire|Leicestershire|Lincolnshire|Derbyshire|Staffordshire|Shropshire|Cheshire|Lancashire|Yorkshire|Cumbria)/i,
-  );
-  if (placeMatch) return placeMatch[1];
-
-  // Try to extract from description - look for "in [Place]" or "at [Place]"
-  const descLocationMatch = description.match(
-    /(?:in|at|for|across)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s+(?:City|Town|Borough|County|District))?)/,
-  );
-  if (
-    descLocationMatch &&
-    !skipTerms.some((term) => descLocationMatch[1].toLowerCase().includes(term))
-  ) {
-    return descLocationMatch[1];
-  }
-
-  // Look for postcode patterns in description (e.g., "NG1", "SW1")
-  const postcodeMatch = description.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b/);
-  if (postcodeMatch) {
-    // Map postcode areas to cities
-    const postcodeAreas = {
-      NG: "Nottingham",
-      NN: "Northampton",
-      N: "North London",
-      SW: "South West London",
-      SE: "South East London",
-      E: "East London",
-      W: "West London",
-      NW: "North West London",
-      EC: "City of London",
-      B: "Birmingham",
-      M: "Manchester",
-      L: "Liverpool",
-      LS: "Leeds",
-      S: "Sheffield",
-      BS: "Bristol",
-      EH: "Edinburgh",
-      G: "Glasgow",
-      CF: "Cardiff",
-      BT: "Belfast",
-      NE: "Newcastle",
-      SO: "Southampton",
-    };
-    const area = postcodeMatch[1].replace(/\d+[A-Z]?$/, "");
-    if (postcodeAreas[area]) return postcodeAreas[area];
-  }
-
-  // If buyer is short and simple, might be a place name
-  if (
-    buyer.length > 3 &&
-    buyer.length < 30 &&
-    !skipTerms.some((term) => buyer.toLowerCase().includes(term))
-  ) {
-    const simpleBuyer = buyer
-      .replace(/\s+(Council|Authority|Limited|Ltd|NHS|Trust|Association)$/i, "")
-      .trim();
-    if (simpleBuyer.length > 3) return simpleBuyer;
-  }
-
-  // Final fallback
-  return "UK";
-}
-
-function createSummary(description) {
-  if (!description) return "No description available.";
-
-  const cleaned = description.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
-
-  const sentences = cleaned.match(/[^.!?]+[.!?]+/g) || [cleaned];
-  const summary = sentences.slice(0, 5).join(" ");
-
-  if (summary.length > 500) {
-    return summary.substring(0, 497) + "...";
-  }
-
-  return summary || cleaned.substring(0, 500);
-}
-
-// ============================================================================
-// API ENDPOINTS
-// ============================================================================
-
-// Health check
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
