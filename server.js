@@ -1580,6 +1580,237 @@ app.use((req, res, next) => {
   return res.status(401).send("Authentication required");
 });
 
+app.use(express.json());
+app.use(express.static("public"));
+app.use("/api", (req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  next();
+});
+
+// ============================================================================
+// DATABASE HELPERS
+// ============================================================================
+
+async function getDatabaseClient() {
+  const client = new Client({
+    connectionString:
+      process.env.DATABASE_URL || "postgresql://localhost:5432/tenders",
+  });
+  await client.connect();
+  return client;
+}
+
+// ============================================================================
+// CPV CODE MATCHING
+// ============================================================================
+
+function normalizeCpvCode(cpv) {
+  if (!cpv) return "";
+  return String(cpv).replace(/-/g, "").substring(0, 8);
+}
+
+function cpvCodesMatch(cpv1, cpv2) {
+  const normalized1 = normalizeCpvCode(cpv1);
+  const normalized2 = normalizeCpvCode(cpv2);
+
+  if (!normalized1 || !normalized2) return false;
+
+  // Exact match
+  if (normalized1 === normalized2) return true;
+
+  // 6-digit match (class level)
+  if (normalized1.length >= 6 && normalized2.length >= 6) {
+    if (normalized1.substring(0, 6) === normalized2.substring(0, 6))
+      return true;
+  }
+
+  // 5-digit match (group level)
+  if (normalized1.length >= 5 && normalized2.length >= 5) {
+    if (normalized1.substring(0, 5) === normalized2.substring(0, 5))
+      return true;
+  }
+
+  // 4-digit match (division level)
+  if (normalized1.length >= 4 && normalized2.length >= 4) {
+    if (normalized1.substring(0, 4) === normalized2.substring(0, 4))
+      return true;
+  }
+
+  return false;
+}
+
+function parseCpvCodes(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return [];
+    }
+  }
+  if (typeof raw === "object" && raw !== null) return Object.values(raw);
+  return [];
+}
+
+function findIndustryForTender(tenderCpvCodes) {
+  for (const [key, industry] of Object.entries(INDUSTRIES)) {
+    for (const industryCpv of industry.cpvCodes) {
+      for (const tenderCpv of tenderCpvCodes) {
+        if (cpvCodesMatch(industryCpv, tenderCpv)) {
+          return key;
+        }
+      }
+    }
+  }
+  return "general";
+}
+
+// ============================================================================
+// FORMATTING HELPERS
+// ============================================================================
+
+function formatContractValue(tender) {
+  if (!tender.value_amount || tender.value_amount <= 0) {
+    return "N/A";
+  }
+
+  const amount = parseFloat(tender.value_amount);
+
+  if (amount >= 1000000) {
+    return "£" + (amount / 1000000).toFixed(1) + "m";
+  }
+  if (amount >= 1000) {
+    return "£" + Math.round(amount / 1000) + "k";
+  }
+
+  return "£" + amount.toLocaleString("en-GB");
+}
+
+function formatDeadline(dateString) {
+  if (!dateString) return "N/A";
+
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleString("en-GB", { month: "long" });
+  const year = date.getFullYear();
+
+  const suffixes = ["th", "st", "nd", "rd"];
+  const v = day % 100;
+  const suffix = suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0];
+
+  return `${day}${suffix} ${month} ${year}`;
+}
+
+function extractLocation(tender) {
+  const buyer = tender.buyer_name || "";
+  const description = tender.description || "";
+
+  // Skip generic non-location terms
+  const skipTerms = [
+    "post office",
+    "limited",
+    "ltd",
+    "housing association",
+    "nhs",
+    "trust",
+  ];
+
+  // Try to extract location from buyer name (councils, authorities)
+  const councilMatch = buyer.match(
+    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:City |Borough |County |District )?(?:Council|Authority)/i,
+  );
+  if (
+    councilMatch &&
+    !skipTerms.some((term) => councilMatch[1].toLowerCase().includes(term))
+  ) {
+    return councilMatch[1];
+  }
+
+  // Try to extract UK place names from buyer name
+  const placeMatch = buyer.match(
+    /(Northumberland|Nottingham|Islington|Shoreditch|Chippenham|Luton|London|Birmingham|Manchester|Liverpool|Leeds|Sheffield|Bristol|Edinburgh|Glasgow|Cardiff|Belfast|Newcastle|Southampton|Cambridge|Oxford|Brighton|York|Bath|Durham|Kent|Essex|Devon|Cornwall|Sussex|Norfolk|Suffolk|Hampshire|Berkshire|Surrey|Wiltshire|Somerset|Dorset|Gloucestershire|Worcestershire|Warwickshire|Leicestershire|Lincolnshire|Derbyshire|Staffordshire|Shropshire|Cheshire|Lancashire|Yorkshire|Cumbria)/i,
+  );
+  if (placeMatch) return placeMatch[1];
+
+  // Try to extract from description - look for "in [Place]" or "at [Place]"
+  const descLocationMatch = description.match(
+    /(?:in|at|for|across)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s+(?:City|Town|Borough|County|District))?)/,
+  );
+  if (
+    descLocationMatch &&
+    !skipTerms.some((term) => descLocationMatch[1].toLowerCase().includes(term))
+  ) {
+    return descLocationMatch[1];
+  }
+
+  // Look for postcode patterns in description (e.g., "NG1", "SW1")
+  const postcodeMatch = description.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b/);
+  if (postcodeMatch) {
+    // Map postcode areas to cities
+    const postcodeAreas = {
+      NG: "Nottingham",
+      NN: "Northampton",
+      N: "North London",
+      SW: "South West London",
+      SE: "South East London",
+      E: "East London",
+      W: "West London",
+      NW: "North West London",
+      EC: "City of London",
+      B: "Birmingham",
+      M: "Manchester",
+      L: "Liverpool",
+      LS: "Leeds",
+      S: "Sheffield",
+      BS: "Bristol",
+      EH: "Edinburgh",
+      G: "Glasgow",
+      CF: "Cardiff",
+      BT: "Belfast",
+      NE: "Newcastle",
+      SO: "Southampton",
+    };
+    const area = postcodeMatch[1].replace(/\d+[A-Z]?$/, "");
+    if (postcodeAreas[area]) return postcodeAreas[area];
+  }
+
+  // If buyer is short and simple, might be a place name
+  if (
+    buyer.length > 3 &&
+    buyer.length < 30 &&
+    !skipTerms.some((term) => buyer.toLowerCase().includes(term))
+  ) {
+    const simpleBuyer = buyer
+      .replace(/\s+(Council|Authority|Limited|Ltd|NHS|Trust|Association)$/i, "")
+      .trim();
+    if (simpleBuyer.length > 3) return simpleBuyer;
+  }
+
+  // Final fallback
+  return "UK";
+}
+
+function createSummary(description) {
+  if (!description) return "No description available.";
+
+  const cleaned = description.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+
+  const sentences = cleaned.match(/[^.!?]+[.!?]+/g) || [cleaned];
+  const summary = sentences.slice(0, 5).join(" ");
+
+  if (summary.length > 500) {
+    return summary.substring(0, 497) + "...";
+  }
+
+  return summary || cleaned.substring(0, 500);
+}
+
+// ============================================================================
+// API ENDPOINTS
+// ============================================================================
+
+// Health check
+
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
