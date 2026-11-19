@@ -1678,6 +1678,130 @@
       .buf-link { color: var(--ocean); text-decoration: none; font-size: 11px; }
       .buf-link:hover { text-decoration: underline; }
       .buf-title { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      /* ⚙️ Settings — CTA sign-off rotation */
+      .btn-settings {
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border: 2px solid var(--sand);
+        border-radius: 12px;
+        background: var(--cream);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn-settings:hover { border-color: var(--coral); background: var(--peach); color: var(--terracotta); }
+      .btn-settings svg { width: 20px; height: 20px; transition: transform 0.3s; }
+      .btn-settings:hover svg { transform: rotate(45deg); }
+
+      .settings-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(45, 36, 22, 0.35);
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 48px 16px;
+        z-index: 1000;
+        overflow-y: auto;
+      }
+      .settings-overlay.open { display: flex; }
+      .settings-panel {
+        width: 100%;
+        max-width: 640px;
+        background: var(--warm-white);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+      }
+      .settings-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 2px solid var(--peach);
+      }
+      .settings-head h2 { font-family: "Fraunces", serif; font-size: 20px; color: var(--terracotta); }
+      .settings-close { background: none; border: none; font-size: 24px; line-height: 1; cursor: pointer; color: var(--text-muted); }
+      .settings-close:hover { color: var(--terracotta); }
+      .settings-body { padding: 8px 24px 4px; }
+      .settings-section { padding: 16px 0; }
+      .settings-section + .settings-section { border-top: 1px solid var(--sand); }
+      .settings-section h3 { font-size: 15px; font-weight: 700; color: var(--deep-brown); }
+      .settings-hint { font-size: 12px; color: var(--text-muted); margin: 2px 0 12px; }
+      .set-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        margin-bottom: 6px;
+        background: var(--cream);
+        border: 1px solid var(--sand);
+        border-radius: 10px;
+        font-size: 14px;
+      }
+      .set-row .set-text { flex: 1; min-width: 0; }
+      .set-row textarea {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font: inherit;
+        color: var(--text-primary);
+        resize: vertical;
+        min-height: 22px;
+      }
+      .set-row textarea:focus { outline: none; }
+      .set-anchor {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 20px;
+        border: 1px solid var(--sand);
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: "Poppins", sans-serif;
+      }
+      .set-anchor:hover { border-color: var(--gold); color: var(--brown); }
+      .set-anchor.on { background: var(--gold); border-color: var(--gold); color: white; }
+      .set-anchor:not(.on) { opacity: 0; transition: opacity 0.15s; }
+      .set-row:hover .set-anchor, .set-anchor:focus-visible { opacity: 1; }
+      .set-del { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-muted); padding: 0 4px; }
+      .set-del:hover { color: #c0392b; }
+      .set-add { display: flex; gap: 8px; margin-top: 8px; }
+      .set-add input, .set-add textarea {
+        flex: 1;
+        padding: 8px 12px;
+        border: 2px solid var(--sand);
+        border-radius: 10px;
+        font: inherit;
+        font-size: 14px;
+        background: white;
+        resize: vertical;
+      }
+      .set-add input:focus, .set-add textarea:focus { outline: none; border-color: var(--coral); }
+      .settings-preview {
+        white-space: pre-wrap;
+        font-size: 13px;
+        background: var(--cream);
+        border: 1px dashed var(--gold);
+        border-radius: 10px;
+        padding: 10px 12px;
+        color: var(--text-secondary);
+      }
+      .settings-foot {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 16px 24px;
+        border-top: 2px solid var(--peach);
+        background: var(--cream);
+      }
+      .settings-foot .settings-meta { margin-right: auto; font-size: 12px; color: var(--text-muted); }
       </style>
       </head>
       <body>
@@ -1717,6 +1841,52 @@
         <div class="topbar-left">
           <h1 id="topTitle">All Sectors</h1>
           <span class="topbar-count" id="topCount">—</span>
+        </div>
+        <button class="btn-settings" onclick="openSettings()" title="Sign-off settings" aria-label="Sign-off settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+
+      <!-- ⚙️ SETTINGS — CTA sign-off rotation -->
+      <div class="settings-overlay" id="settingsOverlay" onclick="if (event.target === this) closeSettings()">
+        <div class="settings-panel" role="dialog" aria-labelledby="settingsTitle">
+          <div class="settings-head">
+            <h2 id="settingsTitle">Sign-off settings</h2>
+            <button class="settings-close" onclick="closeSettings()" aria-label="Close">&times;</button>
+          </div>
+          <div class="settings-body">
+            <div class="settings-section">
+              <h3>Salespeople</h3>
+              <p class="settings-hint">Everyone here is tagged in every post's sign-off, in a random order. The one marked <b>Always last</b> closes the list.</p>
+              <div id="setMembers"></div>
+              <div class="set-add">
+                <input id="setMemberInput" placeholder="Add a salesperson (full LinkedIn name)" onkeydown="if (event.key === 'Enter') addSetMember()" />
+                <button class="btn-fmt" onclick="addSetMember()">Add</button>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3>CTAs</h3>
+              <p class="settings-hint">One of these is picked at random for each post. Use <b>@Bid Writing Service</b> to tag the company page.</p>
+              <div id="setCtas"></div>
+              <div class="set-add">
+                <textarea id="setCtaInput" rows="2" placeholder="Add a CTA line"></textarea>
+                <button class="btn-fmt" onclick="addSetCta()">Add</button>
+              </div>
+            </div>
+            <div class="settings-section">
+              <h3>Example sign-off</h3>
+              <p class="settings-hint">How it'll look on the next post — CTA, contact verb and name order vary each time.</p>
+              <div class="settings-preview" id="setPreview"></div>
+            </div>
+          </div>
+          <div class="settings-foot">
+            <span class="settings-meta" id="setMeta"></span>
+            <button class="btn-fmt" onclick="closeSettings()">Cancel</button>
+            <button class="btn-generate" id="btnSaveSettings" onclick="saveSettings()">
+              <span class="spinner"></span>
+              <span class="btn-label">Save</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -3416,6 +3586,150 @@
 
       function escHtml(s) {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      }
+
+      // ===== ⚙️ SETTINGS — CTA sign-off rotation =====
+      var setState = null;
+
+      function openSettings() {
+        document.getElementById("settingsOverlay").classList.add("open");
+        document.getElementById("setMembers").innerHTML = '<p class="settings-hint">Loading…</p>';
+        document.getElementById("setCtas").innerHTML = "";
+        document.getElementById("setPreview").textContent = "";
+        fetch("/posts/api/settings/signoff")
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (!d.success) throw new Error(d.error || "Could not load settings");
+            setState = {
+              members: d.settings.members.slice(),
+              anchor: d.settings.anchor || "",
+              ctas: d.settings.ctas.slice(),
+            };
+            document.getElementById("setMeta").textContent = d.settings.updated_at
+              ? "Last saved " + new Date(d.settings.updated_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })
+              : "Using the default rotation";
+            renderSettings();
+          })
+          .catch(function (e) {
+            document.getElementById("setMembers").innerHTML = '<p class="settings-hint">' + escHtml(e.message) + "</p>";
+          });
+      }
+
+      function closeSettings() {
+        document.getElementById("settingsOverlay").classList.remove("open");
+      }
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") closeSettings();
+      });
+
+      function renderSettings() {
+        document.getElementById("setMembers").innerHTML = setState.members
+          .map(function (m, i) {
+            var on = m === setState.anchor;
+            return (
+              '<div class="set-row"><span class="set-text">@' + escHtml(m) + "</span>" +
+              '<button class="set-anchor' + (on ? " on" : "") + '" onclick="toggleSetAnchor(' + i + ')" title="Always name this person last">' +
+              (on ? "★ Always last" : "Always last") + "</button>" +
+              '<button class="set-del" onclick="removeSetMember(' + i + ')" title="Remove">&times;</button></div>'
+            );
+          })
+          .join("");
+        document.getElementById("setCtas").innerHTML = setState.ctas
+          .map(function (c, i) {
+            return (
+              '<div class="set-row"><span class="set-text"><textarea rows="2" oninput="editSetCta(' + i + ', this.value)">' +
+              escHtml(c) + "</textarea></span>" +
+              '<button class="set-del" onclick="removeSetCta(' + i + ')" title="Remove">&times;</button></div>'
+            );
+          })
+          .join("");
+        renderSettingsPreview();
+      }
+
+      // Mirrors buildSignoff() in signoff-settings.js
+      function renderSettingsPreview() {
+        var el = document.getElementById("setPreview");
+        var ctas = setState.ctas.filter(function (c) { return c.trim(); });
+        if (!setState.members.length || !ctas.length) {
+          el.textContent = "Add at least one salesperson and one CTA.";
+          return;
+        }
+        var rotating = setState.members.filter(function (m) { return m !== setState.anchor; });
+        var names = (setState.anchor ? rotating.concat([setState.anchor]) : rotating).map(function (n) { return "@" + n; });
+        var list = names.length === 1 ? names[0] : names.slice(0, -1).join(", ") + " or " + names[names.length - 1];
+        el.textContent = ctas[0].trim() + "\n\nContact " + list + " today!";
+      }
+
+      function addSetMember() {
+        var input = document.getElementById("setMemberInput");
+        var name = input.value.replace(/^@+/, "").replace(/\s+/g, " ").trim();
+        if (!name) return;
+        if (setState.members.some(function (m) { return m.toLowerCase() === name.toLowerCase(); })) {
+          showToast(name + " is already in the rotation", "error");
+          return;
+        }
+        // New people join the rotation ahead of whoever is always last.
+        var at = setState.members.indexOf(setState.anchor);
+        if (at === -1) setState.members.push(name);
+        else setState.members.splice(at, 0, name);
+        input.value = "";
+        renderSettings();
+        input.focus();
+      }
+
+      function removeSetMember(i) {
+        if (setState.members[i] === setState.anchor) setState.anchor = "";
+        setState.members.splice(i, 1);
+        renderSettings();
+      }
+
+      function toggleSetAnchor(i) {
+        var m = setState.members[i];
+        setState.anchor = setState.anchor === m ? "" : m;
+        renderSettings();
+      }
+
+      function addSetCta() {
+        var input = document.getElementById("setCtaInput");
+        var cta = input.value.replace(/\s+/g, " ").trim();
+        if (!cta) return;
+        setState.ctas.push(cta);
+        input.value = "";
+        renderSettings();
+      }
+
+      function editSetCta(i, value) {
+        setState.ctas[i] = value;
+        renderSettingsPreview();
+      }
+
+      function removeSetCta(i) {
+        setState.ctas.splice(i, 1);
+        renderSettings();
+      }
+
+      function saveSettings() {
+        if (!setState) return;
+        var btn = document.getElementById("btnSaveSettings");
+        btn.classList.add("loading");
+        btn.disabled = true;
+        fetch("/posts/api/settings/signoff", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(setState),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (!d.success) throw new Error(d.error || "Save failed");
+            showToast("Sign-off settings saved — new posts will use them");
+            closeSettings();
+          })
+          .catch(function (e) { showToast(e.message, "error"); })
+          .finally(function () {
+            btn.classList.remove("loading");
+            btn.disabled = false;
+          });
       }
 
       var toastT;

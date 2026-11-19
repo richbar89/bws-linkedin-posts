@@ -6,7 +6,11 @@
 const express = require("express");
 const { Client } = require("pg");
 const { exec } = require("child_process");
-const { generatePost, TEAM_MEMBERS } = require("./generate-posts");
+const { generatePost } = require("./generate-posts");
+const {
+  getSignoffSettings,
+  saveSignoffSettings,
+} = require("./signoff-settings");
 const { fetchAndScoreTenders } = require("./agents/fetcher");
 const { writePostsForShortlist } = require("./agents/writer");
 const {
@@ -2051,6 +2055,7 @@ app.post("/api/generate-posts", async (req, res) => {
     console.log(`\n🤖 Generating ${tenders.length} LinkedIn post(s)...\n`);
 
     const generatedPosts = [];
+    const { members: teamMembers } = await getSignoffSettings();
 
     // Generate posts one by one
     for (let i = 0; i < tenders.length; i++) {
@@ -2060,7 +2065,7 @@ app.post("/api/generate-posts", async (req, res) => {
       const industryName = INDUSTRIES[industryKey]
         ? INDUSTRIES[industryKey].name
         : "General";
-      const teamMember = TEAM_MEMBERS[i % TEAM_MEMBERS.length];
+      const teamMember = teamMembers[i % teamMembers.length];
 
       console.log(
         `  📝 [${i + 1}/${tenders.length}] ${tender.title.substring(0, 60)}...`,
@@ -2113,6 +2118,22 @@ app.post("/api/generate-posts", async (req, res) => {
     res.status(500).json({ error: error.message });
   } finally {
     await client.end();
+  }
+});
+
+// GET/PUT /api/settings/signoff — the ⚙️ panel: salespeople named in the
+// sign-off (anchor always last) and the CTA lines picked at random per post.
+app.get("/api/settings/signoff", async (_req, res) => {
+  res.json({ success: true, settings: await getSignoffSettings() });
+});
+
+app.put("/api/settings/signoff", async (req, res) => {
+  try {
+    const { settings, error } = await saveSignoffSettings(req.body || {});
+    if (error) return res.status(400).json({ success: false, error });
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

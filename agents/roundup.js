@@ -5,7 +5,8 @@ const Anthropic = require("@anthropic-ai/sdk");
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const ROTATING_MEMBERS = ["James Wignall", "Stacey Crawford", "Jake Swinburn"];
+// Salespeople are edited from the ⚙️ settings panel (same list as tender posts).
+const { getSignoffSettings, formatNames } = require("../signoff-settings");
 
 const CATEGORY_PAGE_NAMES = {
   security: "Bid Writing Service | Security",
@@ -102,9 +103,8 @@ async function generateRoundupPost(tenders, category) {
   const pageName =
     CATEGORY_PAGE_NAMES[category.toLowerCase()] || "Bid Writing Service";
 
-  // Shuffle rotating members, Mike Baron always last
-  const shuffled = [...ROTATING_MEMBERS].sort(() => Math.random() - 0.5);
-  const nameStr = shuffled.join(", ") + " or Mike Baron";
+  // Shuffle rotating members, anchor (Mike Baron by default) always last
+  const nameStr = formatNames(await getSignoffSettings(), { at: false });
 
   // Build tender data for the prompt
   const tenderSummaries = selected

@@ -54,44 +54,13 @@ function formatForLinkedIn(text) {
   return lines.join("\n");
 }
 
-// All rotating members appear each time in random order — Mike Baron always last
-const ROTATING_MEMBERS = [
-  "James Wignall",
-  "Stacey Crawford",
-  "Jake Swinburn",
-  "Natasha Marshall",
-  "James Kerwin",
-];
-const TEAM_MEMBERS = [...ROTATING_MEMBERS, "Mike Baron"];
-
-const SIGNOFFS = [
-  "Let @Bid Writing Service manage the entire bid writing process for you...",
-  "@Bid Writing Service are an award winning bid writing consultancy, we're excellently positioned to win tenders just like this!",
-  "@Bid Writing Service have won over £5.5 billion in contracts for our clients. Join them!",
-  "Interested in this tender? @Bid Writing Service can support!",
-  "We have a team of expert bid writers at @Bid Writing Service ready to win this one for your company.",
-];
-
-const CONTACT_VERBS = [
-  "Contact",
-  "Get in touch with",
-  "Reach out to",
-  "Connect with",
-];
-
-function buildSignoff() {
-  // Pick a random sign-off
-  const signoff = SIGNOFFS[Math.floor(Math.random() * SIGNOFFS.length)];
-
-  // All 3 rotating members in random order, Mike Baron always last
-  const shuffled = [...ROTATING_MEMBERS].sort(() => Math.random() - 0.5);
-  const nameStr = shuffled.map((n) => "@" + n).join(", ") + " or @Mike Baron";
-
-  // Pick a random contact verb
-  const verb = CONTACT_VERBS[Math.floor(Math.random() * CONTACT_VERBS.length)];
-
-  return signoff + "\n\n" + verb + " " + nameStr + " today!";
-}
+// Salespeople + CTA lines are edited from the ⚙️ settings panel.
+const {
+  DEFAULTS: SIGNOFF_DEFAULTS,
+  getSignoffSettings,
+  buildSignoff,
+} = require("./signoff-settings");
+const TEAM_MEMBERS = SIGNOFF_DEFAULTS.members;
 
 // ---- Fetch a URL and return the text body ----
 function fetchUrl(url) {
@@ -167,7 +136,7 @@ Interested in this tender? @Bid Writing Service can support!
 Reach out to @Stacey Crawford, @Jake Swinburn or @Mike Baron today!`;
 
 async function generatePost(tender, categoryName, teamMember, postIndex) {
-  const signoffBlock = buildSignoff();
+  const signoffBlock = buildSignoff(await getSignoffSettings());
 
   // Fetch the live tender page
   let tenderPageText = null;

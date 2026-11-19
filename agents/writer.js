@@ -8,41 +8,12 @@ const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const ROTATING_MEMBERS = [
-  "James Wignall",
-  "Stacey Crawford",
-  "Jake Swinburn",
-  "Natasha Marshall",
-  "James Kerwin",
-];
-const TEAM_MEMBERS = [...ROTATING_MEMBERS, "Mike Baron"];
-
-const SIGNOFFS = [
-  "Let @Bid Writing Service manage the entire bid writing process for you...",
-  "@Bid Writing Service are an award winning bid writing consultancy, we're excellently positioned to win tenders just like this!",
-  "@Bid Writing Service have won over £5.5 billion in contracts for our clients. Join them!",
-  "Interested in this tender? @Bid Writing Service can support!",
-  "We have a team of expert bid writers at @Bid Writing Service ready to win this one for your company.",
-];
-
-const CONTACT_VERBS = [
-  "Contact",
-  "Get in touch with",
-  "Reach out to",
-  "Connect with",
-];
+// Salespeople + CTA lines are edited from the ⚙️ settings panel.
+const { getSignoffSettings, buildSignoff } = require("../signoff-settings");
 
 // Bold styling is shared with the UI generation path so pipeline posts and
 // button-generated posts always match.
 const { formatForLinkedIn } = require("../generate-posts");
-
-function buildSignoff() {
-  const signoff = SIGNOFFS[Math.floor(Math.random() * SIGNOFFS.length)];
-  const shuffled = [...ROTATING_MEMBERS].sort(() => Math.random() - 0.5);
-  const nameStr = shuffled.map((n) => "@" + n).join(", ") + " or @Mike Baron";
-  const verb = CONTACT_VERBS[Math.floor(Math.random() * CONTACT_VERBS.length)];
-  return signoff + "\n\n" + verb + " " + nameStr + " today!";
-}
 
 async function fetchUrl(url) {
   const response = await fetch(url, {
@@ -112,7 +83,7 @@ Reach out to @Stacey Crawford, @Jake Swinburn or @Mike Baron today!`;
 
 // Generate a LinkedIn post for a single tender
 async function writeTenderPost(tender, teamMemberIndex = 0, preloadedContent = null) {
-  const signoffBlock = buildSignoff();
+  const signoffBlock = buildSignoff(await getSignoffSettings());
 
   // Use pre-loaded content if provided, otherwise try fetching the live page
   let tenderPageText = preloadedContent || null;
